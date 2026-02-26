@@ -39,7 +39,15 @@ export default function CropList() {
     if (!finalName) return;
     const { customName, ...cropData } = form;
     try {
-      await db.add(TABLES.CROP, { ...cropData, name: finalName });
+      await db.add(TABLES.CROP, {
+        name:        finalName,
+        variety:     cropData.variety    || null,
+        area:        cropData.area       || null,
+        plantingDate:cropData.plantingDate,
+        growMethod:  cropData.growMethod || '노지',
+        seedType:    cropData.seedType   || null,
+        note:        cropData.note       || null,
+      });
       await load();
       setForm({ ...BLANK_FORM });
       setShowForm(false);
