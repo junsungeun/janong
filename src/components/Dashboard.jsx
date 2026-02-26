@@ -222,12 +222,17 @@ export default function Dashboard({ onNavigate }) {
         <div className="section-header" style={{ marginBottom: '12px' }}>
           <span className="section-title">일정</span>
           <button
-            className="btn-ghost"
             onClick={() => { setCalExpanded(v => !v); setCalSelDate(null); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '32px', height: '32px', borderRadius: '8px',
+              background: calExpanded ? 'var(--color-primary-light)' : 'var(--bg-card)',
+              border: `1px solid ${calExpanded ? 'var(--color-primary)' : 'var(--border)'}`,
+              cursor: 'pointer', color: calExpanded ? 'var(--color-primary)' : 'var(--text-muted)',
+              transition: 'all 0.15s', flexShrink: 0,
+            }}
           >
-            {calExpanded ? '접기' : '달력 펼치기'}
-            {calExpanded ? <ChevronUp size={13} strokeWidth={1.5} /> : <ChevronDown size={13} strokeWidth={1.5} />}
+            {calExpanded ? <ChevronUp size={15} strokeWidth={2} /> : <CalendarDays size={15} strokeWidth={1.5} />}
           </button>
         </div>
 
