@@ -8,9 +8,9 @@ export const toast = {
 };
 
 const STYLES = {
-  success: { bg: '#3B5E3A', icon: <CheckCircle size={15} strokeWidth={2} /> },
-  error:   { bg: '#C0392B', icon: <XCircle     size={15} strokeWidth={2} /> },
-  info:    { bg: '#8B6914', icon: <Info        size={15} strokeWidth={2} /> },
+  success: { bg: 'var(--color-primary)', icon: <CheckCircle size={15} strokeWidth={2} /> },
+  error:   { bg: 'var(--color-danger)',  icon: <XCircle     size={15} strokeWidth={2} /> },
+  info:    { bg: 'var(--color-earth)',   icon: <Info        size={15} strokeWidth={2} /> },
 };
 
 export function ToastContainer() {

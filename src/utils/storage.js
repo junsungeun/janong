@@ -46,16 +46,6 @@ export const storage = {
   },
 };
 
-// 스토리지 키 상수
-export const KEYS = {
-  DAILY_LOG:    'daily_log',
-  TODO:         'todo',
-  ISSUE:        'issue',
-  WORK_TIMER:   'work_timer',
-  CHEM_LOG:     'chem_log',
-  RECIPE:       'recipe',
-  CROP:         'crop',
-  MICROBE_LOG:  'microbe_log',
-  CALENDAR:     'calendar',
-  SETTINGS:     'settings',
-};
+// ※ KEYS 상수는 초기 localStorage 플랜 레거시
+//   현재 앱은 전체 Supabase(dbService.js) 사용 — 미사용
+// export const KEYS = { ... };
