@@ -4,7 +4,8 @@
 //   → allorigins.win 프록시를 통해 우회 (오픈소스: github.com/gnuns/allorigins)
 
 const BASE_URL  = 'https://apis.data.go.kr/1390802/AgriWeather/WeatherObsrInfo/V3/GnrlWeather/getWeatherTimeList3';
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+// /raw는 불안정, /get은 JSON { contents: "...xml..." } 형태로 안정적으로 반환
+const CORS_PROXY = 'https://api.allorigins.win/get?url=';
 
 // ── Mock 날씨 데이터 (호출 실패 시 fallback) ──────────────────────────
 export const mockWeather = {
@@ -120,7 +121,9 @@ export const fetchWeather = async (stationCode, apiKey) => {
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    const xml    = await response.text();
+    // /get 엔드포인트는 { contents: "xml string", status: {...} } JSON 반환
+    const json = await response.json();
+    const xml  = json.contents;
     const parser = new DOMParser();
     const doc    = parser.parseFromString(xml, 'text/xml');
 
