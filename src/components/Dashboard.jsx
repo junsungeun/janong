@@ -232,7 +232,7 @@ export default function Dashboard({ onNavigate }) {
               transition: 'all 0.15s', flexShrink: 0,
             }}
           >
-            {calExpanded ? <ChevronUp size={15} strokeWidth={2} /> : <CalendarDays size={15} strokeWidth={1.5} />}
+            {calExpanded ? <ChevronUp size={15} strokeWidth={2} /> : <ChevronDown size={15} strokeWidth={2} />}
           </button>
         </div>
 
