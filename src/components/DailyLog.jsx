@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { formatDate } from '../utils/solarTerms';
+import { toast } from './Toast';
 
 const WEATHER_OPTIONS = ['맑음', '흐림', '비', '눈', '바람'];
 const WORK_TYPES = ['파종', '정식', '물주기', '방제', '수확', '전정', '멀칭', '기타'];
@@ -29,15 +30,21 @@ export default function DailyLog({ addTrigger }) {
 
   const save = async () => {
     if (!form.content.trim()) return;
-    if (editingId) {
-      await db.update(TABLES.DAILY_LOG, editingId, form);
-      setEditingId(null);
-    } else {
-      await db.add(TABLES.DAILY_LOG, form);
+    try {
+      if (editingId) {
+        await db.update(TABLES.DAILY_LOG, editingId, form);
+        setEditingId(null);
+        toast.success('일지 수정 완료');
+      } else {
+        await db.add(TABLES.DAILY_LOG, form);
+        toast.success('오늘의 농사 기록 저장됨');
+      }
+      await load();
+      setForm({ date: new Date().toISOString().slice(0, 10), weather: '맑음', workTypes: [], content: '', memo: '' });
+      setShowForm(false);
+    } catch (e) {
+      toast.error('저장 중 오류가 발생했어요');
     }
-    await load();
-    setForm({ date: new Date().toISOString().slice(0, 10), weather: '맑음', workTypes: [], content: '', memo: '' });
-    setShowForm(false);
   };
 
   const startEdit = (log) => {

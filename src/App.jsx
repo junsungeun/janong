@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, lazy, Suspense, useCallback } from 'react';
 import {
   Home, Sprout, BookOpen, Calendar, MoreHorizontal,
-  Bell, AlertTriangle, CheckSquare, Sprout as SproutIcon, X,
+  Bell, AlertTriangle, CheckSquare, Sprout as SproutIcon, X, Plus,
 } from 'lucide-react';
+import { ToastContainer } from './components/Toast';
 import './styles/globals.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import { db, TABLES } from './services/dbService';
@@ -187,6 +188,66 @@ function NotifPanel({ onClose, onNavigate }) {
   );
 }
 
+// ── FAB ────────────────────────────────────────────────────────────────
+function FAB({ onNavigate }) {
+  const [open, setOpen] = useState(false);
+
+  const actions = [
+    {
+      label: '이슈 등록', color: 'var(--color-danger)',
+      icon: <AlertTriangle size={14} strokeWidth={2} />,
+      onClick: () => { onNavigate('home', { action: 'issue' }); setOpen(false); },
+    },
+    {
+      label: '할 일 추가', color: 'var(--color-info)',
+      icon: <CheckSquare size={14} strokeWidth={2} />,
+      onClick: () => { onNavigate('home', { action: 'todo' }); setOpen(false); },
+    },
+    {
+      label: '농사 일지', color: 'var(--color-primary)',
+      icon: <BookOpen size={14} strokeWidth={2} />,
+      onClick: () => { onNavigate('record', { sub: 'log', add: true }); setOpen(false); },
+    },
+  ];
+
+  return (
+    <>
+      {open && (
+        <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 140 }} />
+      )}
+      <div style={{ position: 'fixed', bottom: '76px', right: '16px', zIndex: 150, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+        {open && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', alignItems: 'flex-end' }}>
+            {actions.map((a, i) => (
+              <button key={i} onClick={a.onClick} style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '9px 16px', background: 'var(--bg-card)',
+                border: `1.5px solid ${a.color}`, borderRadius: '20px',
+                fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'var(--font-sans)', color: a.color,
+                boxShadow: '0 3px 12px rgba(0,0,0,0.14)', whiteSpace: 'nowrap',
+              }}>
+                {a.icon}
+                {a.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <button onClick={() => setOpen(v => !v)} style={{
+          width: '52px', height: '52px', borderRadius: '50%',
+          background: open ? 'var(--color-primary-dark)' : 'var(--color-primary)',
+          color: '#fff', border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', boxShadow: '0 4px 16px rgba(59,94,58,0.4)',
+          transition: 'background 0.2s',
+        }}>
+          {open ? <X size={20} strokeWidth={2.5} /> : <Plus size={22} strokeWidth={2.5} />}
+        </button>
+      </div>
+    </>
+  );
+}
+
 // ── 앱 ────────────────────────────────────────────────────────────────
 function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -194,6 +255,7 @@ function App() {
   const [showNotif, setShowNotif] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [recordTrigger, setRecordTrigger] = useState(null);
+  const [homeTrigger, setHomeTrigger] = useState(null);
   const contentRef = useRef(null);
 
   const handleTabChange = (tabId, params = null) => {
@@ -202,6 +264,9 @@ function App() {
     setShowNotif(false);
     if (tabId === 'record' && params) {
       setRecordTrigger({ ...params, key: Date.now() });
+    }
+    if (tabId === 'home' && params) {
+      setHomeTrigger({ ...params, key: Date.now() });
     }
   };
 
@@ -232,7 +297,7 @@ function App() {
 
   const renderTab = (tabId) => {
     switch (tabId) {
-      case 'home':     return <Dashboard onNavigate={handleTabChange} />;
+      case 'home':     return <Dashboard onNavigate={handleTabChange} trigger={homeTrigger} />;
       case 'crop':     return <CropTab />;
       case 'record':   return <RecordTab trigger={recordTrigger} />;
       case 'calendar': return <CalendarView />;
@@ -323,6 +388,9 @@ function App() {
           </Suspense>
         </ErrorBoundary>
       </main>
+
+      <FAB onNavigate={handleTabChange} />
+      <ToastContainer />
 
       {/* ── 하단 탭 네비게이션 ── */}
       <nav className="tab-nav">

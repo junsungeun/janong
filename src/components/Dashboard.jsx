@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  CheckSquare, AlertTriangle, Timer, Plus, Leaf,
-  RefreshCw, X, ChevronRight, ChevronDown, ChevronUp,
-  ChevronLeft, CalendarDays, Sprout,
+  CheckSquare, AlertTriangle,
+  RefreshCw, X, ChevronDown, ChevronUp,
+  ChevronLeft, ChevronRight, CalendarDays, Sprout,
 } from 'lucide-react';
 import { getCurrentSolarTerm, formatDate } from '../utils/solarTerms';
 import { db, TABLES } from '../services/dbService';
@@ -48,7 +48,7 @@ function ResultView({ text }) {
   );
 }
 
-export default function Dashboard({ onNavigate }) {
+export default function Dashboard({ onNavigate, trigger }) {
   const [todos, setTodos]       = useState([]);
   const [issues, setIssues]     = useState([]);
   const [crops, setCrops]       = useState([]);
@@ -89,6 +89,20 @@ export default function Dashboard({ onNavigate }) {
   };
 
   useEffect(() => { load(); }, []);
+
+  // FAB / 외부 트리거 처리
+  useEffect(() => {
+    if (!trigger?.key) return;
+    if (trigger.action === 'todo') {
+      setShowTodoForm(true);
+      setShowIssueForm(false);
+    } else if (trigger.action === 'issue') {
+      setShowIssueForm(true);
+      setShowTodoForm(false);
+      setSavedIssue(null);
+      setIssueAdvice(null);
+    }
+  }, [trigger?.key]);
 
   const toggleTodo = async (id) => {
     await db.update(TABLES.TODO, id, { done: !todos.find(t => t.id === id)?.done });
@@ -213,6 +227,40 @@ export default function Dashboard({ onNavigate }) {
           — {verse.ref}
         </p>
       </div>
+
+      {/* ── 미해결 이슈 알림 (긴급 — 날씨 위) ── */}
+      {activeIssues.length > 0 && !showIssueForm && (
+        <div className="mb-5">
+          <div className="section-header">
+            <span className="section-title" style={{ color: 'var(--color-danger)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '16px' }}>
+              <AlertTriangle size={16} strokeWidth={1.5} />
+              미해결 이슈 {activeIssues.length}건
+            </span>
+            <button className="btn-ghost" onClick={() => onNavigate('more')}>전체 보기</button>
+          </div>
+          {activeIssues.slice(0, 2).map(issue => (
+            <div key={issue.id} className="card" style={{
+              borderLeft: '3px solid var(--color-danger)', borderRadius: '0 8px 8px 0',
+              padding: '14px 16px', marginBottom: '6px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{issue.title}</p>
+                  <p style={{ fontSize: 'var(--text-caption)', color: 'var(--text-muted)', marginTop: '3px' }}>작물: {issue.crop}</p>
+                </div>
+                <span className="badge badge-danger">
+                  {issue.severity === 'high' ? '높음' : issue.severity === 'mid' ? '보통' : '낮음'}
+                </span>
+              </div>
+            </div>
+          ))}
+          {activeIssues.length > 2 && (
+            <button className="btn-ghost" onClick={() => onNavigate('more')} style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              +{activeIssues.length - 2}건 더 보기
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── 날씨 카드 ── */}
       <WeatherCard />
@@ -510,42 +558,6 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </div>
 
-      {/* ── 미해결 이슈 알림 ── */}
-      {activeIssues.length > 0 && !showIssueForm && (
-        <div className="mb-5">
-          <div className="section-header">
-            <span className="section-title" style={{ color: 'var(--color-danger)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <AlertTriangle size={18} strokeWidth={1.5} />
-                미해결 이슈 {activeIssues.length}건
-              </span>
-            </span>
-            <button className="btn-ghost" onClick={() => onNavigate('more')}>전체 보기</button>
-          </div>
-          {activeIssues.slice(0, 2).map(issue => (
-            <div key={issue.id} className="card" style={{
-              borderLeft: '3px solid var(--color-danger)', borderRadius: '0 8px 8px 0',
-              padding: '14px 16px', marginBottom: '6px',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{issue.title}</p>
-                  <p style={{ fontSize: 'var(--text-caption)', color: 'var(--text-muted)', marginTop: '3px' }}>작물: {issue.crop}</p>
-                </div>
-                <span className="badge badge-danger">
-                  {issue.severity === 'high' ? '높음' : issue.severity === 'mid' ? '보통' : '낮음'}
-                </span>
-              </div>
-            </div>
-          ))}
-          {activeIssues.length > 2 && (
-            <button className="btn-ghost" onClick={() => onNavigate('more')} style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              +{activeIssues.length - 2}건 더 보기
-            </button>
-          )}
-        </div>
-      )}
-
       {/* ── 이슈 등록 인라인 폼 ── */}
       {showIssueForm && (
         <div className="mb-5">
@@ -654,51 +666,6 @@ export default function Dashboard({ onNavigate }) {
           )}
         </div>
       )}
-
-      {/* ── 빠른 기록 버튼 ── */}
-      <div style={{
-        background: 'var(--bg-dark)', borderRadius: '12px',
-        padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px',
-      }}>
-        <p style={{ fontFamily: 'var(--font-serif)', fontSize: '15px', color: 'var(--text-light)', marginBottom: '4px' }}>
-          오늘 농사 기록
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-          {[
-            { icon: <Leaf          size={16} strokeWidth={1.5} />, label: '농사 일지',   action: () => onNavigate('record', { sub: 'log',   add: true }) },
-            { icon: <Timer         size={16} strokeWidth={1.5} />, label: '작업 타이머', action: () => onNavigate('record', { sub: 'timer', add: false }) },
-            { icon: <AlertTriangle size={16} strokeWidth={1.5} />, label: '이슈 등록',
-              action: () => {
-                setShowIssueForm(true);
-                setShowTodoForm(false);
-                setSavedIssue(null);
-                setIssueAdvice(null);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              },
-            },
-            { icon: <Plus          size={16} strokeWidth={1.5} />, label: '할 일 추가',
-              action: () => { setShowTodoForm(true); setShowIssueForm(false); },
-            },
-          ].map((item, i) => (
-            <button key={i} onClick={item.action}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '12px 14px',
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: '8px', color: 'var(--text-light)',
-                fontSize: 'var(--text-sm)', cursor: 'pointer',
-                transition: 'background 0.15s', fontFamily: 'var(--font-sans)',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.14)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
     </div>
   );

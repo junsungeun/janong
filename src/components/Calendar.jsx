@@ -183,6 +183,7 @@ export default function Calendar() {
   const [crops, setCrops]         = useState([]);
   const [issues, setIssues]       = useState([]);
   const [todos, setTodos]         = useState([]);
+  const [showOverdue, setShowOverdue] = useState(true);
 
   const loadAll = async () => {
     const [cal, c, iss, td] = await Promise.all([
@@ -449,14 +450,35 @@ export default function Calendar() {
       {GROUPS.map(g => {
         const items = grouped[g.key] || [];
         if (items.length === 0) return null;
+        const isOverdue = g.key === 'overdue';
         return (
           <div key={g.key} style={{ marginBottom: '20px' }}>
-            <GroupHeader config={g} count={items.length} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              {items.map((ev, i) => (
-                <AgendaItem key={i} ev={ev} showDate onDelete={delEvent} onToggle={toggleTodo} />
-              ))}
-            </div>
+            {isOverdue ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <GroupHeader config={g} count={items.length} />
+                <button
+                  onClick={() => setShowOverdue(v => !v)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-sans)',
+                    display: 'flex', alignItems: 'center', gap: '3px',
+                    padding: '2px 6px',
+                  }}
+                >
+                  {showOverdue ? <ChevronUp size={13} strokeWidth={1.5} /> : <ChevronDown size={13} strokeWidth={1.5} />}
+                  {showOverdue ? '숨기기' : '보이기'}
+                </button>
+              </div>
+            ) : (
+              <GroupHeader config={g} count={items.length} />
+            )}
+            {(!isOverdue || showOverdue) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                {items.map((ev, i) => (
+                  <AgendaItem key={i} ev={ev} showDate onDelete={delEvent} onToggle={toggleTodo} />
+                ))}
+              </div>
+            )}
           </div>
         );
       })}

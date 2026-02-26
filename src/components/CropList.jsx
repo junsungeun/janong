@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Sprout, ChevronRight, ArrowLeft, Trash2, CalendarDays, Camera } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
+import { toast } from './Toast';
 import { SUPPORTED_CROPS, daysSincePlanting } from '../data/cropTimelines';
 import CropTimeline from './CropTimeline';
 import CropTimelapse from './CropTimelapse';
@@ -51,9 +52,10 @@ export default function CropList() {
       await load();
       setForm({ ...BLANK_FORM });
       setShowForm(false);
+      toast.success(`${finalName} 등록 완료`);
     } catch (e) {
       console.error('[작물 등록 오류]', e);
-      alert(`등록 오류: ${e?.message || JSON.stringify(e)}`);
+      toast.error(`등록 오류: ${e?.message || '다시 시도해주세요'}`);
     }
   };
 

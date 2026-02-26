@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CloudSun, Droplets, Wind, Thermometer, RefreshCw, MapPin } from 'lucide-react';
+import { CloudSun, Droplets, Wind, Thermometer, RefreshCw, AlertCircle } from 'lucide-react';
 import { fetchWeather, getNaturalFarmingAdvice, mockWeather } from '../services/weatherService';
 import { CONFIG } from '../config';
 
@@ -103,6 +103,28 @@ export default function WeatherCard() {
             </button>
           </div>
         </div>
+
+        {/* 예시 데이터 안내 */}
+        {!loading && weather?.isMock && (
+          <div style={{
+            marginBottom: '14px', padding: '10px 14px', borderRadius: '8px',
+            background: '#FFF8F0', border: '1px solid #FFD9B0',
+            display: 'flex', alignItems: 'center', gap: '8px',
+          }}>
+            <AlertCircle size={14} color="var(--color-terra)" strokeWidth={1.5} style={{ flexShrink: 0 }} />
+            <p style={{ fontSize: '12px', color: 'var(--color-terra)', flex: 1 }}>
+              실시간 날씨를 불러오지 못했어요
+            </p>
+            <button onClick={load} style={{
+              background: 'none', border: '1px solid var(--color-terra)', borderRadius: '6px',
+              color: 'var(--color-terra)', fontSize: '11px', fontWeight: 600,
+              cursor: 'pointer', padding: '4px 10px', fontFamily: 'var(--font-sans)',
+              whiteSpace: 'nowrap',
+            }}>
+              다시 시도
+            </button>
+          </div>
+        )}
 
         {/* 기상 수치 4격자 */}
         {!loading && weather && (
