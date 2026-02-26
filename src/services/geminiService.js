@@ -42,6 +42,50 @@ ${NATURAL_FARMING_RULE}
   3. [방법 3]
 ⚠️ 주의사항: [있으면 기재, 없으면 '해당 없음']`;
 
+// ── 텍스트 전용 Gemini 호출 ──────────────────────────────────────────
+const callGeminiText = async (prompt, apiKey) => {
+  if (!apiKey) throw new Error('API_KEY_MISSING');
+
+  const res = await fetch(`${BASE_URL}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+};
+
+// ── 이슈 해결 조언 프롬프트 ──────────────────────────────────────────
+const makeIssuePrompt = ({ title, content, crop }) => `
+너는 한국 자연농업(KNF) 전문 컨설턴트야.
+아래 농장 이슈에 대해 자연농업 관점의 해결 방법을 알려줘.
+${NATURAL_FARMING_RULE}
+
+이슈 정보:
+- 작물: ${crop || '미지정'}
+- 제목: ${title}
+- 증상/내용: ${content || '추가 정보 없음'}
+
+출력 형식 (마크다운 없이 아래 형식 그대로):
+📍 원인 분석: [생태적 불균형 관점 설명]
+🌿 자연농업 해결법:
+  1. [즉시 할 일]
+  2. [단기 처치]
+  3. [근본 개선]
+⚠️ 주의사항: [있으면 기재, 없으면 '없음']
+✅ 예방 포인트: [재발 방지 팁]
+`.trim();
+
 // ── 파일 → base64 변환 ───────────────────────────────────────────────
 const toBase64 = (file) =>
   new Promise((resolve, reject) => {
@@ -91,6 +135,10 @@ export const diagnosePest = async (file, apiKey) => {
   return callGemini(b64, file.type, PEST_DIAGNOSIS_PROMPT, apiKey);
 };
 
+export const adviseIssue = async (issue, apiKey) => {
+  return callGeminiText(makeIssuePrompt(issue), apiKey);
+};
+
 // ── Mock 응답 (API 키 없을 때 표시) ─────────────────────────────────
 export const MOCK_CROP_ANALYSIS = `🌱 작물 상태: 전반적으로 건강한 성장 중
 📊 생태 건강도: 좋음
@@ -101,6 +149,14 @@ export const MOCK_CROP_ANALYSIS = `🌱 작물 상태: 전반적으로 건강한
 🌿 자연농업 조언:
   - 현재 상태 유지, 토착미생물 주 1회 관수 병행 추천
   - 한방영양제 500배 희석 엽면살포로 면역력 강화`;
+
+export const MOCK_ISSUE_ADVICE = `📍 원인 분석: 과습 또는 질소 과잉으로 인한 생태 불균형 가능성
+🌿 자연농업 해결법:
+  1. 토착미생물 관수로 토양 생태 회복 (즉시)
+  2. 목초액 500배 엽면살포로 면역 강화 (3일 간격)
+  3. 멀칭 정비 및 배수로 점검으로 근본 환경 개선
+⚠️ 주의사항: 증상 악화 시 인근 작물로 전파 가능, 조기 격리 검토
+✅ 예방 포인트: 정기적인 토착미생물 투입과 한방영양제로 작물 면역력 유지`;
 
 export const MOCK_PEST_DIAGNOSIS = `📍 진단 결과: 진딧물 (추정)
 📋 발생 원인: 과질소 공급, 밀식으로 인한 통풍 불량으로 생태 불균형 발생
