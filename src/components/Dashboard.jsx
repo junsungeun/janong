@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   CheckSquare, AlertTriangle, Timer, Plus, Leaf,
-  RefreshCw, X, ChevronRight,
+  RefreshCw, X, ChevronRight, ChevronDown, ChevronUp,
+  ChevronLeft, CalendarDays, Sprout,
 } from 'lucide-react';
 import { getCurrentSolarTerm, formatDate } from '../utils/solarTerms';
 import { db, TABLES } from '../services/dbService';
@@ -63,6 +64,11 @@ export default function Dashboard({ onNavigate }) {
   // 할 일 추가 상태
   const [showTodoForm, setShowTodoForm] = useState(false);
   const [todoForm, setTodoForm] = useState({ text: '', date: '', repeat: '없음' });
+
+  // 캘린더 펼치기 상태
+  const [calExpanded, setCalExpanded] = useState(false);
+  const [calSelDate, setCalSelDate]   = useState(null);
+  const [calMonth, setCalMonth]       = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
 
   const dateInfo  = formatDate();
   const solarTerm = getCurrentSolarTerm();
@@ -211,95 +217,225 @@ export default function Dashboard({ onNavigate }) {
       {/* ── 날씨 카드 ── */}
       <WeatherCard />
 
-      {/* ── 이번 주 캘린더 ── */}
+      {/* ── 일정 캘린더 ── */}
       <div className="mb-5">
         <div className="section-header" style={{ marginBottom: '12px' }}>
-          <span className="section-title">이번 주</span>
-          <button className="btn-ghost" onClick={() => onNavigate('calendar')}>
-            캘린더 <ChevronRight size={13} style={{ verticalAlign: 'middle' }} />
+          <span className="section-title">일정</span>
+          <button
+            className="btn-ghost"
+            onClick={() => { setCalExpanded(v => !v); setCalSelDate(null); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+          >
+            {calExpanded ? '접기' : '달력 펼치기'}
+            {calExpanded ? <ChevronUp size={13} strokeWidth={1.5} /> : <ChevronDown size={13} strokeWidth={1.5} />}
           </button>
         </div>
 
         {/* 주간 날짜 스트립 */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: '4px', marginBottom: '12px',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '10px' }}>
           {weekDates.map((ymd, i) => {
-            const isToday = ymd === todayYMD;
-            const d = new Date(ymd);
-            const dayEvents = eventsByDate[ymd] || [];
-            const hasEvent = dayEvents.length > 0;
-            const isSun = i === 0;
-            const isSat = i === 6;
+            const isToday  = ymd === todayYMD;
+            const isSel    = ymd === calSelDate;
+            const d        = new Date(ymd);
+            const dayEvs   = eventsByDate[ymd] || [];
+            const isSun    = i === 0;
+            const isSat    = i === 6;
             return (
-              <div key={ymd} style={{ textAlign: 'center' }}>
+              <button key={ymd}
+                onClick={() => setCalSelDate(isSel ? null : ymd)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 0',
+                }}
+              >
                 <p style={{
-                  fontSize: '10px', color: isSun ? 'var(--color-danger)' : isSat ? 'var(--color-info)' : 'var(--text-muted)',
-                  marginBottom: '4px', fontWeight: 500,
+                  fontSize: '10px', fontWeight: 500, marginBottom: '4px',
+                  color: isSun ? 'var(--color-danger)' : isSat ? 'var(--color-info)' : 'var(--text-muted)',
                 }}>
                   {WEEKDAYS[d.getDay()]}
                 </p>
                 <div style={{
                   width: '32px', height: '32px', borderRadius: '50%', margin: '0 auto',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: isToday ? 'var(--color-primary)' : 'transparent',
-                  border: isToday ? 'none' : '1px solid transparent',
+                  background: isSel ? 'var(--color-earth)' : isToday ? 'var(--color-primary)' : 'transparent',
                 }}>
                   <span style={{
-                    fontSize: '13px', fontWeight: isToday ? 700 : 400,
-                    color: isToday ? '#fff' : isSun ? 'var(--color-danger)' : isSat ? 'var(--color-info)' : 'var(--text)',
+                    fontSize: '13px', fontWeight: (isToday || isSel) ? 700 : 400,
+                    color: (isToday || isSel) ? '#fff' : isSun ? 'var(--color-danger)' : isSat ? 'var(--color-info)' : 'var(--text)',
                   }}>
                     {d.getDate()}
                   </span>
                 </div>
-                {/* 이벤트 도트 */}
                 <div style={{ height: '6px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px', marginTop: '3px' }}>
-                  {hasEvent && dayEvents.slice(0, 3).map((ev, j) => (
-                    <div key={j} style={{
-                      width: '4px', height: '4px', borderRadius: '50%',
-                      background: dotColor(ev.type),
-                    }} />
+                  {dayEvs.slice(0, 3).map((ev, j) => (
+                    <div key={j} style={{ width: '4px', height: '4px', borderRadius: '50%', background: dotColor(ev.type) }} />
                   ))}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
 
-        {/* 오늘 일정 목록 */}
-        {todayEvents.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            {todayEvents.slice(0, 4).map((ev, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '9px 12px', borderRadius: '7px',
-                background: 'var(--bg-card)', border: '1px solid var(--border)',
-              }}>
-                <div style={{
-                  width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
-                  background: dotColor(ev.type),
-                }} />
-                <span style={{ fontSize: '12px', color: 'var(--text)', flex: 1 }}>
-                  {ev.icon ? `${ev.icon} ` : ''}{ev.label}
+        {/* ── 펼친 월간 캘린더 ── */}
+        {calExpanded && (() => {
+          const cells = [];
+          const first = new Date(calMonth.year, calMonth.month, 1);
+          const last  = new Date(calMonth.year, calMonth.month + 1, 0).getDate();
+          for (let i = 0; i < first.getDay(); i++) cells.push(null);
+          for (let d = 1; d <= last; d++) cells.push(d);
+
+          return (
+            <div style={{
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: '12px', padding: '14px', marginBottom: '10px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <button onClick={() => setCalMonth(p => { const d = new Date(p.year, p.month - 1); return { year: d.getFullYear(), month: d.getMonth() }; })}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '4px' }}>
+                  <ChevronLeft size={16} strokeWidth={1.5} />
+                </button>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-serif)' }}>
+                  {calMonth.year}년 {calMonth.month + 1}월
                 </span>
-                {ev.crop && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{ev.crop}</span>}
+                <button onClick={() => setCalMonth(p => { const d = new Date(p.year, p.month + 1); return { year: d.getFullYear(), month: d.getMonth() }; })}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '4px' }}>
+                  <ChevronRight size={16} strokeWidth={1.5} />
+                </button>
               </div>
-            ))}
-            {todayEvents.length > 4 && (
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', padding: '4px 0' }}>
-                +{todayEvents.length - 4}개 더
-              </p>
-            )}
-          </div>
-        ) : (
-          <div style={{
-            padding: '14px', borderRadius: '8px', textAlign: 'center',
-            background: 'var(--bg-subtle)', color: 'var(--text-muted)',
-          }}>
-            <p style={{ fontSize: '12px' }}>오늘 예정된 일정이 없어요</p>
-          </div>
-        )}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '4px' }}>
+                {WEEKDAYS.map((w, i) => (
+                  <div key={w} style={{
+                    textAlign: 'center', fontSize: '10px', fontWeight: 600, padding: '3px 0',
+                    color: i === 0 ? 'var(--color-danger)' : i === 6 ? 'var(--color-info)' : 'var(--text-muted)',
+                  }}>{w}</div>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+                {cells.map((day, i) => {
+                  if (!day) return <div key={`e-${i}`} />;
+                  const ymd    = `${calMonth.year}-${String(calMonth.month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                  const isToday = ymd === todayYMD;
+                  const isSel   = ymd === calSelDate;
+                  const colIdx  = i % 7;
+                  const dots    = [...new Set((eventsByDate[ymd] || []).map(e => e.type))];
+                  return (
+                    <button key={ymd} onClick={() => setCalSelDate(isSel ? null : ymd)}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                        padding: '5px 2px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                        background: isSel ? 'var(--color-earth)' : isToday ? 'var(--color-primary-light)' : 'transparent',
+                        minHeight: '40px',
+                      }}
+                    >
+                      <span style={{
+                        fontSize: '12px', lineHeight: 1, marginBottom: '4px', fontWeight: (isToday || isSel) ? 700 : 400,
+                        color: isSel ? '#fff' : isToday ? 'var(--color-primary)'
+                          : colIdx === 0 ? 'var(--color-danger)' : colIdx === 6 ? 'var(--color-info)' : 'var(--text)',
+                      }}>
+                        {day}
+                      </span>
+                      <div style={{ display: 'flex', gap: '2px' }}>
+                        {dots.slice(0, 3).map((type, j) => (
+                          <div key={j} style={{
+                            width: '4px', height: '4px', borderRadius: '50%',
+                            background: isSel ? 'rgba(255,255,255,0.8)' : dotColor(type),
+                          }} />
+                        ))}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── 선택된 날짜 항목 ── */}
+        {calSelDate && (() => {
+          const items = eventsByDate[calSelDate] || [];
+          const d     = new Date(calSelDate);
+          const label = calSelDate === todayYMD ? '오늘' : `${d.getMonth() + 1}/${d.getDate()}`;
+          return (
+            <div style={{
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: '10px', padding: '14px', marginBottom: '6px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{label} 일정</p>
+                <button onClick={() => setCalSelDate(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+                  <X size={15} strokeWidth={1.5} />
+                </button>
+              </div>
+              {items.length === 0 ? (
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>
+                  이날 등록된 항목이 없어요
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  {items.map((ev, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      padding: '9px 12px', borderRadius: '7px',
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border)',
+                      borderLeft: `3px solid ${dotColor(ev.type)}`,
+                    }}>
+                      <div style={{ flexShrink: 0 }}>
+                        {ev.type === 'timeline' && <Sprout size={13} color={dotColor('timeline')} strokeWidth={1.5} />}
+                        {ev.type === 'calendar'  && <CalendarDays size={13} color={dotColor('calendar')} strokeWidth={1.5} />}
+                        {ev.type === 'todo'      && <CheckSquare size={13} color={dotColor('todo')} strokeWidth={1.5} />}
+                        {ev.type === 'issue'     && <AlertTriangle size={13} color={dotColor('issue')} strokeWidth={1.5} />}
+                      </div>
+                      <span style={{ fontSize: '12px', color: 'var(--text)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                        {ev.icon ? `${ev.icon} ` : ''}{ev.label}
+                      </span>
+                      {ev.crop && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{ev.crop}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* 오늘 항목 (날짜 미선택 상태) */}
+        {!calSelDate && (() => {
+          const todayEvs = eventsByDate[todayYMD] || [];
+          if (todayEvs.length === 0) return (
+            <div style={{ padding: '14px', borderRadius: '8px', textAlign: 'center', background: 'var(--bg-subtle)', color: 'var(--text-muted)' }}>
+              <p style={{ fontSize: '12px' }}>오늘 예정된 일정이 없어요</p>
+            </div>
+          );
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              {todayEvs.slice(0, 4).map((ev, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '9px 12px', borderRadius: '7px',
+                  background: 'var(--bg-card)', border: '1px solid var(--border)',
+                  borderLeft: `3px solid ${dotColor(ev.type)}`,
+                }}>
+                  <div style={{ flexShrink: 0 }}>
+                    {ev.type === 'timeline' && <Sprout size={13} color={dotColor('timeline')} strokeWidth={1.5} />}
+                    {ev.type === 'calendar'  && <CalendarDays size={13} color={dotColor('calendar')} strokeWidth={1.5} />}
+                    {ev.type === 'todo'      && <CheckSquare size={13} color={dotColor('todo')} strokeWidth={1.5} />}
+                    {ev.type === 'issue'     && <AlertTriangle size={13} color={dotColor('issue')} strokeWidth={1.5} />}
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--text)', flex: 1 }}>
+                    {ev.icon ? `${ev.icon} ` : ''}{ev.label}
+                  </span>
+                  {ev.crop && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{ev.crop}</span>}
+                </div>
+              ))}
+              {todayEvs.length > 4 && (
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', padding: '4px 0' }}>
+                  +{todayEvs.length - 4}개 더
+                </p>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── 할 일 미리보기 ── */}

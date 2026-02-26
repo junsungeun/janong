@@ -1,56 +1,189 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X, CalendarDays, Sprout, AlertTriangle, CheckCircle } from 'lucide-react';
+import {
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
+  Plus, X, CalendarDays, Sprout, AlertTriangle, CheckCircle,
+} from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { getCropTimeline } from '../data/cropTimelines';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-// 이벤트 타입별 색상
 const TYPE_COLOR = {
-  timeline: 'var(--color-primary)',   // 초록 — 작물 타임라인
-  calendar: 'var(--color-earth)',     // 황토 — 직접 등록
-  issue:    'var(--color-danger)',    // 빨강 — 미해결 이슈
-  solved:   'var(--border)',          // 회색 — 해결된 이슈
-  todo:     'var(--color-info)',      // 파랑 — 할 일
+  timeline: 'var(--color-primary)',
+  calendar: 'var(--color-earth)',
+  issue:    'var(--color-danger)',
+  todo:     'var(--color-info)',
 };
 
-const TYPE_LABEL = {
-  timeline: '타임라인',
-  calendar: '일정',
-  issue:    '이슈',
-  solved:   '해결됨',
-  todo:     '할 일',
-};
-
-// YYYY-MM-DD 포맷 헬퍼
 const toYMD = (d) => d.toISOString().slice(0, 10);
-const todayYMD = toYMD(new Date());
+const todayYMD  = toYMD(new Date());
+const tomorrowYMD = toYMD(new Date(Date.now() + 86400000));
 
-// 월의 날짜 배열 생성 (null = 이전 달 빈 칸)
+const diffDays = (ymd) => {
+  const t = new Date(todayYMD);
+  const d = new Date(ymd);
+  return Math.round((d - t) / 86400000);
+};
+
+const getGroup = (dateStr) => {
+  if (!dateStr) return null;
+  const diff = diffDays(dateStr);
+  if (diff < 0)  return 'overdue';
+  if (diff === 0) return 'today';
+  if (diff === 1) return 'tomorrow';
+  if (diff <= 7)  return 'week';
+  if (diff <= 30) return 'month';
+  return 'later';
+};
+
+const GROUPS = [
+  { key: 'overdue',  label: '기한 초과', color: 'var(--color-danger)', urgent: true  },
+  { key: 'today',    label: '오늘',      color: 'var(--color-primary)',urgent: false },
+  { key: 'tomorrow', label: '내일',      color: 'var(--color-earth)',  urgent: false },
+  { key: 'week',     label: '이번 주',   color: 'var(--color-info)',   urgent: false },
+  { key: 'month',    label: '이번 달',   color: 'var(--text-muted)',   urgent: false },
+  { key: 'later',    label: '나중에',    color: 'var(--text-muted)',   urgent: false },
+];
+
 const buildGrid = (year, month) => {
-  const first     = new Date(year, month, 1);
-  const lastDay   = new Date(year, month + 1, 0).getDate();
-  const startDow  = first.getDay(); // 0=일
-  const cells     = [];
-  for (let i = 0; i < startDow; i++) cells.push(null);
+  const first   = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const cells   = [];
+  for (let i = 0; i < first.getDay(); i++) cells.push(null);
   for (let d = 1; d <= lastDay; d++) cells.push(d);
   return cells;
 };
 
+// ── 항목 카드 ──────────────────────────────────────────────────────────
+function AgendaItem({ ev, showDate, onDelete, onToggle }) {
+  const color = TYPE_COLOR[ev.type] || 'var(--border)';
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '10px',
+      padding: '11px 14px',
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      borderLeft: `3px solid ${color}`,
+      borderRadius: '0 8px 8px 0',
+    }}>
+      {/* 아이콘 / 체크박스 */}
+      <div style={{ flexShrink: 0, width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {ev.type === 'todo' ? (
+          <button onClick={() => onToggle?.(ev.id)} style={{
+            width: '16px', height: '16px', borderRadius: '4px',
+            border: `1.5px solid ${color}`, background: 'transparent',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+          }}>
+          </button>
+        ) : ev.icon ? (
+          <span style={{ fontSize: '13px' }}>{ev.icon}</span>
+        ) : ev.type === 'timeline' ? (
+          <Sprout size={13} color={color} strokeWidth={1.5} />
+        ) : ev.type === 'calendar' ? (
+          <CalendarDays size={13} color={color} strokeWidth={1.5} />
+        ) : (
+          <AlertTriangle size={13} color={color} strokeWidth={1.5} />
+        )}
+      </div>
+
+      {/* 내용 */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{
+          fontSize: '13px', fontWeight: 500, color: 'var(--text)',
+          lineHeight: 1.4, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+        }}>
+          {ev.title}
+        </p>
+        {ev.note && (
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{ev.note}</p>
+        )}
+      </div>
+
+      {/* 날짜 + 삭제 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        {showDate && ev.date && (
+          <span style={{
+            fontSize: '11px',
+            color: ev.group === 'overdue' ? 'var(--color-danger)' : 'var(--text-muted)',
+            fontWeight: ev.group === 'overdue' ? 600 : 400,
+          }}>
+            {ev.date.slice(5).replace('-', '/')}
+          </span>
+        )}
+        {ev.type === 'calendar' && ev.id && (
+          <button onClick={() => onDelete(ev.id)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}>
+            <X size={14} strokeWidth={1.5} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── 활성 이슈 카드 ─────────────────────────────────────────────────────
+function IssueItem({ issue }) {
+  const sev = issue.severity === 'high' ? '높음' : issue.severity === 'mid' ? '보통' : '낮음';
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '10px',
+      padding: '11px 14px', background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      borderLeft: '3px solid var(--color-danger)',
+      borderRadius: '0 8px 8px 0',
+    }}>
+      <AlertTriangle size={14} color="var(--color-danger)" strokeWidth={1.5} style={{ flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+          {issue.title}
+        </p>
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+          {issue.crop} · 심각도 {sev}
+        </p>
+      </div>
+      <span style={{
+        fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '100px',
+        background: '#FFF0F0', color: 'var(--color-danger)',
+      }}>
+        미해결
+      </span>
+    </div>
+  );
+}
+
+// ── 그룹 헤더 ─────────────────────────────────────────────────────────
+function GroupHeader({ config, count }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+      {config.urgent && (
+        <div style={{
+          width: '6px', height: '6px', borderRadius: '50%',
+          background: config.color, flexShrink: 0,
+          animation: 'pulse 1.5s ease-in-out infinite',
+        }} />
+      )}
+      <span style={{ fontSize: '11px', fontWeight: 700, color: config.color, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        {config.label}
+      </span>
+      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>· {count}건</span>
+    </div>
+  );
+}
+
+// ── 메인 컴포넌트 ──────────────────────────────────────────────────────
 export default function Calendar() {
-  const today      = new Date();
-  const [cur, setCur]         = useState({ year: today.getFullYear(), month: today.getMonth() });
-  const [selected, setSelected] = useState(null);      // 'YYYY-MM-DD'
+  const today = new Date();
+  const [cur, setCur]             = useState({ year: today.getFullYear(), month: today.getMonth() });
+  const [showMiniCal, setShowMiniCal] = useState(false);
+  const [selected, setSelected]   = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [calEvents, setCalEvents]     = useState([]);   // KEYS.CALENDAR
-  const [form, setForm] = useState({ title: '', date: todayYMD, note: '' });
+  const [form, setForm]           = useState({ title: '', date: todayYMD, note: '' });
 
-  // ── 캘린더 이벤트 로드 ──────────────────────────────────────────────
-  const [crops, setCrops]   = useState([]);
-  const [issues, setIssues] = useState([]);
-  const [todos, setTodos]   = useState([]);
+  const [calEvents, setCalEvents] = useState([]);
+  const [crops, setCrops]         = useState([]);
+  const [issues, setIssues]       = useState([]);
+  const [todos, setTodos]         = useState([]);
 
-  const loadCalEvents = async () => setCalEvents(await db.getList(TABLES.CALENDAR));
   const loadAll = async () => {
     const [cal, c, iss, td] = await Promise.all([
       db.getList(TABLES.CALENDAR),
@@ -63,417 +196,299 @@ export default function Calendar() {
     setIssues(iss);
     setTodos(td);
   };
+
   useEffect(() => { loadAll(); }, []);
 
-  // ── 전체 이벤트 집계 (날짜 → 이벤트 배열) ─────────────────────────
-  const eventsByDate = useMemo(() => {
-    const map = {};
+  // ── 전체 어젠다 항목 ────────────────────────────────────────────────
+  const allItems = useMemo(() => {
+    const items = [];
 
-    const push = (dateStr, ev) => {
-      if (!map[dateStr]) map[dateStr] = [];
-      map[dateStr].push(ev);
-    };
-
-    // 1) 작물 타임라인
     crops.forEach(crop => {
-      const items = getCropTimeline(crop.name, crop.plantingDate);
-      items.forEach(item => {
-        push(item.date, {
-          type:  'timeline',
-          title: `[${crop.name}${crop.area ? ' ' + crop.area : ''}] ${item.label}`,
-          note:  item.note,
-          icon:  item.icon,
-        });
+      getCropTimeline(crop.name, crop.plantingDate).forEach(item => {
+        const group = getGroup(item.date);
+        if (!group) return;
+        items.push({ type: 'timeline', title: `[${crop.name}] ${item.label}`, note: item.note, icon: item.icon, date: item.date, group });
       });
     });
 
-    // 2) 직접 등록 일정
     calEvents.forEach(ev => {
-      push(ev.date, { type: 'calendar', title: ev.title, note: ev.note, id: ev.id });
+      const group = getGroup(ev.date);
+      if (!group) return;
+      items.push({ type: 'calendar', title: ev.title, note: ev.note, date: ev.date, id: ev.id, group });
     });
 
-    // 3) 이슈 (등록일 기준)
-    issues.forEach(issue => {
-      const dateStr = issue.createdAt?.slice(0, 10);
-      if (dateStr) {
-        push(dateStr, {
-          type:  issue.solved ? 'solved' : 'issue',
-          title: issue.title,
-          note:  `${issue.crop} · ${issue.solved ? '해결됨' : '미해결'}`,
-          id:    issue.id,
-        });
-      }
+    todos.filter(t => !t.done && t.date).forEach(t => {
+      const group = getGroup(t.date);
+      if (!group) return;
+      items.push({ type: 'todo', title: t.text, date: t.date, id: t.id, group });
     });
 
-    // 4) 오늘 기한 할 일
-    todos.forEach(todo => {
-      if (todo.date && !todo.done) {
-        push(todo.date, { type: 'todo', title: todo.text, note: '할 일' });
-      }
-    });
+    return items;
+  }, [calEvents, crops, todos]);
 
+  const activeIssues = useMemo(() => issues.filter(i => !i.solved), [issues]);
+
+  // ── 날짜별 이벤트 맵 (미니 캘린더 도트용) ──────────────────────────
+  const eventsByDate = useMemo(() => {
+    const map = {};
+    allItems.forEach(item => {
+      if (!map[item.date]) map[item.date] = [];
+      map[item.date].push(item);
+    });
     return map;
-  }, [calEvents, crops, issues, todos, cur]);
+  }, [allItems]);
 
-  // ── 일정 추가 ────────────────────────────────────────────────────────
+  // ── 그룹별 정렬 ────────────────────────────────────────────────────
+  const grouped = useMemo(() => {
+    const result = {};
+    GROUPS.forEach(g => { result[g.key] = []; });
+    allItems.forEach(item => { result[item.group]?.push(item); });
+    Object.values(result).forEach(arr => arr.sort((a, b) => a.date.localeCompare(b.date)));
+    return result;
+  }, [allItems]);
+
+  const selItems = selected ? (eventsByDate[selected] || []) : [];
+
+  // ── CRUD ────────────────────────────────────────────────────────────
   const addEvent = async () => {
     if (!form.title.trim() || !form.date) return;
-    await db.add(TABLES.CALENDAR, { ...form });
-    await loadCalEvents();
-    setForm({ title: '', date: selected || todayYMD, note: '' });
+    await db.add(TABLES.CALENDAR, form);
+    await loadAll();
+    setForm({ title: '', date: todayYMD, note: '' });
     setShowAddForm(false);
   };
 
-  // ── 일정 삭제 ────────────────────────────────────────────────────────
   const delEvent = async (id) => {
     await db.delete(TABLES.CALENDAR, id);
-    await loadCalEvents();
+    await loadAll();
   };
 
-  // ── 월 이동 ─────────────────────────────────────────────────────────
-  const prevMonth = () => setCur(p => {
-    const d = new Date(p.year, p.month - 1, 1);
-    return { year: d.getFullYear(), month: d.getMonth() };
-  });
-  const nextMonth = () => setCur(p => {
-    const d = new Date(p.year, p.month + 1, 1);
-    return { year: d.getFullYear(), month: d.getMonth() };
-  });
+  const toggleTodo = async (id) => {
+    const t = todos.find(t => t.id === id);
+    if (!t) return;
+    await db.update(TABLES.TODO, id, { done: !t.done });
+    await loadAll();
+  };
 
-  const cells     = buildGrid(cur.year, cur.month);
-  const selEvents = selected ? (eventsByDate[selected] || []) : [];
+  const cells = buildGrid(cur.year, cur.month);
+  const hasAny = allItems.length > 0 || activeIssues.length > 0;
 
   return (
     <div>
-      {/* ── 월 네비게이터 ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.4; transform: scale(0.85); }
+        }
+      `}</style>
+
+      {/* ── 상단 컨트롤 바 ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <button
-          onClick={prevMonth}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '6px' }}
+          onClick={() => setShowMiniCal(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: showMiniCal ? 'var(--color-primary-light)' : 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px', padding: '8px 14px',
+            fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+            color: showMiniCal ? 'var(--color-primary)' : 'var(--text)',
+            fontFamily: 'var(--font-sans)',
+          }}
         >
-          <ChevronLeft size={20} strokeWidth={1.5} />
+          <CalendarDays size={14} strokeWidth={1.5} />
+          {cur.year}년 {cur.month + 1}월
+          {showMiniCal ? <ChevronUp size={13} strokeWidth={2} /> : <ChevronDown size={13} strokeWidth={2} />}
         </button>
 
-        <div style={{ textAlign: 'center' }}>
-          <p style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: '18px', fontWeight: 600, color: 'var(--text)',
-          }}>
-            {cur.year}년 {cur.month + 1}월
-          </p>
-        </div>
-
         <button
-          onClick={nextMonth}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '6px' }}
+          className="btn-primary"
+          style={{ padding: '8px 14px', fontSize: '12px' }}
+          onClick={() => { setShowAddForm(v => !v); setSelected(null); }}
         >
-          <ChevronRight size={20} strokeWidth={1.5} />
+          <Plus size={13} strokeWidth={2} /> 일정 추가
         </button>
       </div>
 
-      {/* ── 요일 헤더 ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '4px' }}>
-        {WEEKDAYS.map((d, i) => (
-          <div
-            key={d}
-            style={{
-              textAlign: 'center',
-              fontSize: '11px',
-              fontWeight: 600,
-              padding: '6px 0',
-              color: i === 0 ? 'var(--color-danger)' : i === 6 ? 'var(--color-info)' : 'var(--text-muted)',
-            }}
-          >
-            {d}
-          </div>
-        ))}
-      </div>
-
-      {/* ── 날짜 그리드 ── */}
-      <div
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '20px' }}
-      >
-        {cells.map((day, i) => {
-          if (!day) return <div key={`empty-${i}`} />;
-
-          const ymd       = toYMD(new Date(cur.year, cur.month, day));
-          const isToday   = ymd === todayYMD;
-          const isSel     = ymd === selected;
-          const dayEvents = eventsByDate[ymd] || [];
-          const dow       = (i) % 7;
-          const colIdx    = i % 7;
-
-          // 도트 색 (최대 3개, 중복 색 제거)
-          const dotColors = [...new Set(dayEvents.map(e => TYPE_COLOR[e.type]))].slice(0, 3);
-
-          return (
-            <button
-              key={ymd}
-              onClick={() => {
-                setSelected(isSel ? null : ymd);
-                setShowAddForm(false);
-                setForm(p => ({ ...p, date: ymd }));
-              }}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                padding: '6px 2px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                background: isSel
-                  ? 'var(--color-primary)'
-                  : isToday
-                    ? 'var(--color-primary-light)'
-                    : 'transparent',
-                transition: 'background 0.1s',
-                minHeight: '52px',
-              }}
-            >
-              <span style={{
-                fontSize: '14px',
-                fontWeight: isToday || isSel ? 700 : 400,
-                color: isSel
-                  ? '#fff'
-                  : isToday
-                    ? 'var(--color-primary)'
-                    : colIdx === 0
-                      ? 'var(--color-danger)'
-                      : colIdx === 6
-                        ? 'var(--color-info)'
-                        : 'var(--text)',
-                lineHeight: 1,
-                marginBottom: '5px',
-              }}>
-                {day}
-              </span>
-
-              {/* 이벤트 도트 */}
-              <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap', justifyContent: 'center', minHeight: '8px' }}>
-                {dotColors.map((color, ci) => (
-                  <div
-                    key={ci}
-                    style={{
-                      width: '5px', height: '5px', borderRadius: '50%',
-                      background: isSel ? 'rgba(255,255,255,0.8)' : color,
-                    }}
-                  />
-                ))}
-              </div>
+      {/* ── 미니 캘린더 ── */}
+      {showMiniCal && (
+        <div style={{
+          background: 'var(--bg-card)', border: '1px solid var(--border)',
+          borderRadius: '12px', padding: '16px', marginBottom: '16px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <button onClick={() => setCur(p => { const d = new Date(p.year, p.month - 1); return { year: d.getFullYear(), month: d.getMonth() }; })}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', display: 'flex' }}>
+              <ChevronLeft size={16} strokeWidth={1.5} />
             </button>
-          );
-        })}
-      </div>
-
-      {/* ── 범례 ── */}
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', gap: '10px',
-        marginBottom: '20px', paddingBottom: '16px',
-        borderBottom: '1px solid var(--border-light)',
-      }}>
-        {Object.entries(TYPE_COLOR).map(([type, color]) => (
-          <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0 }} />
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{TYPE_LABEL[type]}</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-serif)' }}>
+              {cur.month + 1}월
+            </span>
+            <button onClick={() => setCur(p => { const d = new Date(p.year, p.month + 1); return { year: d.getFullYear(), month: d.getMonth() }; })}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', display: 'flex' }}>
+              <ChevronRight size={16} strokeWidth={1.5} />
+            </button>
           </div>
-        ))}
-      </div>
+
+          {/* 요일 헤더 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '4px' }}>
+            {WEEKDAYS.map((d, i) => (
+              <div key={d} style={{
+                textAlign: 'center', fontSize: '10px', fontWeight: 600, padding: '3px 0',
+                color: i === 0 ? 'var(--color-danger)' : i === 6 ? 'var(--color-info)' : 'var(--text-muted)',
+              }}>
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* 날짜 그리드 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+            {cells.map((day, i) => {
+              if (!day) return <div key={`e-${i}`} />;
+              const ymd = toYMD(new Date(cur.year, cur.month, day));
+              const isToday = ymd === todayYMD;
+              const isSel   = ymd === selected;
+              const colIdx  = i % 7;
+              const dotTypes = [...new Set((eventsByDate[ymd] || []).map(e => e.type))];
+
+              return (
+                <button key={ymd} onClick={() => setSelected(isSel ? null : ymd)}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    padding: '5px 2px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                    background: isSel ? 'var(--color-primary)' : isToday ? 'var(--color-primary-light)' : 'transparent',
+                    minHeight: '40px',
+                  }}
+                >
+                  <span style={{
+                    fontSize: '12px', fontWeight: isToday || isSel ? 700 : 400, lineHeight: 1, marginBottom: '4px',
+                    color: isSel ? '#fff' : isToday ? 'var(--color-primary)'
+                      : colIdx === 0 ? 'var(--color-danger)' : colIdx === 6 ? 'var(--color-info)' : 'var(--text)',
+                  }}>
+                    {day}
+                  </span>
+                  <div style={{ display: 'flex', gap: '2px' }}>
+                    {dotTypes.slice(0, 3).map((type, j) => (
+                      <div key={j} style={{
+                        width: '4px', height: '4px', borderRadius: '50%',
+                        background: isSel ? 'rgba(255,255,255,0.8)' : TYPE_COLOR[type] || 'var(--border)',
+                      }} />
+                    ))}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── 선택된 날짜 상세 ── */}
       {selected && (
-        <div>
+        <div style={{
+          background: 'var(--bg-card)', border: '1px solid var(--border)',
+          borderRadius: '12px', padding: '16px', marginBottom: '16px',
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
-              {selected.replace(/-/g, '.')}
-              {selected === todayYMD && (
-                <span className="badge badge-good" style={{ marginLeft: '8px', fontSize: '10px' }}>오늘</span>
-              )}
-            </p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                className="btn-primary"
-                style={{ padding: '7px 14px', fontSize: '12px' }}
-                onClick={() => setShowAddForm(!showAddForm)}
-              >
-                <Plus size={13} strokeWidth={2} /> 일정 추가
-              </button>
-              <button
-                onClick={() => setSelected(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}
-              >
-                <X size={18} strokeWidth={1.5} />
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+                {selected.replace(/-/g, '.')}
+              </p>
+              {selected === todayYMD && <span className="badge badge-good" style={{ fontSize: '10px' }}>오늘</span>}
+              {selected === tomorrowYMD && <span style={{ fontSize: '11px', color: 'var(--color-earth)', fontWeight: 600 }}>내일</span>}
             </div>
+            <button onClick={() => setSelected(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+              <X size={16} strokeWidth={1.5} />
+            </button>
           </div>
 
-          {/* 일정 추가 폼 */}
-          {showAddForm && (
-            <div className="card mb-4" style={{ padding: '16px', borderLeft: '3px solid var(--color-earth)', borderRadius: '0 8px 8px 0' }}>
-              <div style={{ marginBottom: '10px' }}>
-                <label className="label">일정 제목 *</label>
-                <input
-                  className="input"
-                  placeholder="일정을 입력해요"
-                  value={form.title}
-                  onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
-                  onKeyDown={e => e.key === 'Enter' && addEvent()}
-                  autoFocus
-                  style={{ fontSize: '14px' }}
-                />
-              </div>
-              <div style={{ marginBottom: '12px' }}>
-                <label className="label">날짜</label>
-                <input
-                  type="date"
-                  className="input"
-                  value={form.date}
-                  onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
-                  style={{ fontSize: '14px' }}
-                />
-              </div>
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">메모 (선택)</label>
-                <input
-                  className="input"
-                  placeholder="메모"
-                  value={form.note}
-                  onChange={e => setForm(p => ({ ...p, note: e.target.value }))}
-                  style={{ fontSize: '14px' }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button className="btn-secondary" onClick={() => setShowAddForm(false)}>취소</button>
-                <button className="btn-primary" onClick={addEvent} disabled={!form.title.trim()}>추가</button>
-              </div>
-            </div>
-          )}
-
-          {/* 이벤트 목록 */}
-          {selEvents.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 20px', color: 'var(--text-muted)' }}>
-              <CalendarDays size={32} strokeWidth={1.5} style={{ margin: '0 auto 10px', display: 'block', opacity: 0.35 }} />
-              <p style={{ fontSize: '13px' }}>등록된 일정이 없어요</p>
-            </div>
+          {selItems.length === 0 ? (
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>
+              이날 등록된 항목이 없어요
+            </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {selEvents.map((ev, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    padding: '13px 16px',
-                    background: 'var(--bg-card)',
-                    borderTop: '1px solid var(--border)',
-                    borderRight: '1px solid var(--border)',
-                    borderBottom: '1px solid var(--border)',
-                    borderLeft: `3px solid ${TYPE_COLOR[ev.type]}`,
-                    borderRadius: '0 8px 8px 0',
-                  }}
-                >
-                  {/* 아이콘 */}
-                  <div style={{ flexShrink: 0, marginTop: '1px' }}>
-                    {ev.type === 'timeline' && <Sprout       size={16} color={TYPE_COLOR.timeline} strokeWidth={1.5} />}
-                    {ev.type === 'calendar' && <CalendarDays size={16} color={TYPE_COLOR.calendar} strokeWidth={1.5} />}
-                    {ev.type === 'issue'    && <AlertTriangle size={16} color={TYPE_COLOR.issue}   strokeWidth={1.5} />}
-                    {ev.type === 'solved'   && <CheckCircle  size={16} color={TYPE_COLOR.solved}   strokeWidth={1.5} />}
-                    {ev.type === 'todo'     && (
-                      <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `1.5px solid ${TYPE_COLOR.todo}` }} />
-                    )}
-                    {ev.icon && <span style={{ fontSize: '16px' }}>{ev.icon}</span>}
-                  </div>
-
-                  {/* 내용 */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-                      <span style={{
-                        fontSize: '10px', fontWeight: 600, padding: '1px 7px', borderRadius: '100px',
-                        background: `${TYPE_COLOR[ev.type]}22`,
-                        color: TYPE_COLOR[ev.type],
-                      }}>
-                        {TYPE_LABEL[ev.type]}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', lineHeight: 1.4 }}>
-                      {ev.title}
-                    </p>
-                    {ev.note && (
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.7 }}>
-                        {ev.note}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* 캘린더 직접 등록 이벤트만 삭제 가능 */}
-                  {ev.type === 'calendar' && ev.id && (
-                    <button
-                      onClick={() => delEvent(ev.id)}
-                      style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: 'var(--text-muted)', flexShrink: 0,
-                        display: 'flex', padding: '2px',
-                      }}
-                    >
-                      <X size={15} strokeWidth={1.5} />
-                    </button>
-                  )}
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              {selItems.map((ev, i) => (
+                <AgendaItem key={i} ev={ev} onDelete={delEvent} onToggle={toggleTodo} />
               ))}
             </div>
           )}
         </div>
       )}
 
-      {/* ── 선택 안됐을 때 이달 이벤트 요약 ── */}
-      {!selected && (() => {
-        const thisMonthEvents = Object.entries(eventsByDate)
-          .filter(([date]) => date.startsWith(`${cur.year}-${String(cur.month + 1).padStart(2, '0')}`))
-          .flatMap(([date, evs]) => evs.map(ev => ({ ...ev, date })))
-          .sort((a, b) => a.date.localeCompare(b.date));
+      {/* ── 일정 추가 폼 ── */}
+      {showAddForm && (
+        <div className="card mb-4" style={{ padding: '16px', borderLeft: '3px solid var(--color-earth)', borderRadius: '0 8px 8px 0' }}>
+          <div style={{ marginBottom: '10px' }}>
+            <label className="label">일정 제목 *</label>
+            <input className="input" placeholder="일정을 입력해요" value={form.title}
+              onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && addEvent()} autoFocus style={{ fontSize: '14px' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+            <div>
+              <label className="label">날짜</label>
+              <input type="date" className="input" value={form.date}
+                onChange={e => setForm(p => ({ ...p, date: e.target.value }))} style={{ fontSize: '13px' }} />
+            </div>
+          </div>
+          <div style={{ marginBottom: '14px' }}>
+            <label className="label">메모</label>
+            <input className="input" placeholder="메모" value={form.note}
+              onChange={e => setForm(p => ({ ...p, note: e.target.value }))} style={{ fontSize: '14px' }} />
+          </div>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <button className="btn-secondary" onClick={() => setShowAddForm(false)}>취소</button>
+            <button className="btn-primary" onClick={addEvent} disabled={!form.title.trim()}>추가</button>
+          </div>
+        </div>
+      )}
 
-        if (thisMonthEvents.length === 0) return null;
-
+      {/* ── 어젠다 뷰 ── */}
+      {GROUPS.map(g => {
+        const items = grouped[g.key] || [];
+        if (items.length === 0) return null;
         return (
-          <div>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '10px' }}>
-              {cur.month + 1}월 일정 목록
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {thisMonthEvents.slice(0, 10).map((ev, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelected(ev.date)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '10px 14px', background: 'var(--bg-card)',
-                    border: '1px solid var(--border)', borderRadius: '8px',
-                    cursor: 'pointer', textAlign: 'left', width: '100%',
-                    fontFamily: 'var(--font-sans)',
-                  }}
-                >
-                  <div style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
-                    background: TYPE_COLOR[ev.type], flexShrink: 0,
-                  }} />
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0, width: '48px' }}>
-                    {ev.date.slice(5).replace('-', '.')}
-                  </span>
-                  <span style={{ fontSize: '13px', color: 'var(--text)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {ev.icon ? `${ev.icon} ` : ''}{ev.title}
-                  </span>
-                </button>
+          <div key={g.key} style={{ marginBottom: '20px' }}>
+            <GroupHeader config={g} count={items.length} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              {items.map((ev, i) => (
+                <AgendaItem key={i} ev={ev} showDate onDelete={delEvent} onToggle={toggleTodo} />
               ))}
-              {thisMonthEvents.length > 10 && (
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '4px' }}>
-                  +{thisMonthEvents.length - 10}개 더 있어요 (날짜를 클릭해서 확인)
-                </p>
-              )}
             </div>
           </div>
         );
-      })()}
+      })}
+
+      {/* ── 활성 이슈 ── */}
+      {activeIssues.length > 0 && (
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <div style={{
+              width: '6px', height: '6px', borderRadius: '50%',
+              background: 'var(--color-danger)',
+              animation: 'pulse 1.5s ease-in-out infinite',
+            }} />
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-danger)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              활성 이슈
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>· {activeIssues.length}건</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            {activeIssues.map(issue => <IssueItem key={issue.id} issue={issue} />)}
+          </div>
+        </div>
+      )}
+
+      {/* ── 빈 상태 ── */}
+      {!hasAny && !showAddForm && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+          <CalendarDays size={40} strokeWidth={1.5} style={{ margin: '0 auto 14px', display: 'block', opacity: 0.25 }} />
+          <p style={{ fontSize: '14px', fontWeight: 600 }}>예정된 항목이 없어요</p>
+          <p style={{ fontSize: '12px', marginTop: '6px', opacity: 0.7 }}>할 일, 작물 타임라인, 일정을 등록해 보세요</p>
+        </div>
+      )}
     </div>
   );
 }
