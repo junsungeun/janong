@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, BookMarked, FlaskConical } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 
-const MAT_TYPES = ['한방영양제', '토착미생물', '천혜녹즙', '목초액', '님오일', '마늘액', '키토산', '기타'];
-const CROP_OPTIONS = ['고추', '토마토', '배추', '상추', '오이', '가지', '감자', '전체', '기타'];
+const MAT_TYPES = ['한방영양제', '토착미생물', '천혜녹즙', '목초액', '님오일', '마늘액', '키토산', '한방영양제+천혜녹즙', '직접입력'];
+const CROP_OPTIONS = ['고추', '토마토', '배추', '상추', '오이', '가지', '감자', '감자', '고구마', '옥수수', '딸기', '전체', '직접입력'];
+const SPRAY_METHODS = ['엽면살포', '토양관주', '뿌리관주', '드렌치', '연무', '기타'];
 
 export default function ChemicalLog() {
   const [logs, setLogs] = useState([]);
@@ -11,15 +12,16 @@ export default function ChemicalLog() {
   const [showForm, setShowForm] = useState(false);
   const [showRecipeForm, setShowRecipeForm] = useState(false);
   const [view, setView] = useState('log'); // log | recipe
-  const [form, setForm] = useState({
+  const BLANK_LOG = {
     date: new Date().toISOString().slice(0, 10),
-    material: '한방영양제',
-    dilution: '',
-    amount: '',
-    crop: '전체',
-    memo: '',
-    recipeId: '',
-  });
+    material: '한방영양제', customMaterial: '',
+    dilution: '', amount: '',
+    crop: '전체', customCrop: '',
+    sprayMethod: '엽면살포',
+    weather: '', temp: '',
+    memo: '', recipeId: '',
+  };
+  const [form, setForm] = useState({ ...BLANK_LOG });
   const [recipeForm, setRecipeForm] = useState({ name: '', material: '한방영양제', dilution: '', purpose: '', memo: '' });
 
   const loadLogs    = async () => setLogs(await db.getList(TABLES.CHEM_LOG));
@@ -29,9 +31,11 @@ export default function ChemicalLog() {
 
   const saveLog = async () => {
     if (!form.dilution.trim()) return;
-    await db.add(TABLES.CHEM_LOG, form);
+    const finalMat  = form.material === '직접입력' ? form.customMaterial.trim() : form.material;
+    const finalCrop = form.crop === '직접입력' ? form.customCrop.trim() : form.crop;
+    await db.add(TABLES.CHEM_LOG, { ...form, material: finalMat, crop: finalCrop });
     await loadLogs();
-    setForm({ date: new Date().toISOString().slice(0, 10), material: '한방영양제', dilution: '', amount: '', crop: '전체', memo: '', recipeId: '' });
+    setForm({ ...BLANK_LOG });
     setShowForm(false);
   };
 
@@ -114,6 +118,7 @@ export default function ChemicalLog() {
 
           {showForm && (
             <div className="card mb-4" style={{ borderLeft: '3px solid var(--color-earth)', borderRadius: '0 8px 8px 0' }}>
+              {/* 날짜 + 자재 */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                 <div>
                   <label className="label">날짜</label>
@@ -121,36 +126,86 @@ export default function ChemicalLog() {
                     onChange={e => setForm(p => ({ ...p, date: e.target.value }))} style={{ fontSize: '14px' }} />
                 </div>
                 <div>
-                  <label className="label">자재명</label>
+                  <label className="label">자재 종류</label>
                   <select className="input" value={form.material}
-                    onChange={e => setForm(p => ({ ...p, material: e.target.value }))} style={{ fontSize: '14px' }}>
+                    onChange={e => setForm(p => ({ ...p, material: e.target.value, customMaterial: '' }))} style={{ fontSize: '14px' }}>
                     {MAT_TYPES.map(m => <option key={m}>{m}</option>)}
                   </select>
                 </div>
               </div>
+
+              {/* 직접입력 자재명 */}
+              {form.material === '직접입력' && (
+                <div style={{ marginBottom: '10px' }}>
+                  <label className="label">자재명 직접 입력</label>
+                  <input className="input" placeholder="예: OO회사 한방영양제, 자가제조 목초액" value={form.customMaterial}
+                    onChange={e => setForm(p => ({ ...p, customMaterial: e.target.value }))} style={{ fontSize: '14px' }} autoFocus />
+                </div>
+              )}
+
+              {/* 희석 + 살포량 */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                 <div>
                   <label className="label">희석배율 *</label>
-                  <input className="input" placeholder="예: 500배" value={form.dilution}
+                  <input className="input" placeholder="예: 500배, 1000배" value={form.dilution}
                     onChange={e => setForm(p => ({ ...p, dilution: e.target.value }))} style={{ fontSize: '14px' }} />
                 </div>
                 <div>
                   <label className="label">살포량</label>
-                  <input className="input" placeholder="예: 20L" value={form.amount}
+                  <input className="input" placeholder="예: 20L, 2통" value={form.amount}
                     onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} style={{ fontSize: '14px' }} />
                 </div>
               </div>
-              <div style={{ marginBottom: '10px' }}>
-                <label className="label">대상 작물</label>
-                <select className="input" value={form.crop}
-                  onChange={e => setForm(p => ({ ...p, crop: e.target.value }))} style={{ fontSize: '14px' }}>
-                  {CROP_OPTIONS.map(c => <option key={c}>{c}</option>)}
-                </select>
+
+              {/* 대상 작물 + 살포 방법 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <div>
+                  <label className="label">대상 작물</label>
+                  <select className="input" value={form.crop}
+                    onChange={e => setForm(p => ({ ...p, crop: e.target.value, customCrop: '' }))} style={{ fontSize: '14px' }}>
+                    {CROP_OPTIONS.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">살포 방법</label>
+                  <select className="input" value={form.sprayMethod}
+                    onChange={e => setForm(p => ({ ...p, sprayMethod: e.target.value }))} style={{ fontSize: '14px' }}>
+                    {SPRAY_METHODS.map(m => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
               </div>
+
+              {/* 직접입력 작물명 */}
+              {form.crop === '직접입력' && (
+                <div style={{ marginBottom: '10px' }}>
+                  <label className="label">작물명 직접 입력</label>
+                  <input className="input" placeholder="예: 여주, 울금" value={form.customCrop}
+                    onChange={e => setForm(p => ({ ...p, customCrop: e.target.value }))} style={{ fontSize: '14px' }} />
+                </div>
+              )}
+
+              {/* 살포 당시 날씨/기온 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <div>
+                  <label className="label">살포 시 날씨</label>
+                  <select className="input" value={form.weather}
+                    onChange={e => setForm(p => ({ ...p, weather: e.target.value }))} style={{ fontSize: '14px' }}>
+                    <option value="">미기록</option>
+                    {['맑음', '구름많음', '흐림', '비 직전', '비 후'].map(w => <option key={w}>{w}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">살포 시 기온</label>
+                  <input className="input" placeholder="예: 18°C" value={form.temp}
+                    onChange={e => setForm(p => ({ ...p, temp: e.target.value }))} style={{ fontSize: '14px' }} />
+                </div>
+              </div>
+
               <div style={{ marginBottom: '14px' }}>
                 <label className="label">메모</label>
-                <input className="input" placeholder="목적, 특이사항 등" value={form.memo}
-                  onChange={e => setForm(p => ({ ...p, memo: e.target.value }))} style={{ fontSize: '14px' }} />
+                <textarea className="input" placeholder="목적, 효과, 특이사항 등" value={form.memo}
+                  onChange={e => setForm(p => ({ ...p, memo: e.target.value }))} rows={2}
+                  style={{ fontSize: '14px', resize: 'none', lineHeight: 1.6 }} />
               </div>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button className="btn-secondary" onClick={() => setShowForm(false)}>취소</button>
@@ -171,13 +226,16 @@ export default function ChemicalLog() {
                 <div key={log.id} className="card" style={{ padding: '12px 14px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{log.date?.replace(/-/g, '.')}</span>
                         <span className="badge badge-info" style={{ fontSize: '10px' }}>{log.material}</span>
                         <span className="badge badge-good" style={{ fontSize: '10px' }}>{log.crop}</span>
+                        {log.sprayMethod && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{log.sprayMethod}</span>}
+                        {log.weather && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{log.weather}</span>}
                       </div>
                       <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>
                         {log.dilution} {log.amount && `· ${log.amount}`}
+                        {log.temp && <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)', marginLeft: '6px' }}>{log.temp}</span>}
                       </p>
                       {log.memo && <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{log.memo}</p>}
                     </div>

@@ -23,19 +23,23 @@ export default function CropList() {
   const [showForm, setShowForm]   = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [detailTab, setDetailTab] = useState('timeline');
-  const [form, setForm] = useState({
-    name: '고추', area: '', plantingDate: new Date().toISOString().slice(0, 10), note: '',
-  });
+  const BLANK_FORM = {
+    name: '', customName: '', variety: '', area: '',
+    plantingDate: new Date().toISOString().slice(0, 10),
+    growMethod: '노지', seedType: '', note: '',
+  };
+  const [form, setForm] = useState({ ...BLANK_FORM });
 
   const load = async () => setCrops(await db.getList(TABLES.CROP));
 
   useEffect(() => { load(); }, []);
 
   const add = async () => {
-    if (!form.name.trim()) return;
-    await db.add(TABLES.CROP, { ...form });
+    const finalName = form.name === '직접입력' ? form.customName.trim() : form.name.trim();
+    if (!finalName) return;
+    await db.add(TABLES.CROP, { ...form, name: finalName });
     await load();
-    setForm({ name: '고추', area: '', plantingDate: new Date().toISOString().slice(0, 10), note: '' });
+    setForm({ ...BLANK_FORM });
     setShowForm(false);
   };
 
@@ -137,20 +141,54 @@ export default function CropList() {
       {/* 등록 폼 */}
       {showForm && (
         <div className="card mb-4" style={{ borderLeft: '3px solid var(--color-primary)', borderRadius: '0 8px 8px 0', padding: '18px 20px' }}>
-          <div style={{ marginBottom: '10px' }}>
-            <label className="label">작물 선택 *</label>
-            <select
-              className="input"
-              value={form.name}
-              onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-              style={{ fontSize: '14px' }}
-            >
-              {SUPPORTED_CROPS.map(c => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '16px' }}>작물 등록</p>
+
+          {/* 작물명 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+            <div>
+              <label className="label">작물 종류 *</label>
+              <select
+                className="input"
+                value={form.name}
+                onChange={e => setForm(p => ({ ...p, name: e.target.value, customName: '' }))}
+                style={{ fontSize: '14px' }}
+              >
+                <option value="">-- 선택 --</option>
+                {SUPPORTED_CROPS.map(c => <option key={c}>{c}</option>)}
+                <option value="직접입력">직접 입력</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">품종명</label>
+              <input
+                className="input"
+                placeholder="예: 청양고추, 방울토마토"
+                value={form.name === '직접입력' ? form.customName : form.variety}
+                onChange={e => form.name === '직접입력'
+                  ? setForm(p => ({ ...p, customName: e.target.value }))
+                  : setForm(p => ({ ...p, variety: e.target.value }))
+                }
+                style={{ fontSize: '14px' }}
+              />
+            </div>
           </div>
 
+          {/* 직접 입력 시 작물명 입력 */}
+          {form.name === '직접입력' && (
+            <div style={{ marginBottom: '10px' }}>
+              <label className="label">작물명 직접 입력 *</label>
+              <input
+                className="input"
+                placeholder="예: 여주, 울금, 생강"
+                value={form.customName}
+                onChange={e => setForm(p => ({ ...p, customName: e.target.value }))}
+                style={{ fontSize: '14px' }}
+                autoFocus
+              />
+            </div>
+          )}
+
+          {/* 구획 + 재배방식 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
             <div>
               <label className="label">구획명</label>
@@ -163,6 +201,21 @@ export default function CropList() {
               />
             </div>
             <div>
+              <label className="label">재배 방식</label>
+              <select
+                className="input"
+                value={form.growMethod}
+                onChange={e => setForm(p => ({ ...p, growMethod: e.target.value }))}
+                style={{ fontSize: '14px' }}
+              >
+                {['노지', '하우스', '터널', '수경', '화분', '기타'].map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* 파종일 + 모종/씨앗 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+            <div>
               <label className="label">파종/정식일 *</label>
               <input
                 type="date"
@@ -172,22 +225,42 @@ export default function CropList() {
                 style={{ fontSize: '14px' }}
               />
             </div>
+            <div>
+              <label className="label">종류 (씨앗/모종)</label>
+              <select
+                className="input"
+                value={form.seedType}
+                onChange={e => setForm(p => ({ ...p, seedType: e.target.value }))}
+                style={{ fontSize: '14px' }}
+              >
+                <option value="">미지정</option>
+                {['씨앗 파종', '모종 정식', '구근 식재', '삽목', '접목묘'].map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
 
+          {/* 메모 */}
           <div style={{ marginBottom: '14px' }}>
             <label className="label">메모</label>
-            <input
+            <textarea
               className="input"
-              placeholder="품종, 특이사항 등"
+              placeholder="구매처, 재배 목표, 특이사항 등"
               value={form.note}
               onChange={e => setForm(p => ({ ...p, note: e.target.value }))}
-              style={{ fontSize: '14px' }}
+              rows={2}
+              style={{ fontSize: '14px', resize: 'none', lineHeight: 1.6 }}
             />
           </div>
 
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
             <button className="btn-secondary" onClick={() => setShowForm(false)}>취소</button>
-            <button className="btn-primary" onClick={add} disabled={!form.name.trim()}>등록</button>
+            <button
+              className="btn-primary"
+              onClick={add}
+              disabled={form.name === '직접입력' ? !form.customName.trim() : !form.name}
+            >
+              등록
+            </button>
           </div>
         </div>
       )}
@@ -229,12 +302,16 @@ export default function CropList() {
 
                 {/* 정보 */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{crop.name}</span>
+                    {crop.variety && <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>· {crop.variety}</span>}
                     {crop.area && <span className="badge badge-info" style={{ fontSize: '10px' }}>{crop.area}</span>}
+                    {crop.growMethod && crop.growMethod !== '노지' && (
+                      <span className="badge badge-good" style={{ fontSize: '10px' }}>{crop.growMethod}</span>
+                    )}
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {crop.plantingDate.replace(/-/g, '.')} 정식
+                    {crop.plantingDate?.replace(/-/g, '.')} {crop.seedType || '정식'}
                     <span style={{
                       marginLeft: '8px', fontWeight: 700,
                       color: elapsed > 0 ? 'var(--color-primary)' : 'var(--text-muted)',
