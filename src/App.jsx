@@ -1,16 +1,17 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import {
   Home, Sprout, BookOpen, Calendar, MoreHorizontal,
   Bell, Settings
 } from 'lucide-react';
 import './styles/globals.css';
-import Dashboard from './components/Dashboard';
-import RecordTab from './components/RecordTab';
-import MoreTab from './components/MoreTab';
-import CropTab from './components/CropTab';
-import CalendarView from './components/Calendar';
-import PlaceholderPage from './components/PlaceholderPage';
 import ErrorBoundary from './components/ErrorBoundary';
+
+// ── Lazy loading — 탭 첫 방문 시에만 JS 청크 로드 ──────────────────
+const Dashboard    = lazy(() => import('./components/Dashboard'));
+const CropTab      = lazy(() => import('./components/CropTab'));
+const RecordTab    = lazy(() => import('./components/RecordTab'));
+const CalendarView = lazy(() => import('./components/Calendar'));
+const MoreTab      = lazy(() => import('./components/MoreTab'));
 
 const TABS = [
   { id: 'home',     label: '홈',     icon: Home },
@@ -20,28 +21,48 @@ const TABS = [
   { id: 'more',     label: '더보기', icon: MoreHorizontal },
 ];
 
+// ── 탭 로딩 스피너 ─────────────────────────────────────────────────
+function TabLoader() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '80px 20px', color: 'var(--text-muted)',
+    }}>
+      <div style={{
+        width: '24px', height: '24px', borderRadius: '50%',
+        border: '2px solid var(--border)',
+        borderTopColor: 'var(--color-primary)',
+        animation: 'spin 0.7s linear infinite',
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('home');
+  // 방문한 탭 추적 — 한 번 방문하면 계속 DOM에 유지 (keep-alive)
+  const [visited, setVisited] = useState(new Set(['home']));
   const contentRef = useRef(null);
 
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setVisited(prev => new Set([...prev, tabId]));
+  };
+
+  // 탭 전환 시 스크롤 맨 위
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
   }, [activeTab]);
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'home':
-        return <Dashboard onNavigate={setActiveTab} />;
-      case 'crop':
-        return <CropTab />;
-      case 'record':
-        return <RecordTab />;
-      case 'calendar':
-        return <CalendarView />;
-      case 'more':
-        return <MoreTab />;
-      default:
-        return null;
+  const renderTab = (tabId) => {
+    switch (tabId) {
+      case 'home':     return <Dashboard onNavigate={handleTabChange} />;
+      case 'crop':     return <CropTab />;
+      case 'record':   return <RecordTab />;
+      case 'calendar': return <CalendarView />;
+      case 'more':     return <MoreTab />;
+      default:         return null;
     }
   };
 
@@ -96,10 +117,21 @@ function App() {
         </div>
       </header>
 
-      {/* ── 콘텐츠 ── */}
+      {/* ── 콘텐츠 — Keep-alive: 방문한 탭은 숨기기만 하고 유지 ── */}
       <main className="app-content" ref={contentRef}>
-        <ErrorBoundary key={activeTab}>
-          {renderContent()}
+        <ErrorBoundary>
+          <Suspense fallback={<TabLoader />}>
+            {TABS.map(tab => (
+              visited.has(tab.id) ? (
+                <div
+                  key={tab.id}
+                  style={{ display: activeTab === tab.id ? 'block' : 'none' }}
+                >
+                  {renderTab(tab.id)}
+                </div>
+              ) : null
+            ))}
+          </Suspense>
         </ErrorBoundary>
       </main>
 
@@ -112,7 +144,7 @@ function App() {
             <button
               key={tab.id}
               className={`tab-item${isActive ? ' active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
             >
