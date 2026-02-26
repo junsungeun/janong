@@ -193,12 +193,16 @@ function App() {
   const [visited, setVisited]     = useState(new Set(['home']));
   const [showNotif, setShowNotif] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
+  const [recordTrigger, setRecordTrigger] = useState(null);
   const contentRef = useRef(null);
 
-  const handleTabChange = (tabId) => {
+  const handleTabChange = (tabId, params = null) => {
     setActiveTab(tabId);
     setVisited(prev => new Set([...prev, tabId]));
     setShowNotif(false);
+    if (tabId === 'record' && params) {
+      setRecordTrigger({ ...params, key: Date.now() });
+    }
   };
 
   // 알림 뱃지 카운트 로드
@@ -230,7 +234,7 @@ function App() {
     switch (tabId) {
       case 'home':     return <Dashboard onNavigate={handleTabChange} />;
       case 'crop':     return <CropTab />;
-      case 'record':   return <RecordTab />;
+      case 'record':   return <RecordTab trigger={recordTrigger} />;
       case 'calendar': return <CalendarView />;
       case 'more':     return <MoreTab />;
       default:         return null;

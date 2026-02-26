@@ -665,8 +665,8 @@ export default function Dashboard({ onNavigate }) {
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           {[
-            { icon: <Leaf          size={16} strokeWidth={1.5} />, label: '농사 일지',   action: () => onNavigate('record') },
-            { icon: <Timer         size={16} strokeWidth={1.5} />, label: '작업 타이머', action: () => onNavigate('record') },
+            { icon: <Leaf          size={16} strokeWidth={1.5} />, label: '농사 일지',   action: () => onNavigate('record', { sub: 'log',   add: true }) },
+            { icon: <Timer         size={16} strokeWidth={1.5} />, label: '작업 타이머', action: () => onNavigate('record', { sub: 'timer', add: false }) },
             { icon: <AlertTriangle size={16} strokeWidth={1.5} />, label: '이슈 등록',
               action: () => {
                 setShowIssueForm(true);

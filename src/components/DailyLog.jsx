@@ -6,9 +6,13 @@ import { formatDate } from '../utils/solarTerms';
 const WEATHER_OPTIONS = ['맑음', '흐림', '비', '눈', '바람'];
 const WORK_TYPES = ['파종', '정식', '물주기', '방제', '수확', '전정', '멀칭', '기타'];
 
-export default function DailyLog() {
+export default function DailyLog({ addTrigger }) {
   const [logs, setLogs] = useState([]);
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    if (addTrigger) setShowForm(true);
+  }, [addTrigger]);
   const [expandedId, setExpandedId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({

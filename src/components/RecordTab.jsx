@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BookOpen, Timer, FlaskConical } from 'lucide-react';
 import DailyLog from './DailyLog';
 import WorkTimer from './WorkTimer';
@@ -10,8 +10,15 @@ const SUB_TABS = [
   { id: 'chem',  label: '농자재', icon: FlaskConical },
 ];
 
-export default function RecordTab() {
+export default function RecordTab({ trigger }) {
   const [active, setActive] = useState('log');
+  const [addTrigger, setAddTrigger] = useState(null);
+
+  useEffect(() => {
+    if (!trigger?.key) return;
+    if (trigger.sub) setActive(trigger.sub);
+    if (trigger.add) setAddTrigger(trigger.key);
+  }, [trigger?.key]);
 
   return (
     <div>
@@ -57,7 +64,7 @@ export default function RecordTab() {
         })}
       </div>
 
-      {active === 'log'   && <DailyLog />}
+      {active === 'log'   && <DailyLog addTrigger={addTrigger} />}
       {active === 'timer' && <WorkTimer />}
       {active === 'chem'  && <ChemicalLog />}
     </div>
