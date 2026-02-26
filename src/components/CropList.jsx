@@ -37,7 +37,8 @@ export default function CropList() {
   const add = async () => {
     const finalName = form.name === '직접입력' ? form.customName.trim() : form.name.trim();
     if (!finalName) return;
-    await db.add(TABLES.CROP, { ...form, name: finalName });
+    const { customName, ...cropData } = form;
+    await db.add(TABLES.CROP, { ...cropData, name: finalName });
     await load();
     setForm({ ...BLANK_FORM });
     setShowForm(false);
