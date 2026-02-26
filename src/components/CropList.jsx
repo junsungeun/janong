@@ -38,10 +38,15 @@ export default function CropList() {
     const finalName = form.name === '직접입력' ? form.customName.trim() : form.name.trim();
     if (!finalName) return;
     const { customName, ...cropData } = form;
-    await db.add(TABLES.CROP, { ...cropData, name: finalName });
-    await load();
-    setForm({ ...BLANK_FORM });
-    setShowForm(false);
+    try {
+      await db.add(TABLES.CROP, { ...cropData, name: finalName });
+      await load();
+      setForm({ ...BLANK_FORM });
+      setShowForm(false);
+    } catch (e) {
+      console.error('[작물 등록 오류]', e);
+      alert(`등록 오류: ${e?.message || JSON.stringify(e)}`);
+    }
   };
 
   const del = async (id, e) => {
