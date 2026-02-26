@@ -1,0 +1,6 @@
+/* 자농 글로벌 리셋 — Vite 기본값 제거 */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { min-width: 320px; min-height: 100vh; background: #FAFAF7; }
+button { font-family: inherit; }
+#root { height: 100%; }
