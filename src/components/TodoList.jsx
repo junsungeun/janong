@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, CheckSquare, Trash2, RotateCcw } from 'lucide-react';
-import { storage, KEYS } from '../utils/storage';
+import { db, TABLES } from '../services/dbService';
 
 const REPEAT_OPTIONS = ['없음', '매일', '매주', '월·수·금', '화·목'];
 
@@ -10,22 +10,24 @@ export default function TodoList() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ text: '', date: '', repeat: '없음' });
 
-  useEffect(() => { setTodos(storage.getList(KEYS.TODO)); }, []);
+  const load = async () => setTodos(await db.getList(TABLES.TODO));
 
-  const add = () => {
+  useEffect(() => { load(); }, []);
+
+  const add = async () => {
     if (!form.text.trim()) return;
-    storage.addItem(KEYS.TODO, { ...form, done: false });
-    setTodos(storage.getList(KEYS.TODO));
+    await db.add(TABLES.TODO, { ...form, done: false });
+    await load();
     setForm({ text: '', date: '', repeat: '없음' });
     setShowForm(false);
   };
 
-  const toggle = (id) => {
-    storage.updateItem(KEYS.TODO, id, { done: !todos.find(t => t.id === id)?.done });
-    setTodos(storage.getList(KEYS.TODO));
+  const toggle = async (id) => {
+    await db.update(TABLES.TODO, id, { done: !todos.find(t => t.id === id)?.done });
+    await load();
   };
 
-  const del = (id) => { storage.deleteItem(KEYS.TODO, id); setTodos(storage.getList(KEYS.TODO)); };
+  const del = async (id) => { await db.delete(TABLES.TODO, id); await load(); };
 
   const pending = todos.filter(t => !t.done);
   const done = todos.filter(t => t.done);

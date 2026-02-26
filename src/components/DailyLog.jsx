@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
-import { storage, KEYS } from '../utils/storage';
+import { db, TABLES } from '../services/dbService';
 import { formatDate } from '../utils/solarTerms';
 
 const WEATHER_OPTIONS = ['맑음', '흐림', '비', '눈', '바람'];
@@ -19,20 +19,19 @@ export default function DailyLog() {
     memo: '',
   });
 
-  useEffect(() => {
-    setLogs(storage.getList(KEYS.DAILY_LOG));
-  }, []);
+  const load = async () => setLogs(await db.getList(TABLES.DAILY_LOG));
 
-  const save = () => {
+  useEffect(() => { load(); }, []);
+
+  const save = async () => {
     if (!form.content.trim()) return;
     if (editingId) {
-      storage.updateItem(KEYS.DAILY_LOG, editingId, form);
-      setLogs(storage.getList(KEYS.DAILY_LOG));
+      await db.update(TABLES.DAILY_LOG, editingId, form);
       setEditingId(null);
     } else {
-      storage.addItem(KEYS.DAILY_LOG, form);
-      setLogs(storage.getList(KEYS.DAILY_LOG));
+      await db.add(TABLES.DAILY_LOG, form);
     }
+    await load();
     setForm({ date: new Date().toISOString().slice(0, 10), weather: '맑음', workTypes: [], content: '', memo: '' });
     setShowForm(false);
   };
@@ -43,9 +42,9 @@ export default function DailyLog() {
     setShowForm(true);
   };
 
-  const del = (id) => {
-    storage.deleteItem(KEYS.DAILY_LOG, id);
-    setLogs(storage.getList(KEYS.DAILY_LOG));
+  const del = async (id) => {
+    await db.delete(TABLES.DAILY_LOG, id);
+    await load();
   };
 
   const toggleWorkType = (type) => {

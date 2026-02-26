@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, BookMarked, FlaskConical } from 'lucide-react';
-import { storage, KEYS } from '../utils/storage';
+import { db, TABLES } from '../services/dbService';
 
 const MAT_TYPES = ['한방영양제', '토착미생물', '천혜녹즙', '목초액', '님오일', '마늘액', '키토산', '기타'];
 const CROP_OPTIONS = ['고추', '토마토', '배추', '상추', '오이', '가지', '감자', '전체', '기타'];
@@ -22,29 +22,29 @@ export default function ChemicalLog() {
   });
   const [recipeForm, setRecipeForm] = useState({ name: '', material: '한방영양제', dilution: '', purpose: '', memo: '' });
 
-  useEffect(() => {
-    setLogs(storage.getList(KEYS.CHEM_LOG));
-    setRecipes(storage.getList(KEYS.RECIPE));
-  }, []);
+  const loadLogs    = async () => setLogs(await db.getList(TABLES.CHEM_LOG));
+  const loadRecipes = async () => setRecipes(await db.getList(TABLES.RECIPE));
 
-  const saveLog = () => {
+  useEffect(() => { loadLogs(); loadRecipes(); }, []);
+
+  const saveLog = async () => {
     if (!form.dilution.trim()) return;
-    storage.addItem(KEYS.CHEM_LOG, form);
-    setLogs(storage.getList(KEYS.CHEM_LOG));
+    await db.add(TABLES.CHEM_LOG, form);
+    await loadLogs();
     setForm({ date: new Date().toISOString().slice(0, 10), material: '한방영양제', dilution: '', amount: '', crop: '전체', memo: '', recipeId: '' });
     setShowForm(false);
   };
 
-  const saveRecipe = () => {
+  const saveRecipe = async () => {
     if (!recipeForm.name.trim()) return;
-    storage.addItem(KEYS.RECIPE, recipeForm);
-    setRecipes(storage.getList(KEYS.RECIPE));
+    await db.add(TABLES.RECIPE, recipeForm);
+    await loadRecipes();
     setRecipeForm({ name: '', material: '한방영양제', dilution: '', purpose: '', memo: '' });
     setShowRecipeForm(false);
   };
 
-  const delLog = (id) => { storage.deleteItem(KEYS.CHEM_LOG, id); setLogs(storage.getList(KEYS.CHEM_LOG)); };
-  const delRecipe = (id) => { storage.deleteItem(KEYS.RECIPE, id); setRecipes(storage.getList(KEYS.RECIPE)); };
+  const delLog    = async (id) => { await db.delete(TABLES.CHEM_LOG, id); await loadLogs(); };
+  const delRecipe = async (id) => { await db.delete(TABLES.RECIPE, id);   await loadRecipes(); };
 
   const loadRecipe = (recipe) => {
     setForm(p => ({ ...p, material: recipe.material, dilution: recipe.dilution, recipeId: recipe.id, memo: recipe.purpose }));

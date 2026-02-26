@@ -3,7 +3,7 @@ import {
   Plus, FlaskConical, ChevronDown, ChevronUp,
   CheckCircle, Trash2, ClipboardList,
 } from 'lucide-react';
-import { storage, KEYS } from '../utils/storage';
+import { db, TABLES } from '../services/dbService';
 
 // 배양 상태
 const STATUS = {
@@ -29,34 +29,33 @@ export default function MicrobeLog() {
     note: '',
   });
 
-  const load = () => setBatches(storage.getList(KEYS.MICROBE_LOG));
+  const load = async () => setBatches(await db.getList(TABLES.MICROBE_LOG));
   useEffect(() => { load(); }, []);
 
   // ── 배양 등록 ──────────────────────────────────────────────────────
-  const addBatch = () => {
+  const addBatch = async () => {
     if (!form.startDate) return;
-    storage.addItem(KEYS.MICROBE_LOG, {
+    await db.add(TABLES.MICROBE_LOG, {
       ...form,
       status: 'brewing',
       checks: [],
     });
-    load();
+    await load();
     setForm({ startDate: today(), materials: '', temp: '', location: '', targetCrop: '', note: '' });
     setShowForm(false);
   };
 
   // ── 일별 상태 체크 추가 ─────────────────────────────────────────────
-  const addCheck = (batchId) => {
+  const addCheck = async (batchId) => {
     const cf = checkForms[batchId] || initCheckForm();
-    const list = storage.getList(KEYS.MICROBE_LOG);
-    const batch = list.find(b => b.id === batchId);
+    const batch = batches.find(b => b.id === batchId);
     if (!batch) return;
     const newChecks = [
-      ...batch.checks,
+      ...(batch.checks || []),
       { ...cf, id: Date.now().toString(), createdAt: new Date().toISOString() },
     ];
-    storage.updateItem(KEYS.MICROBE_LOG, batchId, { checks: newChecks });
-    load();
+    await db.update(TABLES.MICROBE_LOG, batchId, { checks: newChecks });
+    await load();
     setCheckForms(p => ({ ...p, [batchId]: initCheckForm() }));
   };
 
@@ -69,17 +68,17 @@ export default function MicrobeLog() {
   };
 
   // ── 상태 전환 ───────────────────────────────────────────────────────
-  const markDone = (id) => {
-    storage.updateItem(KEYS.MICROBE_LOG, id, { status: 'done', completedAt: today() });
-    load();
+  const markDone = async (id) => {
+    await db.update(TABLES.MICROBE_LOG, id, { status: 'done', completedAt: today() });
+    await load();
   };
 
-  const markApplied = (id) => {
-    storage.updateItem(KEYS.MICROBE_LOG, id, { status: 'applied', appliedAt: today() });
-    load();
+  const markApplied = async (id) => {
+    await db.update(TABLES.MICROBE_LOG, id, { status: 'applied', appliedAt: today() });
+    await load();
   };
 
-  const del = (id) => { storage.deleteItem(KEYS.MICROBE_LOG, id); load(); };
+  const del = async (id) => { await db.delete(TABLES.MICROBE_LOG, id); await load(); };
 
   // 경과일 계산
   const elapsed = (dateStr) => {

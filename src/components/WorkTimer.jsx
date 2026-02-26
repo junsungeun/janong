@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Square, Timer, BarChart2 } from 'lucide-react';
-import { storage, KEYS } from '../utils/storage';
+import { db, TABLES } from '../services/dbService';
 
 const CATEGORIES = ['파종', '물주기', '방제', '수확', '전정', '멀칭', '기타'];
 
@@ -28,9 +28,9 @@ export default function WorkTimer() {
   const intervalRef = useRef(null);
   const startRef = useRef(null);
 
-  useEffect(() => {
-    setSessions(storage.getList(KEYS.WORK_TIMER));
-  }, []);
+  const loadSessions = async () => setSessions(await db.getList(TABLES.WORK_TIMER));
+
+  useEffect(() => { loadSessions(); }, []);
 
   useEffect(() => {
     if (running) {
@@ -56,8 +56,7 @@ export default function WorkTimer() {
       duration: elapsed,
       startedAt: new Date(Date.now() - elapsed * 1000).toISOString(),
     };
-    storage.addItem(KEYS.WORK_TIMER, record);
-    setSessions(storage.getList(KEYS.WORK_TIMER));
+    db.add(TABLES.WORK_TIMER, record).then(loadSessions);
     setElapsed(0);
   };
 

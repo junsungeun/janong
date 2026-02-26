@@ -3,7 +3,7 @@ import {
   CheckSquare, AlertTriangle, Timer, Plus, Leaf,
 } from 'lucide-react';
 import { getCurrentSolarTerm, formatDate } from '../utils/solarTerms';
-import { storage, KEYS } from '../utils/storage';
+import { db, TABLES } from '../services/dbService';
 import WeatherCard from './WeatherCard';
 import { getTodayVerse } from '../data/bibleVerses';
 
@@ -14,14 +14,20 @@ export default function Dashboard({ onNavigate }) {
   const solarTerm = getCurrentSolarTerm();
   const verse     = getTodayVerse();
 
-  useEffect(() => {
-    setTodos(storage.getList(KEYS.TODO));
-    setIssues(storage.getList(KEYS.ISSUE));
-  }, []);
+  const load = async () => {
+    const [td, iss] = await Promise.all([
+      db.getList(TABLES.TODO),
+      db.getList(TABLES.ISSUE),
+    ]);
+    setTodos(td);
+    setIssues(iss);
+  };
 
-  const toggleTodo = (id) => {
-    storage.updateItem(KEYS.TODO, id, { done: !todos.find(t => t.id === id)?.done });
-    setTodos(storage.getList(KEYS.TODO));
+  useEffect(() => { load(); }, []);
+
+  const toggleTodo = async (id) => {
+    await db.update(TABLES.TODO, id, { done: !todos.find(t => t.id === id)?.done });
+    await load();
   };
 
   const pendingTodos  = todos.filter(t => !t.done).slice(0, 3);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X, CalendarDays, Sprout, AlertTriangle, CheckCircle } from 'lucide-react';
-import { storage, KEYS } from '../utils/storage';
+import { db, TABLES } from '../services/dbService';
 import { getCropTimeline } from '../data/cropTimelines';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -46,8 +46,24 @@ export default function Calendar() {
   const [form, setForm] = useState({ title: '', date: todayYMD, note: '' });
 
   // ── 캘린더 이벤트 로드 ──────────────────────────────────────────────
-  const loadCalEvents = () => setCalEvents(storage.getList(KEYS.CALENDAR));
-  useEffect(() => { loadCalEvents(); }, []);
+  const [crops, setCrops]   = useState([]);
+  const [issues, setIssues] = useState([]);
+  const [todos, setTodos]   = useState([]);
+
+  const loadCalEvents = async () => setCalEvents(await db.getList(TABLES.CALENDAR));
+  const loadAll = async () => {
+    const [cal, c, iss, td] = await Promise.all([
+      db.getList(TABLES.CALENDAR),
+      db.getList(TABLES.CROP),
+      db.getList(TABLES.ISSUE),
+      db.getList(TABLES.TODO),
+    ]);
+    setCalEvents(cal);
+    setCrops(c);
+    setIssues(iss);
+    setTodos(td);
+  };
+  useEffect(() => { loadAll(); }, []);
 
   // ── 전체 이벤트 집계 (날짜 → 이벤트 배열) ─────────────────────────
   const eventsByDate = useMemo(() => {
@@ -59,7 +75,6 @@ export default function Calendar() {
     };
 
     // 1) 작물 타임라인
-    const crops = storage.getList(KEYS.CROP);
     crops.forEach(crop => {
       const items = getCropTimeline(crop.name, crop.plantingDate);
       items.forEach(item => {
@@ -78,7 +93,6 @@ export default function Calendar() {
     });
 
     // 3) 이슈 (등록일 기준)
-    const issues = storage.getList(KEYS.ISSUE);
     issues.forEach(issue => {
       const dateStr = issue.createdAt?.slice(0, 10);
       if (dateStr) {
@@ -92,7 +106,6 @@ export default function Calendar() {
     });
 
     // 4) 오늘 기한 할 일
-    const todos = storage.getList(KEYS.TODO);
     todos.forEach(todo => {
       if (todo.date && !todo.done) {
         push(todo.date, { type: 'todo', title: todo.text, note: '할 일' });
@@ -100,21 +113,21 @@ export default function Calendar() {
     });
 
     return map;
-  }, [calEvents, cur]); // cur 변경 시 재계산
+  }, [calEvents, crops, issues, todos, cur]);
 
   // ── 일정 추가 ────────────────────────────────────────────────────────
-  const addEvent = () => {
+  const addEvent = async () => {
     if (!form.title.trim() || !form.date) return;
-    storage.addItem(KEYS.CALENDAR, { ...form });
-    loadCalEvents();
+    await db.add(TABLES.CALENDAR, { ...form });
+    await loadCalEvents();
     setForm({ title: '', date: selected || todayYMD, note: '' });
     setShowAddForm(false);
   };
 
   // ── 일정 삭제 ────────────────────────────────────────────────────────
-  const delEvent = (id) => {
-    storage.deleteItem(KEYS.CALENDAR, id);
-    loadCalEvents();
+  const delEvent = async (id) => {
+    await db.delete(TABLES.CALENDAR, id);
+    await loadCalEvents();
   };
 
   // ── 월 이동 ─────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, FlaskConical, ChevronDown, ChevronUp, Trash2, Copy, Check } from 'lucide-react';
-import { storage, KEYS } from '../utils/storage';
+import { db, TABLES } from '../services/dbService';
 
 const PURPOSE_OPTS = [
   '병해충 예방', '생장 촉진', '면역 강화', '수확 후 처리',
@@ -16,18 +16,18 @@ export default function RecipeBook() {
     name: '', materials: '', dilution: '', purpose: '병해충 예방', note: '',
   });
 
-  const load = () => setRecipes(storage.getList(KEYS.RECIPE));
+  const load = async () => setRecipes(await db.getList(TABLES.RECIPE));
   useEffect(() => { load(); }, []);
 
-  const save = () => {
+  const save = async () => {
     if (!form.name.trim()) return;
-    storage.addItem(KEYS.RECIPE, { ...form });
-    load();
+    await db.add(TABLES.RECIPE, { ...form });
+    await load();
     setForm({ name: '', materials: '', dilution: '', purpose: '병해충 예방', note: '' });
     setShowForm(false);
   };
 
-  const del = (id) => { storage.deleteItem(KEYS.RECIPE, id); load(); };
+  const del = async (id) => { await db.delete(TABLES.RECIPE, id); await load(); };
 
   const copyToClipboard = (recipe) => {
     const text = `[${recipe.name}]\n재료: ${recipe.materials}\n희석배율: ${recipe.dilution}\n용도: ${recipe.purpose}${recipe.note ? '\n메모: ' + recipe.note : ''}`;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, AlertTriangle, CheckCircle, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
-import { storage, KEYS } from '../utils/storage';
+import { db, TABLES } from '../services/dbService';
 
 const SEVERITY = [
   { value: 'high',   label: '높음', color: 'var(--color-danger)', bg: '#FFF0F0' },
@@ -16,23 +16,25 @@ export default function IssueBoard() {
   const [filter, setFilter] = useState('all'); // all | open | solved
   const [form, setForm] = useState({ title: '', content: '', severity: 'high', crop: '전체' });
 
-  useEffect(() => { setIssues(storage.getList(KEYS.ISSUE)); }, []);
+  const load = async () => setIssues(await db.getList(TABLES.ISSUE));
 
-  const save = () => {
+  useEffect(() => { load(); }, []);
+
+  const save = async () => {
     if (!form.title.trim()) return;
-    storage.addItem(KEYS.ISSUE, { ...form, solved: false });
-    setIssues(storage.getList(KEYS.ISSUE));
+    await db.add(TABLES.ISSUE, { ...form, solved: false });
+    await load();
     setForm({ title: '', content: '', severity: 'high', crop: '전체' });
     setShowForm(false);
   };
 
-  const toggleSolved = (id) => {
+  const toggleSolved = async (id) => {
     const issue = issues.find(i => i.id === id);
-    storage.updateItem(KEYS.ISSUE, id, { solved: !issue?.solved, solvedAt: !issue?.solved ? new Date().toISOString() : null });
-    setIssues(storage.getList(KEYS.ISSUE));
+    await db.update(TABLES.ISSUE, id, { solved: !issue?.solved, solvedAt: !issue?.solved ? new Date().toISOString() : null });
+    await load();
   };
 
-  const del = (id) => { storage.deleteItem(KEYS.ISSUE, id); setIssues(storage.getList(KEYS.ISSUE)); };
+  const del = async (id) => { await db.delete(TABLES.ISSUE, id); await load(); };
 
   const filtered = issues.filter(i => {
     if (filter === 'open') return !i.solved;

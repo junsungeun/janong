@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Sprout, ChevronRight, ArrowLeft, Trash2, CalendarDays, Camera } from 'lucide-react';
-import { storage, KEYS } from '../utils/storage';
+import { db, TABLES } from '../services/dbService';
 import { SUPPORTED_CROPS, daysSincePlanting } from '../data/cropTimelines';
 import CropTimeline from './CropTimeline';
 import CropTimelapse from './CropTimelapse';
@@ -27,24 +27,22 @@ export default function CropList() {
     name: '고추', area: '', plantingDate: new Date().toISOString().slice(0, 10), note: '',
   });
 
-  const load = () => setCrops(storage.getList(KEYS.CROP));
+  const load = async () => setCrops(await db.getList(TABLES.CROP));
 
   useEffect(() => { load(); }, []);
 
-  const add = () => {
+  const add = async () => {
     if (!form.name.trim()) return;
-    storage.addItem(KEYS.CROP, { ...form });
-    load();
+    await db.add(TABLES.CROP, { ...form });
+    await load();
     setForm({ name: '고추', area: '', plantingDate: new Date().toISOString().slice(0, 10), note: '' });
     setShowForm(false);
   };
 
-  const del = (id, e) => {
+  const del = async (id, e) => {
     e.stopPropagation();
-    storage.deleteItem(KEYS.CROP, id);
-    // 연결된 사진도 삭제
-    localStorage.removeItem(`janong_crop_photo_${id}`);
-    load();
+    await db.delete(TABLES.CROP, id);
+    await load();
     if (selectedId === id) setSelectedId(null);
   };
 
