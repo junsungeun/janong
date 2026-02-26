@@ -171,7 +171,10 @@ body {
   padding: var(--space-5);
   padding-bottom: calc(64px + var(--space-5));
   overflow-y: auto;
-  background: var(--bg);         /* 스크롤 콘텐츠 영역 — 연한 크림 */
+  background: var(--bg);
+  /* GPU 레이어 — 스크롤 성능 향상 */
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
 }
 
 /* ─── 탭 네비게이션 ─── */

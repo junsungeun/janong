@@ -1,9 +1,10 @@
 // 농촌진흥청 농업기상 일반 관측데이터 V3 — 자농(JANONG)
 // 엔드포인트: V3/GnrlWeather/getWeatherTimeList3
-// 응답 형식: XML  /  날짜 파라미터: date_Time (yyyy-MM-dd)
+// ※ 농촌진흥청 API는 브라우저 직접 호출 시 CORS 차단됨
+//   → allorigins.win 프록시를 통해 우회 (오픈소스: github.com/gnuns/allorigins)
 
-const BASE_URL =
-  'https://apis.data.go.kr/1390802/AgriWeather/WeatherObsrInfo/V3/GnrlWeather/getWeatherTimeList3';
+const BASE_URL  = 'https://apis.data.go.kr/1390802/AgriWeather/WeatherObsrInfo/V3/GnrlWeather/getWeatherTimeList3';
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
 // ── Mock 날씨 데이터 (호출 실패 시 fallback) ──────────────────────────
 export const mockWeather = {
@@ -94,7 +95,7 @@ const getXmlVal = (doc, tag) => {
   return el ? el.textContent.trim() : null;
 };
 
-// ── 메인 API 호출 (XML 파싱) ─────────────────────────────────────────
+// ── 메인 API 호출 (CORS 프록시 경유) ─────────────────────────────────
 export const fetchWeather = async (stationCode, apiKey) => {
   if (!stationCode || !apiKey) {
     return { ...mockWeather, isMock: true };
@@ -106,16 +107,20 @@ export const fetchWeather = async (stationCode, apiKey) => {
       obsr_Spot_Cd: stationCode,
       date_Time:    todayStr(),
       Page_No:      '1',
-      Page_Size:    '24',   // 하루 최대 24시간
+      Page_Size:    '24',
     });
 
-    const response = await fetch(`${BASE_URL}?${params}`, {
-      signal: AbortSignal.timeout(8000),
+    // 정부 API는 브라우저 CORS 차단 → allorigins.win 프록시로 우회
+    const targetUrl  = `${BASE_URL}?${params}`;
+    const proxyUrl   = `${CORS_PROXY}${encodeURIComponent(targetUrl)}`;
+
+    const response = await fetch(proxyUrl, {
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    const xml  = await response.text();
+    const xml    = await response.text();
     const parser = new DOMParser();
     const doc    = parser.parseFromString(xml, 'text/xml');
 
@@ -135,16 +140,6 @@ export const fetchWeather = async (stationCode, apiKey) => {
       return el ? el.textContent.trim() : null;
     };
 
-    // 필드 매핑
-    // temp      = 기온 (°C)
-    // hum       = 습도 (%)
-    // rn        = 강수량 (mm)
-    // wind      = 풍속 (m/s)
-    // widdir    = 풍향 (°)
-    // soil_Wt   = 토양수분 (%)
-    // gr_Temp   = 지중온도 (°C)
-    // srqty     = 일사량 (MJ/m²)
-    // date      = 관측시각 (yyyy-MM-dd HH:mm)
     return {
       temp:       parseFloat(g('temp'))     || 0,
       rh:         parseFloat(g('hum'))      || 0,

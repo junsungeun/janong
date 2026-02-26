@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, lazy, Suspense, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Home, Sprout, BookOpen, Calendar, MoreHorizontal,
   Bell, AlertTriangle, CheckSquare, Sprout as SproutIcon, X, Plus,
@@ -9,12 +9,12 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { db, TABLES } from './services/dbService';
 import { getCropTimeline } from './data/cropTimelines';
 
-// ── Lazy loading ─────────────────────────────────────────────────────
-const Dashboard    = lazy(() => import('./components/Dashboard'));
-const CropTab      = lazy(() => import('./components/CropTab'));
-const RecordTab    = lazy(() => import('./components/RecordTab'));
-const CalendarView = lazy(() => import('./components/Calendar'));
-const MoreTab      = lazy(() => import('./components/MoreTab'));
+// ── Eager imports — 탭 전환 딜레이 제거 ──────────────────────────────
+import Dashboard    from './components/Dashboard';
+import CropTab      from './components/CropTab';
+import RecordTab    from './components/RecordTab';
+import CalendarView from './components/Calendar';
+import MoreTab      from './components/MoreTab';
 
 const TABS = [
   { id: 'home',     label: '홈',     icon: Home },
@@ -26,19 +26,6 @@ const TABS = [
 
 const toYMD = (d) => d.toISOString().slice(0, 10);
 const todayYMD = toYMD(new Date());
-
-function TabLoader() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 20px' }}>
-      <div style={{
-        width: '24px', height: '24px', borderRadius: '50%',
-        border: '2px solid var(--border)', borderTopColor: 'var(--color-primary)',
-        animation: 'spin 0.7s linear infinite',
-      }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
-}
 
 // ── 알림 패널 ─────────────────────────────────────────────────────────
 function NotifPanel({ onClose, onNavigate }) {
@@ -55,18 +42,12 @@ function NotifPanel({ onClose, onNavigate }) {
       ]);
 
       const result = [];
-
-      // 기한 초과 할일
       todos.filter(t => !t.done && t.date && t.date < todayYMD).forEach(t => {
         result.push({ type: 'overdue', label: t.text, sub: `기한 ${t.date.replace(/-/g, '.')}`, nav: 'calendar' });
       });
-
-      // 오늘 할일
       todos.filter(t => !t.done && t.date === todayYMD).forEach(t => {
         result.push({ type: 'today', label: t.text, sub: '오늘 마감', nav: 'record' });
       });
-
-      // 오늘 작물 타임라인
       crops.forEach(crop => {
         getCropTimeline(crop.name, crop.plantingDate)
           .filter(item => item.date === todayYMD)
@@ -74,8 +55,6 @@ function NotifPanel({ onClose, onNavigate }) {
             result.push({ type: 'timeline', label: `[${crop.name}] ${item.label}`, sub: '오늘 일정', nav: 'crop' });
           });
       });
-
-      // 미해결 이슈
       issues.filter(i => !i.solved).forEach(i => {
         result.push({ type: 'issue', label: i.title, sub: `${i.crop} · 미해결`, nav: 'more' });
       });
@@ -86,7 +65,6 @@ function NotifPanel({ onClose, onNavigate }) {
     load();
   }, []);
 
-  // 바깥 클릭 시 닫기
   useEffect(() => {
     const handler = (e) => { if (panelRef.current && !panelRef.current.contains(e.target)) onClose(); };
     setTimeout(() => document.addEventListener('mousedown', handler), 0);
@@ -94,10 +72,8 @@ function NotifPanel({ onClose, onNavigate }) {
   }, [onClose]);
 
   const COLOR = {
-    overdue:  'var(--color-danger)',
-    today:    'var(--color-primary)',
-    timeline: 'var(--color-earth)',
-    issue:    'var(--color-danger)',
+    overdue: 'var(--color-danger)', today: 'var(--color-primary)',
+    timeline: 'var(--color-earth)', issue: 'var(--color-danger)',
   };
   const ICON = {
     overdue:  <CheckSquare size={13} strokeWidth={1.5} />,
@@ -120,7 +96,6 @@ function NotifPanel({ onClose, onNavigate }) {
       borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
       zIndex: 200, overflow: 'hidden',
     }}>
-      {/* 헤더 */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '14px 16px 12px', borderBottom: '1px solid var(--border-light)',
@@ -131,13 +106,9 @@ function NotifPanel({ onClose, onNavigate }) {
           <X size={15} strokeWidth={1.5} />
         </button>
       </div>
-
-      {/* 내용 */}
       <div style={{ maxHeight: '360px', overflowY: 'auto', padding: '10px 0' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>
-            불러오는 중...
-          </div>
+          <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>불러오는 중...</div>
         ) : items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '28px 20px' }}>
             <Bell size={28} strokeWidth={1.5} style={{ margin: '0 auto 10px', display: 'block', opacity: 0.25 }} />
@@ -149,10 +120,7 @@ function NotifPanel({ onClose, onNavigate }) {
             if (list.length === 0) return null;
             return (
               <div key={g.key} style={{ marginBottom: '4px' }}>
-                <p style={{
-                  fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em',
-                  color: COLOR[g.key], padding: '4px 16px 6px', textTransform: 'uppercase',
-                }}>
+                <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: COLOR[g.key], padding: '4px 16px 6px', textTransform: 'uppercase' }}>
                   {g.label}
                 </p>
                 {list.map((item, i) => (
@@ -162,19 +130,14 @@ function NotifPanel({ onClose, onNavigate }) {
                       display: 'flex', alignItems: 'flex-start', gap: '10px',
                       width: '100%', padding: '9px 16px', textAlign: 'left',
                       background: 'none', border: 'none', cursor: 'pointer',
-                      fontFamily: 'var(--font-sans)',
-                      transition: 'background 0.1s',
+                      fontFamily: 'var(--font-sans)', transition: 'background 0.1s',
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-subtle)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'none'}
                   >
-                    <div style={{ color: COLOR[item.type], marginTop: '2px', flexShrink: 0 }}>
-                      {ICON[item.type]}
-                    </div>
+                    <div style={{ color: COLOR[item.type], marginTop: '2px', flexShrink: 0 }}>{ICON[item.type]}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '13px', color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                        {item.label}
-                      </p>
+                      <p style={{ fontSize: '13px', color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{item.label}</p>
                       <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.sub}</p>
                     </div>
                   </button>
@@ -250,27 +213,21 @@ function FAB({ onNavigate }) {
 
 // ── 앱 ────────────────────────────────────────────────────────────────
 function App() {
-  const [activeTab, setActiveTab] = useState('home');
-  const [visited, setVisited]     = useState(new Set(['home']));
-  const [showNotif, setShowNotif] = useState(false);
-  const [notifCount, setNotifCount] = useState(0);
+  const [activeTab, setActiveTab]     = useState('home');
+  const [showNotif, setShowNotif]     = useState(false);
+  const [notifCount, setNotifCount]   = useState(0);
   const [recordTrigger, setRecordTrigger] = useState(null);
-  const [homeTrigger, setHomeTrigger] = useState(null);
+  const [homeTrigger, setHomeTrigger]     = useState(null);
   const contentRef = useRef(null);
 
-  const handleTabChange = (tabId, params = null) => {
+  // useCallback — 안정적인 함수 참조로 자식 컴포넌트 불필요 재렌더 방지
+  const handleTabChange = useCallback((tabId, params = null) => {
     setActiveTab(tabId);
-    setVisited(prev => new Set([...prev, tabId]));
     setShowNotif(false);
-    if (tabId === 'record' && params) {
-      setRecordTrigger({ ...params, key: Date.now() });
-    }
-    if (tabId === 'home' && params) {
-      setHomeTrigger({ ...params, key: Date.now() });
-    }
-  };
+    if (tabId === 'record' && params) setRecordTrigger({ ...params, key: Date.now() });
+    if (tabId === 'home'   && params) setHomeTrigger({ ...params, key: Date.now() });
+  }, []);
 
-  // 알림 뱃지 카운트 로드
   useEffect(() => {
     const loadCount = async () => {
       try {
@@ -279,12 +236,11 @@ function App() {
           db.getList(TABLES.ISSUE),
           db.getList(TABLES.CROP),
         ]);
-        const overdueTodos = todos.filter(t => !t.done && t.date && t.date < todayYMD).length;
-        const todayTodos   = todos.filter(t => !t.done && t.date === todayYMD).length;
-        const activeIssues = issues.filter(i => !i.solved).length;
-        const todayTimeline = crops.reduce((acc, crop) => {
-          return acc + getCropTimeline(crop.name, crop.plantingDate).filter(i => i.date === todayYMD).length;
-        }, 0);
+        const overdueTodos  = todos.filter(t => !t.done && t.date && t.date < todayYMD).length;
+        const todayTodos    = todos.filter(t => !t.done && t.date === todayYMD).length;
+        const activeIssues  = issues.filter(i => !i.solved).length;
+        const todayTimeline = crops.reduce((acc, crop) =>
+          acc + getCropTimeline(crop.name, crop.plantingDate).filter(i => i.date === todayYMD).length, 0);
         setNotifCount(overdueTodos + todayTodos + activeIssues + todayTimeline);
       } catch { /* 무시 */ }
     };
@@ -294,17 +250,6 @@ function App() {
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
   }, [activeTab]);
-
-  const renderTab = (tabId) => {
-    switch (tabId) {
-      case 'home':     return <Dashboard onNavigate={handleTabChange} trigger={homeTrigger} />;
-      case 'crop':     return <CropTab />;
-      case 'record':   return <RecordTab trigger={recordTrigger} />;
-      case 'calendar': return <CalendarView />;
-      case 'more':     return <MoreTab />;
-      default:         return null;
-    }
-  };
 
   return (
     <div className="app-layout">
@@ -334,7 +279,6 @@ function App() {
         </div>
 
         <div className="app-header-right">
-          {/* 알림 버튼 */}
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setShowNotif(v => !v)}
@@ -349,7 +293,6 @@ function App() {
             >
               <Bell size={20} strokeWidth={1.5} />
             </button>
-            {/* 뱃지 */}
             {notifCount > 0 && !showNotif && (
               <div style={{
                 position: 'absolute', top: '2px', right: '2px',
@@ -365,27 +308,29 @@ function App() {
           </div>
         </div>
 
-        {/* 알림 드롭다운 */}
         {showNotif && (
-          <NotifPanel
-            onClose={() => setShowNotif(false)}
-            onNavigate={handleTabChange}
-          />
+          <NotifPanel onClose={() => setShowNotif(false)} onNavigate={handleTabChange} />
         )}
       </header>
 
-      {/* ── 콘텐츠 ── */}
+      {/* ── 콘텐츠 — 모든 탭 즉시 마운트, display 토글만으로 전환 ── */}
       <main className="app-content" ref={contentRef}>
         <ErrorBoundary>
-          <Suspense fallback={<TabLoader />}>
-            {TABS.map(tab => (
-              visited.has(tab.id) ? (
-                <div key={tab.id} style={{ display: activeTab === tab.id ? 'block' : 'none' }}>
-                  {renderTab(tab.id)}
-                </div>
-              ) : null
-            ))}
-          </Suspense>
+          <div style={{ display: activeTab === 'home'     ? 'block' : 'none' }}>
+            <Dashboard onNavigate={handleTabChange} trigger={homeTrigger} />
+          </div>
+          <div style={{ display: activeTab === 'crop'     ? 'block' : 'none' }}>
+            <CropTab />
+          </div>
+          <div style={{ display: activeTab === 'record'   ? 'block' : 'none' }}>
+            <RecordTab trigger={recordTrigger} />
+          </div>
+          <div style={{ display: activeTab === 'calendar' ? 'block' : 'none' }}>
+            <CalendarView />
+          </div>
+          <div style={{ display: activeTab === 'more'     ? 'block' : 'none' }}>
+            <MoreTab />
+          </div>
         </ErrorBoundary>
       </main>
 
