@@ -1,11 +1,10 @@
-// 농촌진흥청 농업기상 일반 관측데이터 V3 — 자농(JANONG)
-// 엔드포인트: V3/GnrlWeather/getWeatherTimeList3
-// ※ 농촌진흥청 API는 브라우저 직접 호출 시 CORS 차단됨
-//   → allorigins.win 프록시를 통해 우회 (오픈소스: github.com/gnuns/allorigins)
+// 농촌진흥청 국립농업과학원 농업기상 기본 관측데이터 V3 — 자농(JANONG)
+// 엔드포인트: Supabase Edge Function (weather-proxy) → 농업기상 API 서버사이드 중계
+// ※ 브라우저 직접 호출 시 CORS 차단 → Supabase Edge Function으로 우회
 
-const BASE_URL  = 'https://apis.data.go.kr/1390802/AgriWeather/WeatherObsrInfo/V3/GnrlWeather/getWeatherTimeList3';
-// /raw는 불안정, /get은 JSON { contents: "...xml..." } 형태로 안정적으로 반환
-const CORS_PROXY = 'https://api.allorigins.win/get?url=';
+import { CONFIG } from '../config';
+
+const EDGE_FN_URL = `${CONFIG.SUPABASE_URL}/functions/v1/weather-proxy`;
 
 // ── Mock 날씨 데이터 (호출 실패 시 fallback) ──────────────────────────
 export const mockWeather = {
@@ -107,23 +106,19 @@ export const fetchWeather = async (stationCode, apiKey) => {
       serviceKey:   apiKey,
       obsr_Spot_Cd: stationCode,
       date_Time:    todayStr(),
-      Page_No:      '1',
-      Page_Size:    '24',
     });
 
-    // 정부 API는 브라우저 CORS 차단 → allorigins.win 프록시로 우회
-    const targetUrl  = `${BASE_URL}?${params}`;
-    const proxyUrl   = `${CORS_PROXY}${encodeURIComponent(targetUrl)}`;
+    // Supabase Edge Function으로 서버사이드 중계 (CORS 우회)
+    const proxyUrl = `${EDGE_FN_URL}?${params}`;
 
     const response = await fetch(proxyUrl, {
-      signal: AbortSignal.timeout(10000),
+      headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY },
+      signal:  AbortSignal.timeout(20000),
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    // /get 엔드포인트는 { contents: "xml string", status: {...} } JSON 반환
-    const json = await response.json();
-    const xml  = json.contents;
+    const xml = await response.text();
     const parser = new DOMParser();
     const doc    = parser.parseFromString(xml, 'text/xml');
 

@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { CheckSquare, AlertTriangle, Leaf, Settings } from 'lucide-react';
+import { CheckSquare, AlertTriangle, Leaf, Settings, Heart } from 'lucide-react';
 import TodoList from './TodoList';
 import IssueBoard from './IssueBoard';
 import NaturalFarmingTab from './NaturalFarmingTab';
 import SettingsPanel from './SettingsPanel';
+import HealingFarmingTab from './HealingFarmingTab';
 
 const SUB_TABS = [
-  { id: 'todo',    label: '할 일',    icon: CheckSquare },
-  { id: 'issue',   label: '이슈',     icon: AlertTriangle },
+  { id: 'todo',    label: '할 일',   icon: CheckSquare },
+  { id: 'issue',   label: '이슈',    icon: AlertTriangle },
   { id: 'natural', label: '자연농업', icon: Leaf },
-  { id: 'settings',label: '설정',     icon: Settings },
+  { id: 'healing', label: '치유농업', icon: Heart },
+  { id: 'settings',label: '설정',    icon: Settings },
 ];
 
 export default function MoreTab() {
@@ -17,39 +19,15 @@ export default function MoreTab() {
 
   return (
     <div>
-      <div style={{
-        display: 'flex',
-        gap: '4px',
-        marginBottom: '20px',
-        background: 'var(--bg-subtle)',
-        borderRadius: '10px',
-        padding: '4px',
-      }}>
+      <div className="underline-tab-bar">
         {SUB_TABS.map(tab => {
           const Icon = tab.icon;
           const isActive = active === tab.id;
           return (
             <button
               key={tab.id}
+              className={`underline-tab-btn${isActive ? ' active' : ''}`}
               onClick={() => setActive(tab.id)}
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                padding: '9px 4px',
-                borderRadius: '7px',
-                border: 'none',
-                fontSize: '12px',
-                fontWeight: isActive ? 600 : 400,
-                fontFamily: 'var(--font-sans)',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-                background: isActive ? 'var(--bg-card)' : 'transparent',
-                color: isActive ? 'var(--color-primary)' : 'var(--text-muted)',
-                boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              }}
             >
               <Icon size={14} strokeWidth={isActive ? 2 : 1.5} />
               {tab.label}
@@ -61,6 +39,7 @@ export default function MoreTab() {
       {active === 'todo'     && <TodoList />}
       {active === 'issue'    && <IssueBoard />}
       {active === 'natural'  && <NaturalFarmingTab />}
+      {active === 'healing'  && <HealingFarmingTab />}
       {active === 'settings' && <SettingsPanel />}
     </div>
   );

@@ -11,6 +11,9 @@ export const CONFIG = {
   // 관측지점: 경기도 양주시 은현면 (장흥 인근 최근접)
   WEATHER_STATION_CODE: '482841A001',
 
+  // 농사로 OpenAPI (주간농사정보, 작물재배기술, 품종정보)
+  NONGSARO_API_KEY: '20260227S3RPMHZUGPDOYONFHDWGW',
+
   // Supabase
   SUPABASE_URL: 'https://atqznktlipbiuuivczpq.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF0cXpua3RsaXBiaXV1aXZjenBxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMDU5NTUsImV4cCI6MjA4NzY4MTk1NX0.oLJarNmM9ojhKUf3q6srCE18TBmK2PCtWPBFK5ZWzCo',
