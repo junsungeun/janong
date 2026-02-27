@@ -69,11 +69,21 @@ function AgendaItem({ ev, showDate, onDelete, onToggle }) {
       {/* 아이콘 / 체크박스 */}
       <div style={{ flexShrink: 0, width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {ev.type === 'todo' ? (
-          <button onClick={() => onToggle?.(ev.id)} style={{
-            width: '16px', height: '16px', borderRadius: '4px',
-            border: `1.5px solid ${color}`, background: 'transparent',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-          }}>
+          <button
+            onClick={() => onToggle?.(ev.id)}
+            title="완료 체크"
+            style={{
+              width: '18px', height: '18px', borderRadius: '4px',
+              border: `1.5px solid ${color}`, background: 'transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+              transition: 'all 0.15s', flexShrink: 0,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = color; e.currentTarget.style.borderColor = color; e.currentTarget.style.opacity = '0.8'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.opacity = '1'; }}
+          >
+            <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+              <path d="M1 3.5L3 5.5L8 1" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
         ) : ev.icon ? (
           <span style={{ fontSize: '13px' }}>{ev.icon}</span>

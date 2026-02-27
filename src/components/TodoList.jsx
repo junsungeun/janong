@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, CheckSquare, Trash2, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, CheckSquare, Trash2, RotateCcw, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 
 const REPEAT_OPTIONS = ['없음', '매일', '매주', '월·수·금', '화·목'];
@@ -34,13 +34,63 @@ const GROUPS = [
 ];
 
 const FILTERS = [
-  { key: 'all',  label: '전체',   groups: ['overdue','today','tomorrow','week','month','later','nodate'] },
-  { key: 'today', label: '오늘',  groups: ['overdue','today'] },
+  { key: 'all',   label: '전체',    groups: ['overdue','today','tomorrow','week','month','later','nodate'] },
+  { key: 'today', label: '오늘',    groups: ['overdue','today'] },
   { key: 'week',  label: '이번 주', groups: ['overdue','today','tomorrow','week'] },
 ];
 
-function TodoCard({ todo, onToggle, onDelete }) {
+function TodoCard({ todo, onToggle, onDelete, onSave }) {
   const isOverdue = todo.group === 'overdue';
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ text: todo.text, date: todo.date || '', repeat: todo.repeat || '없음' });
+
+  const save = () => {
+    if (!editForm.text.trim()) return;
+    onSave(todo.id, editForm);
+    setEditing(false);
+  };
+
+  const cancel = () => {
+    setEditForm({ text: todo.text, date: todo.date || '', repeat: todo.repeat || '없음' });
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div style={{
+        padding: '12px 14px',
+        background: 'var(--bg-card)',
+        border: '1.5px solid var(--color-primary)',
+        borderRadius: '8px',
+      }}>
+        <input
+          className="input"
+          value={editForm.text}
+          onChange={e => setEditForm(p => ({ ...p, text: e.target.value }))}
+          onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') cancel(); }}
+          autoFocus
+          style={{ fontSize: '14px', marginBottom: '8px' }}
+        />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+          <input type="date" className="input" value={editForm.date}
+            onChange={e => setEditForm(p => ({ ...p, date: e.target.value }))} style={{ fontSize: '13px' }} />
+          <select className="input" value={editForm.repeat}
+            onChange={e => setEditForm(p => ({ ...p, repeat: e.target.value }))} style={{ fontSize: '13px' }}>
+            {REPEAT_OPTIONS.map(r => <option key={r}>{r}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+          <button onClick={cancel} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }}>
+            <X size={12} strokeWidth={2} /> 취소
+          </button>
+          <button onClick={save} className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }} disabled={!editForm.text.trim()}>
+            <Check size={12} strokeWidth={2} /> 저장
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '10px',
@@ -88,16 +138,27 @@ function TodoCard({ todo, onToggle, onDelete }) {
         </div>
       </div>
 
-      {/* 삭제 */}
-      <button
-        className="btn-icon"
-        style={{ width: '28px', height: '28px', background: 'transparent', color: 'var(--text-muted)', flexShrink: 0 }}
-        onClick={() => onDelete(todo.id)}
-        onMouseEnter={e => { e.currentTarget.style.background = '#FFF0F0'; e.currentTarget.style.color = 'var(--color-danger)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-      >
-        <Trash2 size={13} strokeWidth={1.5} />
-      </button>
+      {/* 수정 / 삭제 */}
+      <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+        <button
+          className="btn-icon"
+          style={{ width: '28px', height: '28px', background: 'transparent', color: 'var(--text-muted)' }}
+          onClick={() => setEditing(true)}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary-light)'; e.currentTarget.style.color = 'var(--color-primary)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+        >
+          <Pencil size={12} strokeWidth={1.5} />
+        </button>
+        <button
+          className="btn-icon"
+          style={{ width: '28px', height: '28px', background: 'transparent', color: 'var(--text-muted)' }}
+          onClick={() => onDelete(todo.id)}
+          onMouseEnter={e => { e.currentTarget.style.background = '#FFF0F0'; e.currentTarget.style.color = 'var(--color-danger)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+        >
+          <Trash2 size={13} strokeWidth={1.5} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -128,15 +189,18 @@ export default function TodoList() {
 
   const del = async (id) => { await db.delete(TABLES.TODO, id); await load(); };
 
+  const save = async (id, fields) => {
+    await db.update(TABLES.TODO, id, fields);
+    await load();
+  };
+
   const toggleCollapse = (key) => setCollapsedGroups(p => ({ ...p, [key]: !p[key] }));
 
-  // 미완료 항목을 그룹별로 분류
   const grouped = useMemo(() => {
     const pending = todos.filter(t => !t.done).map(t => ({ ...t, group: getGroup(t.date) }));
     const result = {};
     GROUPS.forEach(g => { result[g.key] = []; });
     pending.forEach(t => result[t.group]?.push(t));
-    // 각 그룹 내에서 날짜순 정렬 (날짜없음은 추가순)
     ['overdue', 'today', 'tomorrow', 'week', 'month', 'later'].forEach(key => {
       result[key].sort((a, b) => a.date.localeCompare(b.date));
     });
@@ -244,7 +308,6 @@ export default function TodoList() {
 
         return (
           <div key={g.key} style={{ marginBottom: '20px' }}>
-            {/* 그룹 헤더 */}
             <button
               onClick={() => toggleCollapse(g.key)}
               style={{
@@ -265,18 +328,14 @@ export default function TodoList() {
               </span>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>· {items.length}건</span>
               <div style={{ marginLeft: 'auto', color: 'var(--text-muted)', display: 'flex' }}>
-                {isCollapsed
-                  ? <ChevronDown size={14} strokeWidth={1.5} />
-                  : <ChevronUp size={14} strokeWidth={1.5} />
-                }
+                {isCollapsed ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronUp size={14} strokeWidth={1.5} />}
               </div>
             </button>
 
-            {/* 항목 목록 */}
             {!isCollapsed && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                 {items.map(todo => (
-                  <TodoCard key={todo.id} todo={todo} onToggle={toggle} onDelete={del} />
+                  <TodoCard key={todo.id} todo={todo} onToggle={toggle} onDelete={del} onSave={save} />
                 ))}
               </div>
             )}
