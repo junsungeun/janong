@@ -8,10 +8,10 @@ import {
 } from '../services/nongsaroService';
 
 const SECTIONS = [
-  { id: 'issue',    label: '이슈',    icon: FileText,     fetch: fetchHealingIssues,   titleKey: 'issueSj',  dateKey: 'registDt' },
-  { id: 'ref',      label: '참고자료', icon: BookOpen,     fetch: fetchHealingRefs,     titleKey: 'refSj',    dateKey: 'registDt' },
-  { id: 'video',    label: '동영상',   icon: Play,         fetch: fetchHealingVideos,   titleKey: 'mvpNm',    dateKey: 'registDt' },
-  { id: 'research', label: '연구성과', icon: FlaskConical, fetch: fetchHealingResearch, titleKey: 'rsltNm',   dateKey: 'registDt' },
+  { id: 'issue',    label: '이슈',    icon: FileText,     fetch: fetchHealingIssues,   titleKey: 'cntntsSj', dateKey: 'submitDt'  },
+  { id: 'ref',      label: '참고자료', icon: BookOpen,     fetch: fetchHealingRefs,     titleKey: 'cntntsSj', dateKey: 'publiDt'   },
+  { id: 'video',    label: '동영상',   icon: Play,         fetch: fetchHealingVideos,   titleKey: 'cntntsSj', dateKey: 'submitDt'  },
+  { id: 'research', label: '연구성과', icon: FlaskConical, fetch: fetchHealingResearch, titleKey: 'cntntsSj', dateKey: 'submitDt'  },
 ];
 
 function ContentCard({ item, titleKey, dateKey }) {
