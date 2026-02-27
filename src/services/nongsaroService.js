@@ -62,3 +62,28 @@ export const fetchHealingIssues   = () => healingList('agroHealingIssue/agroHeal
 export const fetchHealingRefs     = () => healingList('agroHealingRef/agroHealingRefLst',                       '치유농업 참고자료');
 export const fetchHealingVideos   = () => healingList('agroHealingFarmMvp/agroHealingFarmMvpLst',               '치유농업 동영상');
 export const fetchHealingResearch = () => healingList('agroHealingResearchResult/agroHealingResearchResultLst', '치유농업 연구성과');
+
+// ── 치유농업 상세 조회 ─────────────────────────────────────────────────
+// 반환 필드: cn(전체내용), downUrl(다운로드), fileView(웹뷰어), fileName
+const DTL_ENDPOINTS = {
+  issue:    'agroHealingIssue/agroHealingIssueDtl',
+  ref:      'agroHealingRef/agroHealingRefDtl',
+  research: 'agroHealingResearchResult/agroHealingResearchResultDtl',
+};
+
+export const fetchHealingDetail = async (sectionId, cntntsNo) => {
+  const endpoint = DTL_ENDPOINTS[sectionId];
+  if (!endpoint) return null;
+  try {
+    const data = await call(endpoint, { cntntsNo });
+    const item = data?.body?.items?.item?.[0] || data?.body?.item || null;
+    if (!item) return null;
+    // fileView 첫 번째 URL 추출 (';' 구분)
+    const fileView = item.fileView ? item.fileView.split(';')[0].trim() : null;
+    const downUrl  = item.downUrl  ? item.downUrl.split(';')[0].trim()  : null;
+    return { fileView, downUrl, cn: item.cn || '' };
+  } catch (err) {
+    console.warn('[JANONG] 치유농업 상세 오류:', err.message);
+    return null;
+  }
+};

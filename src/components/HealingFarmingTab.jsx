@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Play, FlaskConical, FileText, ExternalLink, RefreshCw } from 'lucide-react';
+import { BookOpen, Play, FlaskConical, FileText, ExternalLink, RefreshCw, Download } from 'lucide-react';
 import {
   fetchHealingIssues,
   fetchHealingRefs,
   fetchHealingVideos,
   fetchHealingResearch,
+  fetchHealingDetail,
 } from '../services/nongsaroService';
 
 const SECTIONS = [
@@ -14,10 +15,34 @@ const SECTIONS = [
   { id: 'research', label: '연구성과', icon: FlaskConical, fetch: fetchHealingResearch, titleKey: 'cntntsSj', dateKey: 'submitDt'  },
 ];
 
-function ContentCard({ item, titleKey, dateKey }) {
-  const title = item[titleKey] || item.title || item.sj || '제목 없음';
-  const date  = item[dateKey]  || item.date  || '';
-  const url   = item.url || item.fileUrl || item.linkUrl || null;
+function ContentCard({ item, titleKey, dateKey, sectionId }) {
+  const title   = item[titleKey] || item.subject || '제목 없음';
+  const date    = item[dateKey]  || item.regDt   || '';
+  const summary = item.summary   || null;
+  // 주간농사정보는 downUrl 직접 보유
+  const directUrl = item.downUrl || item.url || item.fileUrl || item.linkUrl || null;
+
+  const [loading, setLoading] = useState(false);
+
+  const handleOpen = async () => {
+    // 직접 URL 있으면 바로 열기
+    if (directUrl) {
+      window.open(directUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    // cntntsNo 있으면 상세 API 호출
+    if (!item.cntntsNo) return;
+    setLoading(true);
+    const detail = await fetchHealingDetail(sectionId, item.cntntsNo);
+    setLoading(false);
+    if (detail?.fileView) {
+      window.open(detail.fileView, '_blank', 'noopener,noreferrer');
+    } else if (detail?.downUrl) {
+      window.open(detail.downUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const hasLink = !!directUrl || !!item.cntntsNo;
 
   return (
     <div className="card" style={{ padding: '14px 16px', marginBottom: '8px' }}>
@@ -25,13 +50,29 @@ function ContentCard({ item, titleKey, dateKey }) {
         <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text)', lineHeight: 'var(--leading-normal)', flex: 1 }}>
           {title}
         </p>
-        {url && (
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            style={{ color: 'var(--text-muted)', flexShrink: 0, display: 'flex', padding: '2px' }}>
-            <ExternalLink size={14} strokeWidth={1.5} />
-          </a>
+        {hasLink && (
+          <button
+            onClick={handleOpen}
+            disabled={loading}
+            style={{
+              background: 'none', border: 'none', cursor: loading ? 'wait' : 'pointer',
+              color: 'var(--text-muted)', flexShrink: 0, display: 'flex', padding: '2px',
+            }}
+          >
+            {loading
+              ? <RefreshCw size={14} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite' }} />
+              : directUrl?.includes('download') || directUrl?.includes('Download')
+                ? <Download size={14} strokeWidth={1.5} />
+                : <ExternalLink size={14} strokeWidth={1.5} />
+            }
+          </button>
         )}
       </div>
+      {summary && (
+        <p style={{ fontSize: 'var(--text-caption)', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 'var(--leading-normal)' }}>
+          {summary.length > 80 ? summary.slice(0, 80) + '…' : summary}
+        </p>
+      )}
       {date && (
         <p style={{ fontSize: 'var(--text-caption)', color: 'var(--text-muted)', marginTop: '6px' }}>
           {String(date).slice(0, 10).replace(/-/g, '.')}
@@ -42,8 +83,8 @@ function ContentCard({ item, titleKey, dateKey }) {
 }
 
 export default function HealingFarmingTab() {
-  const [active, setActive] = useState('issue');
-  const [cache, setCache]   = useState({});
+  const [active, setActive]   = useState('issue');
+  const [cache, setCache]     = useState({});
   const [loading, setLoading] = useState(false);
 
   const section = SECTIONS.find(s => s.id === active);
@@ -100,7 +141,13 @@ export default function HealingFarmingTab() {
         </div>
       ) : (
         items.map((item, i) => (
-          <ContentCard key={i} item={item} titleKey={section.titleKey} dateKey={section.dateKey} />
+          <ContentCard
+            key={i}
+            item={item}
+            titleKey={section.titleKey}
+            dateKey={section.dateKey}
+            sectionId={active}
+          />
         ))
       )}
 
