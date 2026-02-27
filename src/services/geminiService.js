@@ -3,7 +3,7 @@
 // 화학농약·화학비료는 절대 언급 금지
 
 const BASE_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 // ── 자연농업 핵심 규칙 (모든 프롬프트에 적용) ─────────────────────────
 const NATURAL_FARMING_RULE = `
