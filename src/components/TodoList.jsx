@@ -1,17 +1,109 @@
-import { useState, useEffect } from 'react';
-import { Plus, CheckSquare, Trash2, RotateCcw } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, CheckSquare, Trash2, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 
 const REPEAT_OPTIONS = ['없음', '매일', '매주', '월·수·금', '화·목'];
+
+const todayYMD = new Date().toISOString().slice(0, 10);
+
+const diffDays = (ymd) => {
+  const t = new Date(todayYMD);
+  const d = new Date(ymd);
+  return Math.round((d - t) / 86400000);
+};
+
+const getGroup = (dateStr) => {
+  if (!dateStr) return 'nodate';
+  const diff = diffDays(dateStr);
+  if (diff < 0)  return 'overdue';
+  if (diff === 0) return 'today';
+  if (diff === 1) return 'tomorrow';
+  if (diff <= 7)  return 'week';
+  if (diff <= 30) return 'month';
+  return 'later';
+};
+
+const GROUPS = [
+  { key: 'overdue',  label: '기한 초과', color: 'var(--color-danger)',  urgent: true  },
+  { key: 'today',    label: '오늘',      color: 'var(--color-primary)', urgent: false },
+  { key: 'tomorrow', label: '내일',      color: 'var(--color-earth)',   urgent: false },
+  { key: 'week',     label: '이번 주',   color: 'var(--color-info)',    urgent: false },
+  { key: 'month',    label: '이번 달',   color: 'var(--text-muted)',    urgent: false },
+  { key: 'later',    label: '나중에',    color: 'var(--text-muted)',    urgent: false },
+  { key: 'nodate',   label: '날짜 없음', color: 'var(--text-muted)',    urgent: false },
+];
+
+function TodoCard({ todo, onToggle, onDelete }) {
+  const isOverdue = todo.group === 'overdue';
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '10px',
+      padding: '11px 14px',
+      background: 'var(--bg-card)',
+      border: `1px solid ${isOverdue ? 'rgba(192,57,43,0.2)' : 'var(--border)'}`,
+      borderLeft: `3px solid ${isOverdue ? 'var(--color-danger)' : todo.group === 'today' ? 'var(--color-primary)' : 'var(--border-light)'}`,
+      borderRadius: '0 8px 8px 0',
+    }}>
+      {/* 체크박스 */}
+      <button
+        onClick={() => onToggle(todo.id)}
+        style={{
+          width: '20px', height: '20px', borderRadius: '5px', flexShrink: 0,
+          border: `1.5px solid ${isOverdue ? 'var(--color-danger)' : 'var(--border)'}`,
+          background: 'transparent', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'all 0.15s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.background = 'var(--color-primary-light)'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = isOverdue ? 'var(--color-danger)' : 'var(--border)'; e.currentTarget.style.background = 'transparent'; }}
+      />
+
+      {/* 내용 */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: '14px', color: 'var(--text)', lineHeight: 1.4, wordBreak: 'break-all' }}>
+          {todo.text}
+        </p>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '3px', flexWrap: 'wrap' }}>
+          {todo.date && (
+            <span style={{
+              fontSize: '11px',
+              color: isOverdue ? 'var(--color-danger)' : 'var(--text-muted)',
+              fontWeight: isOverdue ? 600 : 400,
+            }}>
+              {isOverdue && '⚠ '}{todo.date.replace(/-/g, '.')}
+            </span>
+          )}
+          {todo.repeat !== '없음' && (
+            <span style={{ fontSize: '11px', color: 'var(--color-info)', display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <RotateCcw size={9} strokeWidth={2} />
+              {todo.repeat}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* 삭제 */}
+      <button
+        className="btn-icon"
+        style={{ width: '28px', height: '28px', background: 'transparent', color: 'var(--text-muted)', flexShrink: 0 }}
+        onClick={() => onDelete(todo.id)}
+        onMouseEnter={e => { e.currentTarget.style.background = '#FFF0F0'; e.currentTarget.style.color = 'var(--color-danger)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+      >
+        <Trash2 size={13} strokeWidth={1.5} />
+      </button>
+    </div>
+  );
+}
 
 export default function TodoList() {
   const [todos, setTodos] = useState([]);
   const [showDone, setShowDone] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ text: '', date: '', repeat: '없음' });
+  const [collapsedGroups, setCollapsedGroups] = useState({});
 
   const load = async () => setTodos(await db.getList(TABLES.TODO));
-
   useEffect(() => { load(); }, []);
 
   const add = async () => {
@@ -29,18 +121,38 @@ export default function TodoList() {
 
   const del = async (id) => { await db.delete(TABLES.TODO, id); await load(); };
 
-  const pending = todos.filter(t => !t.done);
-  const done = todos.filter(t => t.done);
+  const toggleCollapse = (key) => setCollapsedGroups(p => ({ ...p, [key]: !p[key] }));
 
-  const isOverdue = (dateStr) => {
-    if (!dateStr) return false;
-    return new Date(dateStr) < new Date(new Date().toISOString().slice(0, 10));
-  };
+  // 미완료 항목을 그룹별로 분류
+  const grouped = useMemo(() => {
+    const pending = todos.filter(t => !t.done).map(t => ({ ...t, group: getGroup(t.date) }));
+    const result = {};
+    GROUPS.forEach(g => { result[g.key] = []; });
+    pending.forEach(t => result[t.group]?.push(t));
+    // 각 그룹 내에서 날짜순 정렬 (날짜없음은 추가순)
+    ['overdue', 'today', 'tomorrow', 'week', 'month', 'later'].forEach(key => {
+      result[key].sort((a, b) => a.date.localeCompare(b.date));
+    });
+    return result;
+  }, [todos]);
+
+  const done = todos.filter(t => t.done);
+  const pendingCount = todos.filter(t => !t.done).length;
 
   return (
     <div>
       <div className="section-header">
-        <span className="section-title">할 일</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="section-title">할 일</span>
+          {pendingCount > 0 && (
+            <span style={{
+              fontSize: '11px', fontWeight: 700, padding: '2px 8px',
+              borderRadius: '100px', background: 'var(--color-primary-light)', color: 'var(--color-primary)',
+            }}>
+              {pendingCount}
+            </span>
+          )}
+        </div>
         <button
           className="btn-primary"
           style={{ padding: '8px 16px', fontSize: '13px' }}
@@ -50,6 +162,7 @@ export default function TodoList() {
         </button>
       </div>
 
+      {/* 추가 폼 */}
       {showForm && (
         <div className="card mb-4" style={{ borderLeft: '3px solid var(--color-primary)', borderRadius: '0 8px 8px 0' }}>
           <div style={{ marginBottom: '10px' }}>
@@ -85,85 +198,86 @@ export default function TodoList() {
         </div>
       )}
 
-      {/* 미완료 */}
-      {pending.length === 0 && !showForm ? (
+      {/* 빈 상태 */}
+      {pendingCount === 0 && !showForm && (
         <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
           <CheckSquare size={36} strokeWidth={1.5} style={{ margin: '0 auto 12px', display: 'block' }} />
           <p style={{ fontSize: '14px', fontWeight: 500 }}>할 일이 없어요</p>
           <p style={{ fontSize: '12px', marginTop: '6px', lineHeight: 1.8 }}>오늘 밭에서 해야 할 일을 추가해보세요</p>
         </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
-          {pending.map(todo => (
-            <div
-              key={todo.id}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '10px',
-                padding: '12px 14px',
-                background: 'var(--bg-card)',
-                border: `1px solid ${isOverdue(todo.date) ? 'rgba(192,57,43,0.25)' : 'var(--border)'}`,
-                borderRadius: '8px',
-              }}
-            >
-              <button
-                onClick={() => toggle(todo.id)}
-                style={{
-                  width: '20px', height: '20px', borderRadius: '5px', flexShrink: 0,
-                  border: '1.5px solid var(--border)', background: 'transparent', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.background = 'var(--color-primary-light)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'transparent'; }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '14px', color: 'var(--text)', lineHeight: 1.4 }}>{todo.text}</p>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '3px' }}>
-                  {todo.date && (
-                    <span style={{ fontSize: '11px', color: isOverdue(todo.date) ? 'var(--color-danger)' : 'var(--text-muted)' }}>
-                      {isOverdue(todo.date) ? '⚠ ' : ''}{todo.date.replace(/-/g, '.')}
-                    </span>
-                  )}
-                  {todo.repeat !== '없음' && (
-                    <span style={{ fontSize: '11px', color: 'var(--color-info)' }}>
-                      <RotateCcw size={10} style={{ verticalAlign: 'middle', marginRight: '2px' }} />{todo.repeat}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <button
-                className="btn-icon"
-                style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)', flexShrink: 0 }}
-                onClick={() => del(todo.id)}
-              >
-                <Trash2 size={13} strokeWidth={1.5} />
-              </button>
-            </div>
-          ))}
-        </div>
       )}
 
-      {/* 완료 */}
+      {/* 그룹별 목록 */}
+      {GROUPS.map(g => {
+        const items = grouped[g.key] || [];
+        if (items.length === 0) return null;
+        const isCollapsed = collapsedGroups[g.key];
+
+        return (
+          <div key={g.key} style={{ marginBottom: '20px' }}>
+            {/* 그룹 헤더 */}
+            <button
+              onClick={() => toggleCollapse(g.key)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                width: '100%', background: 'none', border: 'none',
+                cursor: 'pointer', padding: '0 0 8px 0', textAlign: 'left',
+              }}
+            >
+              {g.urgent && (
+                <div style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  background: g.color, flexShrink: 0,
+                  animation: 'todoPulse 1.5s ease-in-out infinite',
+                }} />
+              )}
+              <span style={{ fontSize: '11px', fontWeight: 700, color: g.color, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {g.label}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>· {items.length}건</span>
+              <div style={{ marginLeft: 'auto', color: 'var(--text-muted)', display: 'flex' }}>
+                {isCollapsed
+                  ? <ChevronDown size={14} strokeWidth={1.5} />
+                  : <ChevronUp size={14} strokeWidth={1.5} />
+                }
+              </div>
+            </button>
+
+            {/* 항목 목록 */}
+            {!isCollapsed && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                {items.map(todo => (
+                  <TodoCard key={todo.id} todo={todo} onToggle={toggle} onDelete={del} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* 완료된 항목 */}
       {done.length > 0 && (
-        <div>
+        <div style={{ marginTop: '8px', paddingTop: pendingCount > 0 ? '8px' : 0, borderTop: pendingCount > 0 ? '1px solid var(--border-light)' : 'none' }}>
           <button
-            className="btn-ghost"
             onClick={() => setShowDone(!showDone)}
-            style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-sans)',
+              padding: '4px 0', marginBottom: showDone ? '10px' : 0,
+            }}
           >
-            완료된 항목 {done.length}개 {showDone ? '숨기기' : '보기'}
+            {showDone ? <ChevronUp size={13} strokeWidth={1.5} /> : <ChevronDown size={13} strokeWidth={1.5} />}
+            완료된 항목 {done.length}개
           </button>
           {showDone && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {done.map(todo => (
-                <div
-                  key={todo.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '10px 14px', background: 'var(--bg-subtle)',
-                    border: '1px solid var(--border-light)', borderRadius: '8px', opacity: 0.7,
-                  }}
-                >
+                <div key={todo.id} style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  padding: '10px 14px', background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-light)', borderRadius: '8px', opacity: 0.6,
+                }}>
                   <button
                     onClick={() => toggle(todo.id)}
                     style={{
@@ -176,11 +290,19 @@ export default function TodoList() {
                       <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </button>
-                  <span style={{ flex: 1, fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                  <span style={{ flex: 1, fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'line-through', wordBreak: 'break-all' }}>
                     {todo.text}
                   </span>
-                  <button className="btn-icon" style={{ width: '26px', height: '26px', background: 'transparent', flexShrink: 0 }}
-                    onClick={() => del(todo.id)}>
+                  {todo.date && (
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                      {todo.date.slice(5).replace('-', '/')}
+                    </span>
+                  )}
+                  <button
+                    className="btn-icon"
+                    style={{ width: '26px', height: '26px', background: 'transparent', flexShrink: 0 }}
+                    onClick={() => del(todo.id)}
+                  >
                     <Trash2 size={12} strokeWidth={1.5} />
                   </button>
                 </div>
@@ -189,6 +311,13 @@ export default function TodoList() {
           )}
         </div>
       )}
+
+      <style>{`
+        @keyframes todoPulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.4; transform: scale(0.85); }
+        }
+      `}</style>
     </div>
   );
 }
