@@ -33,6 +33,12 @@ const GROUPS = [
   { key: 'nodate',   label: '날짜 없음', color: 'var(--text-muted)',    urgent: false },
 ];
 
+const FILTERS = [
+  { key: 'all',  label: '전체',   groups: ['overdue','today','tomorrow','week','month','later','nodate'] },
+  { key: 'today', label: '오늘',  groups: ['overdue','today'] },
+  { key: 'week',  label: '이번 주', groups: ['overdue','today','tomorrow','week'] },
+];
+
 function TodoCard({ todo, onToggle, onDelete }) {
   const isOverdue = todo.group === 'overdue';
   return (
@@ -102,6 +108,7 @@ export default function TodoList() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ text: '', date: '', repeat: '없음' });
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [filter, setFilter] = useState('all');
 
   const load = async () => setTodos(await db.getList(TABLES.TODO));
   useEffect(() => { load(); }, []);
@@ -138,6 +145,8 @@ export default function TodoList() {
 
   const done = todos.filter(t => t.done);
   const pendingCount = todos.filter(t => !t.done).length;
+  const activeFilter = FILTERS.find(f => f.key === filter);
+  const visibleGroups = GROUPS.filter(g => activeFilter.groups.includes(g.key));
 
   return (
     <div>
@@ -160,6 +169,26 @@ export default function TodoList() {
         >
           <Plus size={14} strokeWidth={2} /> 추가
         </button>
+      </div>
+
+      {/* 필터 탭 */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
+        {FILTERS.map(f => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            style={{
+              padding: '6px 14px', borderRadius: '100px', fontSize: '12px', fontWeight: 600,
+              border: '1.5px solid', cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              transition: 'all 0.15s',
+              borderColor: filter === f.key ? 'var(--color-primary)' : 'var(--border)',
+              background: filter === f.key ? 'var(--color-primary)' : 'var(--bg-card)',
+              color: filter === f.key ? '#fff' : 'var(--text-muted)',
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {/* 추가 폼 */}
@@ -208,7 +237,7 @@ export default function TodoList() {
       )}
 
       {/* 그룹별 목록 */}
-      {GROUPS.map(g => {
+      {visibleGroups.map(g => {
         const items = grouped[g.key] || [];
         if (items.length === 0) return null;
         const isCollapsed = collapsedGroups[g.key];
