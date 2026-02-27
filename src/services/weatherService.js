@@ -112,7 +112,7 @@ export const fetchWeather = async (stationCode, apiKey) => {
     const proxyUrl = `${EDGE_FN_URL}?${params}`;
 
     const response = await fetch(proxyUrl, {
-      headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY },
+      headers: { 'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
       signal:  AbortSignal.timeout(20000),
     });
 

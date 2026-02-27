@@ -14,7 +14,7 @@ const call = async (endpoint, params = {}) => {
   });
 
   const res = await fetch(`${EDGE_FN_URL}?${qs}`, {
-    headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY },
+    headers: { 'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
     signal:  AbortSignal.timeout(15000),
   });
 
