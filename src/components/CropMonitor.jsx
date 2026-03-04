@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { Camera, Upload, RefreshCw, Leaf, AlertCircle, Info } from 'lucide-react';
 import { analyzeCrop, MOCK_CROP_ANALYSIS } from '../services/geminiService';
-import { CONFIG } from '../config';
 
 // ── 결과 텍스트를 라인별로 파싱해 렌더링 ────────────────────────────
 function ResultView({ text }) {
@@ -54,28 +53,12 @@ export default function CropMonitor() {
     setError(null);
     setResult(null);
 
-    const apiKey = CONFIG.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      // API 키 없으면 mock 응답 사용
-      await new Promise(r => setTimeout(r, 1200)); // 로딩 느낌
-      setResult(MOCK_CROP_ANALYSIS);
-      setIsMock(true);
-      setLoading(false);
-      return;
-    }
-
     try {
-      const text = await analyzeCrop(image.file, apiKey);
+      const text = await analyzeCrop(image.file);
       setResult(text);
       setIsMock(false);
     } catch (err) {
-      if (err.message === 'API_KEY_MISSING') {
-        setResult(MOCK_CROP_ANALYSIS);
-        setIsMock(true);
-      } else {
-        setError(err.message);
-      }
+      setError(err.message);
     } finally {
       setLoading(false);
     }

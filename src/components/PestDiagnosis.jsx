@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { Camera, Upload, RefreshCw, Bug, AlertCircle, Info } from 'lucide-react';
 import { diagnosePest, MOCK_PEST_DIAGNOSIS } from '../services/geminiService';
-import { CONFIG } from '../config';
 
 function ResultView({ text }) {
   const lines = text.split('\n').filter(l => l.trim());
@@ -53,27 +52,12 @@ export default function PestDiagnosis() {
     setError(null);
     setResult(null);
 
-    const apiKey = CONFIG.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      await new Promise(r => setTimeout(r, 1400));
-      setResult(MOCK_PEST_DIAGNOSIS);
-      setIsMock(true);
-      setLoading(false);
-      return;
-    }
-
     try {
-      const text = await diagnosePest(image.file, apiKey);
+      const text = await diagnosePest(image.file);
       setResult(text);
       setIsMock(false);
     } catch (err) {
-      if (err.message === 'API_KEY_MISSING') {
-        setResult(MOCK_PEST_DIAGNOSIS);
-        setIsMock(true);
-      } else {
-        setError(err.message);
-      }
+      setError(err.message);
     } finally {
       setLoading(false);
     }

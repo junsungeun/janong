@@ -8,7 +8,6 @@ import { getCurrentSolarTerm, formatDate } from '../utils/solarTerms';
 import { db, TABLES } from '../services/dbService';
 import { getCropTimeline } from '../data/cropTimelines';
 import { adviseIssue, MOCK_ISSUE_ADVICE } from '../services/geminiService';
-import { CONFIG } from '../config';
 import WeatherCard from './WeatherCard';
 import { getTodayVerse } from '../data/bibleVerses';
 
@@ -155,9 +154,8 @@ export default function Dashboard({ onNavigate, trigger }) {
     const saved = await db.add(TABLES.ISSUE, { ...issueForm, solved: false });
     setSavedIssue(saved);
     await load();
-    const apiKey = CONFIG.GEMINI_API_KEY;
     try {
-      const text = apiKey ? await adviseIssue(issueForm, apiKey) : MOCK_ISSUE_ADVICE;
+      const text = await adviseIssue(issueForm);
       setIssueAdvice(text);
     } catch {
       setIssueAdvice(MOCK_ISSUE_ADVICE);

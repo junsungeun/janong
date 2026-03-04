@@ -2,8 +2,8 @@
 // API 키나 지점 변경 시 이 파일만 수정하면 됩니다.
 
 export const CONFIG = {
-  // Gemini AI (작물 분석·병해충 진단)
-  GEMINI_API_KEY: 'AIzaSyC_FQRMXrMdcVjNJQf_GaEIivy7htlLdhk',
+  // Gemini AI — 키는 Supabase Edge Function 환경변수에 보관 (프론트 노출 없음)
+  // 설정 위치: Supabase Dashboard > Edge Functions > gemini-proxy > Secrets
 
   // 농촌진흥청 농업기상 상세 관측데이터 API
   WEATHER_API_KEY: '0d4c921d7f24ae50c71f97c7e7c2b6146de731efb4fc84c79ea3706994674b1a',

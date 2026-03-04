@@ -1,9 +1,11 @@
 // Gemini API 서비스 — 자농(JANONG) 자연농업 전용
 // 모델: gemini-1.5-flash (무료, 이미지 분석 지원)
 // 화학농약·화학비료는 절대 언급 금지
+// API 키는 Supabase Edge Function에서 관리 — 프론트엔드 노출 없음
 
-const BASE_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+import { CONFIG } from '../config.js';
+
+const BASE_URL = `${CONFIG.SUPABASE_URL}/functions/v1/gemini-proxy`;
 
 // ── 자연농업 핵심 규칙 (모든 프롬프트에 적용) ─────────────────────────
 const NATURAL_FARMING_RULE = `
@@ -43,12 +45,13 @@ ${NATURAL_FARMING_RULE}
 ⚠️ 주의사항: [있으면 기재, 없으면 '해당 없음']`;
 
 // ── 텍스트 전용 Gemini 호출 ──────────────────────────────────────────
-const callGeminiText = async (prompt, apiKey) => {
-  if (!apiKey) throw new Error('API_KEY_MISSING');
-
-  const res = await fetch(`${BASE_URL}?key=${apiKey}`, {
+const callGeminiText = async (prompt) => {
+  const res = await fetch(BASE_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': CONFIG.SUPABASE_ANON_KEY,
+    },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
@@ -96,12 +99,13 @@ const toBase64 = (file) =>
   });
 
 // ── Gemini API 공통 호출 ─────────────────────────────────────────────
-const callGemini = async (base64Image, mimeType, prompt, apiKey) => {
-  if (!apiKey) throw new Error('API_KEY_MISSING');
-
-  const res = await fetch(`${BASE_URL}?key=${apiKey}`, {
+const callGemini = async (base64Image, mimeType, prompt) => {
+  const res = await fetch(BASE_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': CONFIG.SUPABASE_ANON_KEY,
+    },
     body: JSON.stringify({
       contents: [{
         parts: [
@@ -125,18 +129,18 @@ const callGemini = async (base64Image, mimeType, prompt, apiKey) => {
 };
 
 // ── 공개 API ─────────────────────────────────────────────────────────
-export const analyzeCrop = async (file, apiKey) => {
+export const analyzeCrop = async (file) => {
   const b64 = await toBase64(file);
-  return callGemini(b64, file.type, CROP_ANALYSIS_PROMPT, apiKey);
+  return callGemini(b64, file.type, CROP_ANALYSIS_PROMPT);
 };
 
-export const diagnosePest = async (file, apiKey) => {
+export const diagnosePest = async (file) => {
   const b64 = await toBase64(file);
-  return callGemini(b64, file.type, PEST_DIAGNOSIS_PROMPT, apiKey);
+  return callGemini(b64, file.type, PEST_DIAGNOSIS_PROMPT);
 };
 
-export const adviseIssue = async (issue, apiKey) => {
-  return callGeminiText(makeIssuePrompt(issue), apiKey);
+export const adviseIssue = async (issue) => {
+  return callGeminiText(makeIssuePrompt(issue));
 };
 
 // ── Mock 응답 (API 키 없을 때 표시) ─────────────────────────────────
