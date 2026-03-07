@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  Plus, X, CalendarDays, Sprout, AlertTriangle, CheckCircle,
+  Plus, X, CalendarDays, Sprout, AlertTriangle, CheckCircle, Pencil,
 } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { getCropTimeline } from '../data/cropTimelines';
+import { ConfirmModal } from './ConfirmModal';
+import { toast } from './Toast';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -55,7 +57,7 @@ const buildGrid = (year, month) => {
 };
 
 // ── 항목 카드 ──────────────────────────────────────────────────────────
-function AgendaItem({ ev, showDate, onDelete, onToggle }) {
+function AgendaItem({ ev, showDate, onDelete, onEdit, onToggle }) {
   const color = TYPE_COLOR[ev.type] || 'var(--border)';
   return (
     <div style={{
@@ -109,7 +111,7 @@ function AgendaItem({ ev, showDate, onDelete, onToggle }) {
         )}
       </div>
 
-      {/* 날짜 + 삭제 */}
+      {/* 날짜 + 수정 + 삭제 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
         {showDate && ev.date && (
           <span style={{
@@ -121,10 +123,16 @@ function AgendaItem({ ev, showDate, onDelete, onToggle }) {
           </span>
         )}
         {ev.type === 'calendar' && ev.id && (
-          <button onClick={() => onDelete(ev.id)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}>
-            <X size={14} strokeWidth={1.5} />
-          </button>
+          <>
+            <button onClick={() => onEdit(ev)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}>
+              <Pencil size={14} strokeWidth={1.5} />
+            </button>
+            <button onClick={() => onDelete(ev.id)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}>
+              <X size={14} strokeWidth={1.5} />
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -188,6 +196,8 @@ export default function Calendar() {
   const [selected, setSelected]   = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm]           = useState({ title: '', date: todayYMD, note: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const [calEvents, setCalEvents] = useState([]);
   const [crops, setCrops]         = useState([]);
@@ -261,24 +271,61 @@ export default function Calendar() {
   const selItems = selected ? (eventsByDate[selected] || []) : [];
 
   // ── CRUD ────────────────────────────────────────────────────────────
-  const addEvent = async () => {
-    if (!form.title.trim() || !form.date) return;
-    await db.add(TABLES.CALENDAR, form);
-    await loadAll();
+  const resetForm = () => {
     setForm({ title: '', date: todayYMD, note: '' });
+    setEditingId(null);
     setShowAddForm(false);
   };
 
-  const delEvent = async (id) => {
-    await db.delete(TABLES.CALENDAR, id);
-    await loadAll();
+  const saveEvent = async () => {
+    if (!form.title.trim() || !form.date) return;
+    try {
+      if (editingId) {
+        await db.update(TABLES.CALENDAR, editingId, form);
+        toast.success('일정이 수정되었어요');
+      } else {
+        await db.add(TABLES.CALENDAR, form);
+        toast.success('일정이 등록되었어요');
+      }
+      await loadAll();
+      resetForm();
+    } catch {
+      toast.error('처리 중 오류가 발생했어요');
+    }
+  };
+
+  const startEdit = (ev) => {
+    setEditingId(ev.id);
+    setForm({ title: ev.title, date: ev.date, note: ev.note || '' });
+    setShowAddForm(true);
+    setSelected(null);
+  };
+
+  const requestDelete = (id) => {
+    setConfirmDelete(id);
+  };
+
+  const confirmDeleteEvent = async () => {
+    if (!confirmDelete) return;
+    try {
+      await db.delete(TABLES.CALENDAR, confirmDelete);
+      toast.success('일정이 삭제되었어요');
+      await loadAll();
+    } catch {
+      toast.error('처리 중 오류가 발생했어요');
+    }
+    setConfirmDelete(null);
   };
 
   const toggleTodo = async (id) => {
     const t = todos.find(t => t.id === id);
     if (!t) return;
-    await db.update(TABLES.TODO, id, { done: !t.done });
-    await loadAll();
+    try {
+      await db.update(TABLES.TODO, id, { done: !t.done });
+      await loadAll();
+    } catch {
+      toast.error('처리 중 오류가 발생했어요');
+    }
   };
 
   const cells = buildGrid(cur.year, cur.month);
@@ -292,6 +339,15 @@ export default function Calendar() {
           50%       { opacity: 0.4; transform: scale(0.85); }
         }
       `}</style>
+
+      {/* ── 삭제 확인 모달 ── */}
+      {confirmDelete && (
+        <ConfirmModal
+          message="이 일정을 삭제할까요?"
+          onConfirm={confirmDeleteEvent}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
 
       {/* ── 상단 컨트롤 바 ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -315,7 +371,7 @@ export default function Calendar() {
         <button
           className="btn-primary"
           style={{ padding: '8px 14px', fontSize: '12px' }}
-          onClick={() => { setShowAddForm(v => !v); setSelected(null); }}
+          onClick={() => { resetForm(); setShowAddForm(v => !v); setSelected(null); }}
         >
           <Plus size={13} strokeWidth={2} /> 일정 추가
         </button>
@@ -421,21 +477,21 @@ export default function Calendar() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               {selItems.map((ev, i) => (
-                <AgendaItem key={i} ev={ev} onDelete={delEvent} onToggle={toggleTodo} />
+                <AgendaItem key={i} ev={ev} onDelete={requestDelete} onEdit={startEdit} onToggle={toggleTodo} />
               ))}
             </div>
           )}
         </div>
       )}
 
-      {/* ── 일정 추가 폼 ── */}
+      {/* ── 일정 추가/수정 폼 ── */}
       {showAddForm && (
         <div className="card mb-4" style={{ padding: '16px', borderLeft: '3px solid var(--color-earth)', borderRadius: '0 8px 8px 0' }}>
           <div style={{ marginBottom: '10px' }}>
             <label className="label">일정 제목 *</label>
             <input className="input" placeholder="일정을 입력해요" value={form.title}
               onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
-              onKeyDown={e => e.key === 'Enter' && addEvent()} autoFocus style={{ fontSize: '14px' }} />
+              onKeyDown={e => e.key === 'Enter' && saveEvent()} autoFocus style={{ fontSize: '14px' }} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
             <div>
@@ -450,8 +506,10 @@ export default function Calendar() {
               onChange={e => setForm(p => ({ ...p, note: e.target.value }))} style={{ fontSize: '14px' }} />
           </div>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-            <button className="btn-secondary" onClick={() => setShowAddForm(false)}>취소</button>
-            <button className="btn-primary" onClick={addEvent} disabled={!form.title.trim()}>추가</button>
+            <button className="btn-secondary" onClick={resetForm}>취소</button>
+            <button className="btn-primary" onClick={saveEvent} disabled={!form.title.trim()}>
+              {editingId ? '수정' : '등록'}
+            </button>
           </div>
         </div>
       )}
@@ -485,7 +543,7 @@ export default function Calendar() {
             {(!isOverdue || showOverdue) && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                 {items.map((ev, i) => (
-                  <AgendaItem key={i} ev={ev} showDate onDelete={delEvent} onToggle={toggleTodo} />
+                  <AgendaItem key={i} ev={ev} showDate onDelete={requestDelete} onEdit={startEdit} onToggle={toggleTodo} />
                 ))}
               </div>
             )}

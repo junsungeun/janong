@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, BookMarked, FlaskConical } from 'lucide-react';
+import { Plus, Trash2, Pencil, BookMarked, FlaskConical } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
+import { ConfirmModal } from './ConfirmModal';
+import { toast } from './Toast';
 
 const MAT_TYPES = ['한방영양제', '토착미생물', '천혜녹즙', '목초액', '님오일', '마늘액', '키토산', '한방영양제+천혜녹즙', '직접입력'];
 const CROP_OPTIONS = ['고추', '토마토', '배추', '상추', '오이', '가지', '감자', '감자', '고구마', '옥수수', '딸기', '전체', '직접입력'];
 const SPRAY_METHODS = ['엽면살포', '토양관주', '뿌리관주', '드렌치', '연무', '기타'];
+
+const BLANK_RECIPE = { name: '', material: '한방영양제', dilution: '', purpose: '', memo: '' };
 
 export default function ChemicalLog() {
   const [logs, setLogs] = useState([]);
@@ -12,6 +16,10 @@ export default function ChemicalLog() {
   const [showForm, setShowForm] = useState(false);
   const [showRecipeForm, setShowRecipeForm] = useState(false);
   const [view, setView] = useState('log'); // log | recipe
+  const [editingLogId, setEditingLogId] = useState(null);
+  const [editingRecipeId, setEditingRecipeId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null); // { message, onConfirm }
+
   const BLANK_LOG = {
     date: new Date().toISOString().slice(0, 10),
     material: '한방영양제', customMaterial: '',
@@ -22,33 +30,143 @@ export default function ChemicalLog() {
     memo: '', recipeId: '',
   };
   const [form, setForm] = useState({ ...BLANK_LOG });
-  const [recipeForm, setRecipeForm] = useState({ name: '', material: '한방영양제', dilution: '', purpose: '', memo: '' });
+  const [recipeForm, setRecipeForm] = useState({ ...BLANK_RECIPE });
 
-  const loadLogs    = async () => setLogs(await db.getList(TABLES.CHEM_LOG));
-  const loadRecipes = async () => setRecipes(await db.getList(TABLES.RECIPE));
+  const loadLogs    = async () => {
+    try {
+      setLogs(await db.getList(TABLES.CHEM_LOG));
+    } catch (e) {
+      toast.error('살포 기록을 불러오지 못했어요');
+    }
+  };
+  const loadRecipes = async () => {
+    try {
+      setRecipes(await db.getList(TABLES.RECIPE));
+    } catch (e) {
+      toast.error('레시피를 불러오지 못했어요');
+    }
+  };
 
   useEffect(() => { loadLogs(); loadRecipes(); }, []);
 
+  /* ── 살포 기록 저장/수정 ── */
   const saveLog = async () => {
     if (!form.dilution.trim()) return;
     const finalMat  = form.material === '직접입력' ? form.customMaterial.trim() : form.material;
     const finalCrop = form.crop === '직접입력' ? form.customCrop.trim() : form.crop;
-    await db.add(TABLES.CHEM_LOG, { ...form, material: finalMat, crop: finalCrop });
-    await loadLogs();
+    const data = { ...form, material: finalMat, crop: finalCrop };
+
+    try {
+      if (editingLogId) {
+        await db.update(TABLES.CHEM_LOG, editingLogId, data);
+        toast.success('살포 기록이 수정되었어요');
+      } else {
+        await db.add(TABLES.CHEM_LOG, data);
+        toast.success('살포 기록이 등록되었어요');
+      }
+      await loadLogs();
+      cancelLogEdit();
+    } catch (e) {
+      toast.error(editingLogId ? '살포 기록 수정에 실패했어요' : '살포 기록 등록에 실패했어요');
+    }
+  };
+
+  const startLogEdit = (log) => {
+    const materialIsCustom = !MAT_TYPES.slice(0, -1).includes(log.material);
+    const cropIsCustom = !CROP_OPTIONS.slice(0, -1).includes(log.crop);
+    setForm({
+      date: log.date || '',
+      material: materialIsCustom ? '직접입력' : log.material,
+      customMaterial: materialIsCustom ? log.material : '',
+      dilution: log.dilution || '',
+      amount: log.amount || '',
+      crop: cropIsCustom ? '직접입력' : log.crop,
+      customCrop: cropIsCustom ? log.crop : '',
+      sprayMethod: log.sprayMethod || '엽면살포',
+      weather: log.weather || '',
+      temp: log.temp || '',
+      memo: log.memo || '',
+      recipeId: log.recipeId || '',
+    });
+    setEditingLogId(log.id);
+    setShowForm(true);
+  };
+
+  const cancelLogEdit = () => {
     setForm({ ...BLANK_LOG });
+    setEditingLogId(null);
     setShowForm(false);
   };
 
+  /* ── 레시피 저장/수정 ── */
   const saveRecipe = async () => {
     if (!recipeForm.name.trim()) return;
-    await db.add(TABLES.RECIPE, recipeForm);
-    await loadRecipes();
-    setRecipeForm({ name: '', material: '한방영양제', dilution: '', purpose: '', memo: '' });
+
+    try {
+      if (editingRecipeId) {
+        await db.update(TABLES.RECIPE, editingRecipeId, recipeForm);
+        toast.success('레시피가 수정되었어요');
+      } else {
+        await db.add(TABLES.RECIPE, recipeForm);
+        toast.success('레시피가 등록되었어요');
+      }
+      await loadRecipes();
+      cancelRecipeEdit();
+    } catch (e) {
+      toast.error(editingRecipeId ? '레시피 수정에 실패했어요' : '레시피 등록에 실패했어요');
+    }
+  };
+
+  const startRecipeEdit = (r) => {
+    setRecipeForm({
+      name: r.name || '',
+      material: r.material || '한방영양제',
+      dilution: r.dilution || '',
+      purpose: r.purpose || '',
+      memo: r.memo || '',
+    });
+    setEditingRecipeId(r.id);
+    setShowRecipeForm(true);
+  };
+
+  const cancelRecipeEdit = () => {
+    setRecipeForm({ ...BLANK_RECIPE });
+    setEditingRecipeId(null);
     setShowRecipeForm(false);
   };
 
-  const delLog    = async (id) => { await db.delete(TABLES.CHEM_LOG, id); await loadLogs(); };
-  const delRecipe = async (id) => { await db.delete(TABLES.RECIPE, id);   await loadRecipes(); };
+  /* ── 삭제 (확인 모달 포함) ── */
+  const requestDelLog = (id) => {
+    setConfirmModal({
+      message: '이 살포 기록을 삭제할까요?',
+      onConfirm: async () => {
+        try {
+          await db.delete(TABLES.CHEM_LOG, id);
+          await loadLogs();
+          toast.success('살포 기록이 삭제되었어요');
+        } catch (e) {
+          toast.error('살포 기록 삭제에 실패했어요');
+        }
+        setConfirmModal(null);
+      },
+    });
+  };
+
+  const requestDelRecipe = (id) => {
+    setConfirmModal({
+      message: '이 레시피를 삭제할까요?',
+      onConfirm: async () => {
+        try {
+          await db.delete(TABLES.RECIPE, id);
+          await loadRecipes();
+          toast.success('레시피가 삭제되었어요');
+        } catch (e) {
+          toast.error('레시피 삭제에 실패했어요');
+        }
+        setConfirmModal(null);
+      },
+    });
+  };
 
   const loadRecipe = (recipe) => {
     setForm(p => ({ ...p, material: recipe.material, dilution: recipe.dilution, recipeId: recipe.id, memo: recipe.purpose }));
@@ -56,6 +174,15 @@ export default function ChemicalLog() {
 
   return (
     <div>
+      {/* ── 삭제 확인 모달 ── */}
+      {confirmModal && (
+        <ConfirmModal
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
+
       <div className="section-header">
         <span className="section-title">천연농자재 기록</span>
         <div style={{ display: 'flex', gap: '6px' }}>
@@ -111,7 +238,14 @@ export default function ChemicalLog() {
           <button
             className="btn-primary"
             style={{ width: '100%', justifyContent: 'center', marginBottom: '16px', padding: '12px' }}
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              if (showForm && !editingLogId) {
+                cancelLogEdit();
+              } else {
+                cancelLogEdit();
+                setShowForm(true);
+              }
+            }}
           >
             <Plus size={15} strokeWidth={2} /> 살포 기록 추가
           </button>
@@ -208,8 +342,10 @@ export default function ChemicalLog() {
                   style={{ fontSize: '14px', resize: 'none', lineHeight: 1.6 }} />
               </div>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button className="btn-secondary" onClick={() => setShowForm(false)}>취소</button>
-                <button className="btn-primary" onClick={saveLog} disabled={!form.dilution.trim()}>저장</button>
+                <button className="btn-secondary" onClick={cancelLogEdit}>취소</button>
+                <button className="btn-primary" onClick={saveLog} disabled={!form.dilution.trim()}>
+                  {editingLogId ? '수정' : '저장'}
+                </button>
               </div>
             </div>
           )}
@@ -239,10 +375,16 @@ export default function ChemicalLog() {
                       </p>
                       {log.memo && <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{log.memo}</p>}
                     </div>
-                    <button className="btn-icon" style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)', flexShrink: 0 }}
-                      onClick={() => delLog(log.id)}>
-                      <Trash2 size={13} strokeWidth={1.5} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                      <button className="btn-icon" style={{ width: '28px', height: '28px', background: 'var(--bg-subtle)', color: 'var(--text-muted)' }}
+                        onClick={() => startLogEdit(log)}>
+                        <Pencil size={13} strokeWidth={1.5} />
+                      </button>
+                      <button className="btn-icon" style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)' }}
+                        onClick={() => requestDelLog(log.id)}>
+                        <Trash2 size={13} strokeWidth={1.5} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -255,7 +397,14 @@ export default function ChemicalLog() {
           <button
             className="btn-primary"
             style={{ width: '100%', justifyContent: 'center', marginBottom: '16px', padding: '12px' }}
-            onClick={() => setShowRecipeForm(!showRecipeForm)}
+            onClick={() => {
+              if (showRecipeForm && !editingRecipeId) {
+                cancelRecipeEdit();
+              } else {
+                cancelRecipeEdit();
+                setShowRecipeForm(true);
+              }
+            }}
           >
             <Plus size={15} strokeWidth={2} /> 레시피 저장
           </button>
@@ -292,8 +441,10 @@ export default function ChemicalLog() {
                   onChange={e => setRecipeForm(p => ({ ...p, memo: e.target.value }))} style={{ fontSize: '14px' }} />
               </div>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button className="btn-secondary" onClick={() => setShowRecipeForm(false)}>취소</button>
-                <button className="btn-primary" onClick={saveRecipe} disabled={!recipeForm.name.trim()}>저장</button>
+                <button className="btn-secondary" onClick={cancelRecipeEdit}>취소</button>
+                <button className="btn-primary" onClick={saveRecipe} disabled={!recipeForm.name.trim()}>
+                  {editingRecipeId ? '수정' : '저장'}
+                </button>
               </div>
             </div>
           )}
@@ -318,10 +469,16 @@ export default function ChemicalLog() {
                       {r.purpose && <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{r.purpose}</p>}
                       {r.memo && <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '3px' }}>{r.memo}</p>}
                     </div>
-                    <button className="btn-icon" style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)', flexShrink: 0 }}
-                      onClick={() => delRecipe(r.id)}>
-                      <Trash2 size={13} strokeWidth={1.5} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                      <button className="btn-icon" style={{ width: '28px', height: '28px', background: 'var(--bg-subtle)', color: 'var(--text-muted)' }}
+                        onClick={() => startRecipeEdit(r)}>
+                        <Pencil size={13} strokeWidth={1.5} />
+                      </button>
+                      <button className="btn-icon" style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)' }}
+                        onClick={() => requestDelRecipe(r.id)}>
+                        <Trash2 size={13} strokeWidth={1.5} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

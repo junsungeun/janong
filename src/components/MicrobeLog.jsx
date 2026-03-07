@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import {
   Plus, FlaskConical, ChevronDown, ChevronUp,
-  CheckCircle, Trash2, ClipboardList,
+  CheckCircle, Trash2, ClipboardList, Pencil, X,
 } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
+import { ConfirmModal } from './ConfirmModal';
+import { toast } from './Toast';
 
 // 배양 상태
 const STATUS = {
@@ -18,7 +20,11 @@ export default function MicrobeLog() {
   const [batches, setBatches]   = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpanded] = useState(null);
-  const [checkForms, setCheckForms] = useState({}); // batchId → check form state
+  const [checkForms, setCheckForms] = useState({}); // batchId -> check form state
+  const [editingBatchId, setEditingBatchId] = useState(null);
+  const [editBatchForm, setEditBatchForm] = useState({});
+  const [confirmDeleteBatchId, setConfirmDeleteBatchId] = useState(null);
+  const [confirmDeleteCheck, setConfirmDeleteCheck] = useState(null); // { batchId, checkId }
 
   const [form, setForm] = useState({
     startDate: today(),
@@ -29,20 +35,31 @@ export default function MicrobeLog() {
     note: '',
   });
 
-  const load = async () => setBatches(await db.getList(TABLES.MICROBE_LOG));
+  const load = async () => {
+    try {
+      setBatches(await db.getList(TABLES.MICROBE_LOG));
+    } catch (err) {
+      toast.error('배양 목록을 불러오지 못했어요');
+    }
+  };
   useEffect(() => { load(); }, []);
 
   // ── 배양 등록 ──────────────────────────────────────────────────────
   const addBatch = async () => {
     if (!form.startDate) return;
-    await db.add(TABLES.MICROBE_LOG, {
-      ...form,
-      status: 'brewing',
-      checks: [],
-    });
-    await load();
-    setForm({ startDate: today(), materials: '', temp: '', location: '', targetCrop: '', note: '' });
-    setShowForm(false);
+    try {
+      await db.add(TABLES.MICROBE_LOG, {
+        ...form,
+        status: 'brewing',
+        checks: [],
+      });
+      await load();
+      setForm({ startDate: today(), materials: '', temp: '', location: '', targetCrop: '', note: '' });
+      setShowForm(false);
+      toast.success('배양이 등록되었어요');
+    } catch (err) {
+      toast.error('배양 등록에 실패했어요');
+    }
   };
 
   // ── 일별 상태 체크 추가 ─────────────────────────────────────────────
@@ -50,13 +67,18 @@ export default function MicrobeLog() {
     const cf = checkForms[batchId] || initCheckForm();
     const batch = batches.find(b => b.id === batchId);
     if (!batch) return;
-    const newChecks = [
-      ...(batch.checks || []),
-      { ...cf, id: Date.now().toString(), createdAt: new Date().toISOString() },
-    ];
-    await db.update(TABLES.MICROBE_LOG, batchId, { checks: newChecks });
-    await load();
-    setCheckForms(p => ({ ...p, [batchId]: initCheckForm() }));
+    try {
+      const newChecks = [
+        ...(batch.checks || []),
+        { ...cf, id: Date.now().toString(), createdAt: new Date().toISOString() },
+      ];
+      await db.update(TABLES.MICROBE_LOG, batchId, { checks: newChecks });
+      await load();
+      setCheckForms(p => ({ ...p, [batchId]: initCheckForm() }));
+      toast.success('상태 기록이 추가되었어요');
+    } catch (err) {
+      toast.error('상태 기록 추가에 실패했어요');
+    }
   };
 
   const initCheckForm = () => ({
@@ -69,16 +91,79 @@ export default function MicrobeLog() {
 
   // ── 상태 전환 ───────────────────────────────────────────────────────
   const markDone = async (id) => {
-    await db.update(TABLES.MICROBE_LOG, id, { status: 'done', completedAt: today() });
-    await load();
+    try {
+      await db.update(TABLES.MICROBE_LOG, id, { status: 'done', completedAt: today() });
+      await load();
+      toast.success('배양 완성으로 표시했어요');
+    } catch (err) {
+      toast.error('상태 변경에 실패했어요');
+    }
   };
 
   const markApplied = async (id) => {
-    await db.update(TABLES.MICROBE_LOG, id, { status: 'applied', appliedAt: today() });
-    await load();
+    try {
+      await db.update(TABLES.MICROBE_LOG, id, { status: 'applied', appliedAt: today() });
+      await load();
+      toast.success('투입 완료로 표시했어요');
+    } catch (err) {
+      toast.error('상태 변경에 실패했어요');
+    }
   };
 
-  const del = async (id) => { await db.delete(TABLES.MICROBE_LOG, id); await load(); };
+  const del = async (id) => {
+    try {
+      await db.delete(TABLES.MICROBE_LOG, id);
+      await load();
+      toast.success('배양 기록이 삭제되었어요');
+    } catch (err) {
+      toast.error('배양 기록 삭제에 실패했어요');
+    }
+  };
+
+  // ── 개별 체크 삭제 ──────────────────────────────────────────────────
+  const deleteCheck = async (batchId, checkId) => {
+    const batch = batches.find(b => b.id === batchId);
+    if (!batch) return;
+    try {
+      const newChecks = (batch.checks || []).filter(c => c.id !== checkId);
+      await db.update(TABLES.MICROBE_LOG, batchId, { checks: newChecks });
+      await load();
+      toast.success('관찰 기록이 삭제되었어요');
+    } catch (err) {
+      toast.error('관찰 기록 삭제에 실패했어요');
+    }
+  };
+
+  // ── 배양 정보 수정 ──────────────────────────────────────────────────
+  const startEditBatch = (batch) => {
+    setEditingBatchId(batch.id);
+    setEditBatchForm({
+      materials: batch.materials || '',
+      location: batch.location || '',
+      startDate: batch.startDate || today(),
+      temp: batch.temp || '',
+      note: batch.note || '',
+      targetCrop: batch.targetCrop || '',
+    });
+  };
+
+  const cancelEditBatch = () => {
+    setEditingBatchId(null);
+    setEditBatchForm({});
+  };
+
+  const saveEditBatch = async () => {
+    if (!editingBatchId) return;
+    try {
+      await db.update(TABLES.MICROBE_LOG, editingBatchId, { ...editBatchForm });
+      await load();
+      setEditingBatchId(null);
+      setEditBatchForm({});
+      toast.success('배양 정보가 수정되었어요');
+    } catch (err) {
+      toast.error('배양 정보 수정에 실패했어요');
+    }
+  };
 
   // 경과일 계산
   const elapsed = (dateStr) => {
@@ -204,6 +289,7 @@ export default function MicrobeLog() {
             const cf      = checkForms[batch.id] || initCheckForm();
             const days    = elapsed(batch.startDate);
             const lastCheck = batch.checks?.[batch.checks.length - 1];
+            const isEditing = editingBatchId === batch.id;
 
             return (
               <div key={batch.id} className="card" style={{ padding: '16px' }}>
@@ -235,13 +321,23 @@ export default function MicrobeLog() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                     {isOpen && (
-                      <button
-                        className="btn-icon"
-                        style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)' }}
-                        onClick={e => { e.stopPropagation(); del(batch.id); }}
-                      >
-                        <Trash2 size={13} strokeWidth={1.5} />
-                      </button>
+                      <>
+                        <button
+                          className="btn-icon"
+                          style={{ width: '28px', height: '28px', background: 'var(--bg-subtle)' }}
+                          onClick={e => { e.stopPropagation(); startEditBatch(batch); }}
+                          title="수정"
+                        >
+                          <Pencil size={13} strokeWidth={1.5} />
+                        </button>
+                        <button
+                          className="btn-icon"
+                          style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)' }}
+                          onClick={e => { e.stopPropagation(); setConfirmDeleteBatchId(batch.id); }}
+                        >
+                          <Trash2 size={13} strokeWidth={1.5} />
+                        </button>
+                      </>
                     )}
                     {isOpen ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
                   </div>
@@ -251,29 +347,103 @@ export default function MicrobeLog() {
                 {isOpen && (
                   <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-light)' }}>
 
-                    {/* 기본 정보 */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
-                      {batch.materials && (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0, width: '48px' }}>재료</span>
-                          <span style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.6 }}>{batch.materials}</span>
+                    {/* 배양 정보 수정 폼 */}
+                    {isEditing ? (
+                      <div style={{
+                        background: 'var(--bg-subtle)', borderRadius: '10px',
+                        padding: '14px', marginBottom: '16px',
+                      }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                          <div>
+                            <label className="label">배양 시작일</label>
+                            <input
+                              type="date"
+                              className="input"
+                              value={editBatchForm.startDate}
+                              onChange={e => setEditBatchForm(p => ({ ...p, startDate: e.target.value }))}
+                              style={{ fontSize: '13px' }}
+                            />
+                          </div>
+                          <div>
+                            <label className="label">투입 예정 작물</label>
+                            <input
+                              className="input"
+                              placeholder="예: 고추"
+                              value={editBatchForm.targetCrop}
+                              onChange={e => setEditBatchForm(p => ({ ...p, targetCrop: e.target.value }))}
+                              style={{ fontSize: '13px' }}
+                            />
+                          </div>
                         </div>
-                      )}
-                      {(batch.temp || batch.location) && (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0, width: '48px' }}>환경</span>
-                          <span style={{ fontSize: '13px', color: 'var(--text)' }}>
-                            {[batch.temp, batch.location].filter(Boolean).join(' · ')}
-                          </span>
+                        <div style={{ marginBottom: '8px' }}>
+                          <label className="label">재료 구성</label>
+                          <textarea
+                            className="input"
+                            value={editBatchForm.materials}
+                            onChange={e => setEditBatchForm(p => ({ ...p, materials: e.target.value }))}
+                            rows={2}
+                            style={{ fontSize: '13px', lineHeight: 1.6, resize: 'vertical' }}
+                          />
                         </div>
-                      )}
-                      {batch.note && (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0, width: '48px' }}>메모</span>
-                          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{batch.note}</span>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                          <div>
+                            <label className="label">배양 온도</label>
+                            <input
+                              className="input"
+                              value={editBatchForm.temp}
+                              onChange={e => setEditBatchForm(p => ({ ...p, temp: e.target.value }))}
+                              style={{ fontSize: '13px' }}
+                            />
+                          </div>
+                          <div>
+                            <label className="label">배양 장소</label>
+                            <input
+                              className="input"
+                              value={editBatchForm.location}
+                              onChange={e => setEditBatchForm(p => ({ ...p, location: e.target.value }))}
+                              style={{ fontSize: '13px' }}
+                            />
+                          </div>
                         </div>
-                      )}
-                    </div>
+                        <div style={{ marginBottom: '10px' }}>
+                          <label className="label">메모</label>
+                          <input
+                            className="input"
+                            value={editBatchForm.note}
+                            onChange={e => setEditBatchForm(p => ({ ...p, note: e.target.value }))}
+                            style={{ fontSize: '13px' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button className="btn-secondary" onClick={cancelEditBatch}>취소</button>
+                          <button className="btn-primary" onClick={saveEditBatch}>수정</button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* 기본 정보 (읽기 모드) */
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
+                        {batch.materials && (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0, width: '48px' }}>재료</span>
+                            <span style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.6 }}>{batch.materials}</span>
+                          </div>
+                        )}
+                        {(batch.temp || batch.location) && (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0, width: '48px' }}>환경</span>
+                            <span style={{ fontSize: '13px', color: 'var(--text)' }}>
+                              {[batch.temp, batch.location].filter(Boolean).join(' · ')}
+                            </span>
+                          </div>
+                        )}
+                        {batch.note && (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0, width: '48px' }}>메모</span>
+                            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{batch.note}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* 상태 전환 버튼 */}
                     {batch.status === 'brewing' && (
@@ -428,6 +598,18 @@ export default function MicrobeLog() {
                                   {chk.note}
                                 </span>
                               )}
+                              {/* Delete check button */}
+                              <button
+                                onClick={() => setConfirmDeleteCheck({ batchId: batch.id, checkId: chk.id })}
+                                style={{
+                                  width: '20px', height: '20px', borderRadius: '50%',
+                                  background: 'transparent', border: 'none',
+                                  color: 'var(--text-muted)', cursor: 'pointer', display: 'flex',
+                                  alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                }}
+                              >
+                                <X size={12} strokeWidth={1.5} />
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -455,6 +637,24 @@ export default function MicrobeLog() {
             );
           })}
         </div>
+      )}
+
+      {/* Batch delete confirmation modal */}
+      {confirmDeleteBatchId && (
+        <ConfirmModal
+          message="이 배양 기록을 삭제할까요? 관찰 기록도 함께 삭제됩니다."
+          onConfirm={() => { del(confirmDeleteBatchId); setConfirmDeleteBatchId(null); }}
+          onCancel={() => setConfirmDeleteBatchId(null)}
+        />
+      )}
+
+      {/* Check delete confirmation modal */}
+      {confirmDeleteCheck && (
+        <ConfirmModal
+          message="이 관찰 기록을 삭제할까요?"
+          onConfirm={() => { deleteCheck(confirmDeleteCheck.batchId, confirmDeleteCheck.checkId); setConfirmDeleteCheck(null); }}
+          onCancel={() => setConfirmDeleteCheck(null)}
+        />
       )}
     </div>
   );

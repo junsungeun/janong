@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Sprout, ChevronRight, ArrowLeft, Trash2, CalendarDays, Camera } from 'lucide-react';
+import { Plus, Sprout, ChevronRight, ArrowLeft, Trash2, Pencil, CalendarDays, Camera } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { toast } from './Toast';
+import { ConfirmModal } from './ConfirmModal';
 import { SUPPORTED_CROPS, daysSincePlanting } from '../data/cropTimelines';
 import CropTimeline from './CropTimeline';
 import CropTimelapse from './CropTimelapse';
@@ -24,6 +25,8 @@ export default function CropList() {
   const [showForm, setShowForm]   = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [detailTab, setDetailTab] = useState('timeline');
+  const [editingId, setEditingId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const BLANK_FORM = {
     name: '', customName: '', variety: '', area: '',
     plantingDate: new Date().toISOString().slice(0, 10),
@@ -59,11 +62,73 @@ export default function CropList() {
     }
   };
 
-  const del = async (id, e) => {
+  const edit = async () => {
+    const finalName = form.name === '직접입력' ? form.customName.trim() : form.name.trim();
+    if (!finalName) return;
+    const { customName, ...cropData } = form;
+    try {
+      await db.update(TABLES.CROP, editingId, {
+        name:        finalName,
+        variety:     cropData.variety    || null,
+        area:        cropData.area       || null,
+        plantingDate:cropData.plantingDate,
+        growMethod:  cropData.growMethod || '노지',
+        seedType:    cropData.seedType   || null,
+        note:        cropData.note       || null,
+      });
+      await load();
+      setForm({ ...BLANK_FORM });
+      setEditingId(null);
+      setShowForm(false);
+      toast.success('작물 정보가 수정되었어요');
+    } catch (e) {
+      console.error('[작물 수정 오류]', e);
+      toast.error(`수정 오류: ${e?.message || '다시 시도해주세요'}`);
+    }
+  };
+
+  const startEdit = (crop, e) => {
     e.stopPropagation();
-    await db.delete(TABLES.CROP, id);
-    await load();
-    if (selectedId === id) setSelectedId(null);
+    const isCustom = !SUPPORTED_CROPS.includes(crop.name);
+    setForm({
+      name:        isCustom ? '직접입력' : crop.name,
+      customName:  isCustom ? crop.name : '',
+      variety:     crop.variety || '',
+      area:        crop.area || '',
+      plantingDate:crop.plantingDate || new Date().toISOString().slice(0, 10),
+      growMethod:  crop.growMethod || '노지',
+      seedType:    crop.seedType || '',
+      note:        crop.note || '',
+    });
+    setEditingId(crop.id);
+    setShowForm(true);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm({ ...BLANK_FORM });
+    setShowForm(false);
+  };
+
+  const requestDelete = (crop, e) => {
+    e.stopPropagation();
+    setDeleteTarget(crop);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    try {
+      await db.delete(TABLES.CROP, id);
+      await load();
+      if (selectedId === id) setSelectedId(null);
+      toast.success('작물이 삭제되었어요');
+    } catch (e) {
+      console.error('[작물 삭제 오류]', e);
+      toast.error(`삭제 오류: ${e?.message || '다시 시도해주세요'}`);
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   const selectedCrop = crops.find(c => c.id === selectedId);
@@ -148,16 +213,18 @@ export default function CropList() {
         <button
           className="btn-primary"
           style={{ padding: '8px 16px', fontSize: '13px' }}
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { setShowForm(!showForm); if (showForm) cancelEdit(); }}
         >
           <Plus size={14} strokeWidth={2} /> 작물 등록
         </button>
       </div>
 
-      {/* 등록 폼 */}
+      {/* 등록/수정 폼 */}
       {showForm && (
         <div className="card mb-4" style={{ borderLeft: '3px solid var(--color-primary)', borderRadius: '0 8px 8px 0', padding: '18px 20px' }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '16px' }}>작물 등록</p>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '16px' }}>
+            {editingId ? '작물 수정' : '작물 등록'}
+          </p>
 
           {/* 작물명 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
@@ -269,13 +336,13 @@ export default function CropList() {
           </div>
 
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-            <button className="btn-secondary" onClick={() => setShowForm(false)}>취소</button>
+            <button className="btn-secondary" onClick={cancelEdit}>취소</button>
             <button
               className="btn-primary"
-              onClick={add}
+              onClick={editingId ? edit : add}
               disabled={form.name === '직접입력' ? !form.customName.trim() : !form.name}
             >
-              등록
+              {editingId ? '수정' : '등록'}
             </button>
           </div>
         </div>
@@ -343,7 +410,18 @@ export default function CropList() {
                 {/* 우측 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   <button
-                    onClick={e => del(crop.id, e)}
+                    onClick={e => startEdit(crop, e)}
+                    style={{
+                      width: '28px', height: '28px', borderRadius: '6px',
+                      background: 'var(--color-primary-light)', border: 'none', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--color-primary)',
+                    }}
+                  >
+                    <Pencil size={13} strokeWidth={1.5} />
+                  </button>
+                  <button
+                    onClick={e => requestDelete(crop, e)}
                     style={{
                       width: '28px', height: '28px', borderRadius: '6px',
                       background: '#FFF0F0', border: 'none', cursor: 'pointer',
@@ -359,6 +437,15 @@ export default function CropList() {
             );
           })}
         </div>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      {deleteTarget && (
+        <ConfirmModal
+          message="이 작물을 삭제할까요? 관련 타임라인과 사진도 함께 삭제됩니다."
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   );

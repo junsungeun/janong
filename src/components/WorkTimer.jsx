@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Square, Timer, BarChart2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Play, Pause, Square, Timer, BarChart2, Trash2, Pencil, Check, X } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
+import { toast } from './Toast';
+import { ConfirmModal } from './ConfirmModal';
 
 const CATEGORIES = ['파종', '물주기', '방제', '수확', '전정', '멀칭', '기타'];
+
+const TIMER_STORAGE_KEY = 'janong-work-timer-state';
 
 const fmt = (sec) => {
   const h = Math.floor(sec / 3600);
@@ -28,13 +32,78 @@ export default function WorkTimer() {
   const intervalRef = useRef(null);
   const startRef = useRef(null);
 
-  const loadSessions = async () => setSessions(await db.getList(TABLES.WORK_TIMER));
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  useEffect(() => { loadSessions(); }, []);
+  // Edit state
+  const [editingId, setEditingId] = useState(null);
+  const [editCategory, setEditCategory] = useState('');
+
+  const loadSessions = useCallback(async () => {
+    try {
+      setSessions(await db.getList(TABLES.WORK_TIMER));
+    } catch (err) {
+      toast.error('작업 기록을 불러오지 못했어요');
+    }
+  }, []);
+
+  // Restore timer state from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(TIMER_STORAGE_KEY);
+      if (saved) {
+        const state = JSON.parse(saved);
+        if (state.isRunning && state.startTime) {
+          const elapsedSec = Math.floor((Date.now() - state.startTime) / 1000);
+          if (elapsedSec > 0 && elapsedSec < 86400) { // sanity: less than 24h
+            setCategory(state.category || '기타');
+            startRef.current = state.startTime;
+            setElapsed(elapsedSec);
+            setRunning(true);
+          } else {
+            localStorage.removeItem(TIMER_STORAGE_KEY);
+          }
+        } else if (!state.isRunning && state.elapsed > 0) {
+          // Paused state
+          setCategory(state.category || '기타');
+          setElapsed(state.elapsed);
+        } else {
+          localStorage.removeItem(TIMER_STORAGE_KEY);
+        }
+      }
+    } catch {
+      localStorage.removeItem(TIMER_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  // Persist timer state to localStorage
+  useEffect(() => {
+    if (running) {
+      const stateToSave = {
+        isRunning: true,
+        startTime: startRef.current,
+        category,
+      };
+      localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(stateToSave));
+    } else if (elapsed > 0) {
+      const stateToSave = {
+        isRunning: false,
+        elapsed,
+        category,
+      };
+      localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(stateToSave));
+    } else {
+      localStorage.removeItem(TIMER_STORAGE_KEY);
+    }
+  }, [running, elapsed, category]);
 
   useEffect(() => {
     if (running) {
-      startRef.current = Date.now() - elapsed * 1000;
+      if (!startRef.current) {
+        startRef.current = Date.now() - elapsed * 1000;
+      }
       intervalRef.current = setInterval(() => {
         setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
       }, 500);
@@ -44,20 +113,62 @@ export default function WorkTimer() {
     return () => clearInterval(intervalRef.current);
   }, [running]);
 
-  const start = () => setRunning(true);
+  const start = () => {
+    startRef.current = Date.now() - elapsed * 1000;
+    setRunning(true);
+  };
   const pause = () => setRunning(false);
 
-  const stop = () => {
+  const stop = async () => {
     setRunning(false);
-    if (elapsed < 10) { setElapsed(0); return; }
+    if (elapsed < 10) {
+      toast.info('10초 미만은 저장되지 않아요');
+      setElapsed(0);
+      startRef.current = null;
+      localStorage.removeItem(TIMER_STORAGE_KEY);
+      return;
+    }
     const record = {
       date: new Date().toISOString().slice(0, 10),
       category,
       duration: elapsed,
       startedAt: new Date(Date.now() - elapsed * 1000).toISOString(),
     };
-    db.add(TABLES.WORK_TIMER, record).then(loadSessions);
+    try {
+      await db.add(TABLES.WORK_TIMER, record);
+      toast.success('작업이 저장되었어요');
+      await loadSessions();
+    } catch (err) {
+      toast.error('작업 저장에 실패했어요');
+    }
     setElapsed(0);
+    startRef.current = null;
+    localStorage.removeItem(TIMER_STORAGE_KEY);
+  };
+
+  // Delete session
+  const handleDelete = async (id) => {
+    try {
+      await db.delete(TABLES.WORK_TIMER, id);
+      toast.success('작업 기록이 삭제되었어요');
+      await loadSessions();
+    } catch (err) {
+      toast.error('삭제에 실패했어요');
+    }
+    setDeleteTarget(null);
+  };
+
+  // Edit session category
+  const handleEditSave = async (id) => {
+    try {
+      await db.update(TABLES.WORK_TIMER, id, { category: editCategory });
+      toast.success('카테고리가 수정되었어요');
+      await loadSessions();
+    } catch (err) {
+      toast.error('수정에 실패했어요');
+    }
+    setEditingId(null);
+    setEditCategory('');
   };
 
   // 오늘 통계
@@ -85,6 +196,17 @@ export default function WorkTimer() {
 
   return (
     <div>
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <ConfirmModal
+          message="이 작업 기록을 삭제할까요?"
+          confirmLabel="삭제"
+          danger
+          onConfirm={() => handleDelete(deleteTarget)}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
       <div className="section-header">
         <span className="section-title">작업 시간 기록</span>
         <div style={{ display: 'flex', gap: '6px' }}>
@@ -207,10 +329,86 @@ export default function WorkTimer() {
                   padding: '10px 14px', background: 'var(--bg-card)', borderRadius: '8px',
                   border: '1px solid var(--border-light)',
                 }}>
-                  <span className="badge badge-good" style={{ fontSize: '11px' }}>{s.category}</span>
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-serif)' }}>
-                    {fmtHM(s.duration)}
-                  </span>
+                  {/* Category: show inline editor or badge */}
+                  {editingId === s.id ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                      {CATEGORIES.map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setEditCategory(cat)}
+                          style={{
+                            padding: '3px 8px', borderRadius: '100px', border: '1px solid',
+                            fontSize: '10px', fontWeight: 500, cursor: 'pointer',
+                            fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
+                            borderColor: editCategory === cat ? 'var(--color-primary)' : 'var(--border)',
+                            background: editCategory === cat ? 'var(--color-primary)' : 'transparent',
+                            color: editCategory === cat ? '#fff' : 'var(--text-muted)',
+                          }}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => handleEditSave(s.id)}
+                        style={{
+                          padding: '3px', borderRadius: '4px', border: 'none',
+                          background: 'var(--color-primary)', color: '#fff', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          marginLeft: '2px',
+                        }}
+                        title="저장"
+                      >
+                        <Check size={12} strokeWidth={2.5} />
+                      </button>
+                      <button
+                        onClick={() => { setEditingId(null); setEditCategory(''); }}
+                        style={{
+                          padding: '3px', borderRadius: '4px', border: 'none',
+                          background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                        title="취소"
+                      >
+                        <X size={12} strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="badge badge-good" style={{ fontSize: '11px' }}>{s.category}</span>
+                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-serif)' }}>
+                      {fmtHM(s.duration)}
+                    </span>
+                    {/* Edit button */}
+                    {editingId !== s.id && (
+                      <button
+                        onClick={() => { setEditingId(s.id); setEditCategory(s.category); }}
+                        style={{
+                          padding: '4px', borderRadius: '4px', border: 'none',
+                          background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'color 0.15s',
+                        }}
+                        title="카테고리 수정"
+                      >
+                        <Pencil size={13} strokeWidth={2} />
+                      </button>
+                    )}
+                    {/* Delete button */}
+                    <button
+                      onClick={() => setDeleteTarget(s.id)}
+                      style={{
+                        padding: '4px', borderRadius: '4px', border: 'none',
+                        background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'color 0.15s',
+                      }}
+                      title="삭제"
+                    >
+                      <Trash2 size={13} strokeWidth={2} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -169,7 +169,7 @@ body {
 .app-content {
   flex: 1;
   padding: var(--space-5);
-  padding-bottom: calc(64px + var(--space-5));
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + var(--space-5));
   overflow-y: auto;
   background: var(--bg);
   /* GPU 레이어 — 스크롤 성능 향상 */
@@ -185,7 +185,8 @@ body {
   transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-  height: 64px;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--bg-card);
   border-top: 1px solid var(--border);
   display: grid;
@@ -506,6 +507,41 @@ button,
   touch-action: manipulation;
 }
 
+/* ─── 아이콘 버튼 최소 터치 영역 ─── */
+button {
+  min-height: 36px;
+  min-width: 36px;
+}
+
+/* ─── 포커스 인디케이터 ─── */
+button:focus-visible,
+.tab-item:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ─── 로딩 스피너 ─── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ─── 모달 ─── */
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 /* ─── 360px 이하 소형 기기 반응형 ─── */
 @media (max-width: 360px) {
   :root {
@@ -523,7 +559,7 @@ button,
   }
 
   .tab-nav {
-    height: 56px;
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
   }
 
   .tab-item {

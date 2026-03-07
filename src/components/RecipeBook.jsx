@@ -1,33 +1,80 @@
 import { useState, useEffect } from 'react';
-import { Plus, FlaskConical, ChevronDown, ChevronUp, Trash2, Copy, Check } from 'lucide-react';
+import { Plus, FlaskConical, ChevronDown, ChevronUp, Trash2, Copy, Check, Pencil } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
+import { ConfirmModal } from './ConfirmModal';
+import { toast } from './Toast';
 
 const PURPOSE_OPTS = [
   '병해충 예방', '생장 촉진', '면역 강화', '수확 후 처리',
   '토양 개선', '모종 활착', '기타',
 ];
 
+const emptyForm = { name: '', materials: '', dilution: '', purpose: '병해충 예방', note: '' };
+
 export default function RecipeBook() {
   const [recipes, setRecipes]     = useState([]);
   const [showForm, setShowForm]   = useState(false);
   const [expandedId, setExpanded] = useState(null);
   const [copied, setCopied]       = useState(null);
-  const [form, setForm] = useState({
-    name: '', materials: '', dilution: '', purpose: '병해충 예방', note: '',
-  });
+  const [editingId, setEditingId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [form, setForm] = useState({ ...emptyForm });
 
-  const load = async () => setRecipes(await db.getList(TABLES.RECIPE));
+  const load = async () => {
+    try {
+      setRecipes(await db.getList(TABLES.RECIPE));
+    } catch (err) {
+      toast.error('레시피 목록을 불러오지 못했어요');
+    }
+  };
   useEffect(() => { load(); }, []);
 
-  const save = async () => {
-    if (!form.name.trim()) return;
-    await db.add(TABLES.RECIPE, { ...form });
-    await load();
-    setForm({ name: '', materials: '', dilution: '', purpose: '병해충 예방', note: '' });
+  const resetForm = () => {
+    setForm({ ...emptyForm });
+    setEditingId(null);
     setShowForm(false);
   };
 
-  const del = async (id) => { await db.delete(TABLES.RECIPE, id); await load(); };
+  const save = async () => {
+    if (!form.name.trim()) return;
+    try {
+      if (editingId) {
+        await db.update(TABLES.RECIPE, editingId, { ...form });
+        await load();
+        toast.success('레시피가 수정되었어요');
+      } else {
+        await db.add(TABLES.RECIPE, { ...form });
+        await load();
+        toast.success('레시피가 추가되었어요');
+      }
+      resetForm();
+    } catch (err) {
+      toast.error(editingId ? '레시피 수정에 실패했어요' : '레시피 추가에 실패했어요');
+    }
+  };
+
+  const startEdit = (recipe) => {
+    setEditingId(recipe.id);
+    setForm({
+      name: recipe.name || '',
+      materials: recipe.materials || '',
+      dilution: recipe.dilution || '',
+      purpose: recipe.purpose || '병해충 예방',
+      note: recipe.note || '',
+    });
+    setShowForm(true);
+    setExpanded(null);
+  };
+
+  const del = async (id) => {
+    try {
+      await db.delete(TABLES.RECIPE, id);
+      await load();
+      toast.success('레시피가 삭제되었어요');
+    } catch (err) {
+      toast.error('레시피 삭제에 실패했어요');
+    }
+  };
 
   const copyToClipboard = (recipe) => {
     const text = `[${recipe.name}]\n재료: ${recipe.materials}\n희석배율: ${recipe.dilution}\n용도: ${recipe.purpose}${recipe.note ? '\n메모: ' + recipe.note : ''}`;
@@ -43,17 +90,24 @@ export default function RecipeBook() {
         <button
           className="btn-primary"
           style={{ padding: '8px 16px', fontSize: '13px' }}
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm && !editingId) {
+              setShowForm(false);
+            } else {
+              resetForm();
+              setShowForm(true);
+            }
+          }}
         >
           <Plus size={14} strokeWidth={2} /> 레시피 추가
         </button>
       </div>
 
-      {/* ── 등록 폼 ── */}
+      {/* ── 등록/수정 폼 ── */}
       {showForm && (
         <div className="card mb-4" style={{
           padding: '18px 20px',
-          borderLeft: '3px solid var(--color-primary)',
+          borderLeft: `3px solid ${editingId ? 'var(--color-earth)' : 'var(--color-primary)'}`,
           borderRadius: '0 8px 8px 0',
         }}>
           <div style={{ marginBottom: '10px' }}>
@@ -116,8 +170,10 @@ export default function RecipeBook() {
           </div>
 
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-            <button className="btn-secondary" onClick={() => setShowForm(false)}>취소</button>
-            <button className="btn-primary" onClick={save} disabled={!form.name.trim()}>저장</button>
+            <button className="btn-secondary" onClick={resetForm}>취소</button>
+            <button className="btn-primary" onClick={save} disabled={!form.name.trim()}>
+              {editingId ? '수정' : '추가'}
+            </button>
           </div>
         </div>
       )}
@@ -171,6 +227,14 @@ export default function RecipeBook() {
                         <button
                           className="btn-icon"
                           style={{ width: '28px', height: '28px', background: 'var(--bg-subtle)' }}
+                          onClick={e => { e.stopPropagation(); startEdit(recipe); }}
+                          title="수정"
+                        >
+                          <Pencil size={13} strokeWidth={1.5} />
+                        </button>
+                        <button
+                          className="btn-icon"
+                          style={{ width: '28px', height: '28px', background: 'var(--bg-subtle)' }}
                           onClick={e => { e.stopPropagation(); copyToClipboard(recipe); }}
                           title="클립보드 복사"
                         >
@@ -182,7 +246,7 @@ export default function RecipeBook() {
                         <button
                           className="btn-icon"
                           style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)' }}
-                          onClick={e => { e.stopPropagation(); del(recipe.id); }}
+                          onClick={e => { e.stopPropagation(); setConfirmDeleteId(recipe.id); }}
                         >
                           <Trash2 size={13} strokeWidth={1.5} />
                         </button>
@@ -239,6 +303,15 @@ export default function RecipeBook() {
             );
           })}
         </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmDeleteId && (
+        <ConfirmModal
+          message="이 레시피를 삭제할까요?"
+          onConfirm={() => { del(confirmDeleteId); setConfirmDeleteId(null); }}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
     </div>
   );

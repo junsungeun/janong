@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, AlertTriangle, CheckCircle, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, AlertTriangle, CheckCircle, Trash2, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
+import { ConfirmModal } from './ConfirmModal';
+import { toast } from './Toast';
 
 const SEVERITY = [
   { value: 'high',   label: '높음', color: 'var(--color-danger)', bg: '#FFF0F0' },
@@ -9,32 +11,80 @@ const SEVERITY = [
 ];
 const CROPS = ['고추', '토마토', '배추', '상추', '오이', '가지', '감자', '전체', '기타'];
 
+const EMPTY_FORM = { title: '', content: '', severity: 'high', crop: '전체' };
+
 export default function IssueBoard() {
   const [issues, setIssues] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [filter, setFilter] = useState('all'); // all | open | solved
-  const [form, setForm] = useState({ title: '', content: '', severity: 'high', crop: '전체' });
+  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [editingId, setEditingId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [triedSubmit, setTriedSubmit] = useState(false);
 
   const load = async () => setIssues(await db.getList(TABLES.ISSUE));
 
   useEffect(() => { load(); }, []);
 
-  const save = async () => {
-    if (!form.title.trim()) return;
-    await db.add(TABLES.ISSUE, { ...form, solved: false });
-    await load();
-    setForm({ title: '', content: '', severity: 'high', crop: '전체' });
+  const resetForm = () => {
+    setForm({ ...EMPTY_FORM });
+    setEditingId(null);
     setShowForm(false);
+    setTriedSubmit(false);
+  };
+
+  const save = async () => {
+    if (!form.title.trim()) {
+      setTriedSubmit(true);
+      return;
+    }
+    try {
+      if (editingId) {
+        await db.update(TABLES.ISSUE, editingId, form);
+        toast.success('이슈가 수정되었어요');
+      } else {
+        await db.add(TABLES.ISSUE, { ...form, solved: false });
+        toast.success('이슈가 등록되었어요');
+      }
+      await load();
+      resetForm();
+    } catch {
+      toast.error('처리 중 오류가 발생했어요');
+    }
+  };
+
+  const startEdit = (issue) => {
+    setForm({
+      title: issue.title || '',
+      content: issue.content || '',
+      severity: issue.severity || 'high',
+      crop: issue.crop || '전체',
+    });
+    setEditingId(issue.id);
+    setShowForm(true);
+    setTriedSubmit(false);
   };
 
   const toggleSolved = async (id) => {
-    const issue = issues.find(i => i.id === id);
-    await db.update(TABLES.ISSUE, id, { solved: !issue?.solved, solvedAt: !issue?.solved ? new Date().toISOString() : null });
-    await load();
+    try {
+      const issue = issues.find(i => i.id === id);
+      await db.update(TABLES.ISSUE, id, { solved: !issue?.solved, solvedAt: !issue?.solved ? new Date().toISOString() : null });
+      await load();
+    } catch {
+      toast.error('처리 중 오류가 발생했어요');
+    }
   };
 
-  const del = async (id) => { await db.delete(TABLES.ISSUE, id); await load(); };
+  const del = async (id) => {
+    try {
+      await db.delete(TABLES.ISSUE, id);
+      await load();
+      toast.success('이슈가 삭제되었어요');
+    } catch {
+      toast.error('처리 중 오류가 발생했어요');
+    }
+  };
 
   const filtered = issues.filter(i => {
     if (filter === 'open') return !i.solved;
@@ -60,7 +110,14 @@ export default function IssueBoard() {
         <button
           className="btn-primary"
           style={{ padding: '8px 16px', fontSize: '13px' }}
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm && !editingId) {
+              resetForm();
+            } else {
+              resetForm();
+              setShowForm(true);
+            }
+          }}
         >
           <Plus size={14} strokeWidth={2} /> 이슈 등록
         </button>
@@ -71,7 +128,13 @@ export default function IssueBoard() {
           <div style={{ marginBottom: '10px' }}>
             <label className="label">이슈 제목 *</label>
             <input className="input" placeholder="예: 고추 탄저병 의심" value={form.title}
-              onChange={e => setForm(p => ({ ...p, title: e.target.value }))} style={{ fontSize: '14px' }} autoFocus />
+              onChange={e => { setForm(p => ({ ...p, title: e.target.value })); if (triedSubmit && e.target.value.trim()) setTriedSubmit(false); }}
+              style={{ fontSize: '14px', borderColor: triedSubmit && !form.title.trim() ? 'var(--color-danger)' : undefined }} autoFocus />
+            {triedSubmit && !form.title.trim() && (
+              <p style={{ fontSize: '12px', color: 'var(--color-danger)', marginTop: '4px', fontWeight: 500 }}>
+                제목을 입력해주세요
+              </p>
+            )}
           </div>
           <div style={{ marginBottom: '10px' }}>
             <label className="label">내용</label>
@@ -109,8 +172,10 @@ export default function IssueBoard() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-            <button className="btn-secondary" onClick={() => setShowForm(false)}>취소</button>
-            <button className="btn-primary" onClick={save} disabled={!form.title.trim()}>등록</button>
+            <button className="btn-secondary" onClick={resetForm}>취소</button>
+            <button className="btn-primary" onClick={save}>
+              {editingId ? '수정' : '등록'}
+            </button>
           </div>
         </div>
       )}
@@ -155,16 +220,22 @@ export default function IssueBoard() {
                 key={issue.id}
                 className="card"
                 style={{
-                  padding: '14px 16px',
+                  padding: 0,
                   borderLeft: `3px solid ${issue.solved ? 'var(--border)' : sev.color}`,
                   borderRadius: '0 8px 8px 0',
                   opacity: issue.solved ? 0.65 : 1,
                   transition: 'opacity 0.2s',
                 }}
               >
-                <div
-                  style={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', alignItems: 'flex-start' }}
+                <button
+                  type="button"
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                    background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                    cursor: 'pointer', padding: '14px 16px', fontFamily: 'inherit',
+                  }}
                   onClick={() => setExpandedId(isExpanded ? null : issue.id)}
+                  aria-expanded={isExpanded}
                 >
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px', flexWrap: 'wrap' }}>
@@ -187,16 +258,17 @@ export default function IssueBoard() {
                     <p style={{
                       fontSize: '14px', fontWeight: 600, color: 'var(--text)',
                       textDecoration: issue.solved ? 'line-through' : 'none',
+                      margin: 0,
                     }}>
                       {issue.title}
                     </p>
                     {isExpanded && issue.content && (
-                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.7 }}>
+                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.7, margin: '8px 0 0' }}>
                         {issue.content}
                       </p>
                     )}
                     {isExpanded && issue.solved && issue.solvedAt && (
-                      <p style={{ fontSize: '11px', color: 'var(--color-good)', marginTop: '6px' }}>
+                      <p style={{ fontSize: '11px', color: 'var(--color-good)', marginTop: '6px', margin: '6px 0 0' }}>
                         해결일: {issue.solvedAt.slice(0, 10).replace(/-/g, '.')}
                       </p>
                     )}
@@ -204,27 +276,59 @@ export default function IssueBoard() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px', flexShrink: 0 }}>
                     {isExpanded && (
                       <>
-                        <button
+                        <span
+                          role="button"
+                          tabIndex={0}
                           className="btn-icon"
-                          style={{ width: '28px', height: '28px', background: issue.solved ? 'var(--bg-subtle)' : 'var(--color-primary-light)', color: issue.solved ? 'var(--text-muted)' : 'var(--color-primary)' }}
+                          style={{ width: '28px', height: '28px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer' }}
+                          onClick={e => { e.stopPropagation(); startEdit(issue); }}
+                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); startEdit(issue); } }}
+                          title="수정"
+                        >
+                          <Pencil size={13} strokeWidth={1.5} />
+                        </span>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="btn-icon"
+                          style={{ width: '28px', height: '28px', background: issue.solved ? 'var(--bg-subtle)' : 'var(--color-primary-light)', color: issue.solved ? 'var(--text-muted)' : 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer' }}
                           onClick={e => { e.stopPropagation(); toggleSolved(issue.id); }}
+                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); toggleSolved(issue.id); } }}
                           title={issue.solved ? '미해결로 되돌리기' : '해결됨으로 표시'}
                         >
                           <CheckCircle size={13} strokeWidth={1.5} />
-                        </button>
-                        <button className="btn-icon" style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)' }}
-                          onClick={e => { e.stopPropagation(); del(issue.id); }}>
+                        </span>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="btn-icon"
+                          style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer' }}
+                          onClick={e => { e.stopPropagation(); setConfirmDelete(issue.id); }}
+                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); setConfirmDelete(issue.id); } }}
+                          title="삭제"
+                        >
                           <Trash2 size={13} strokeWidth={1.5} />
-                        </button>
+                        </span>
                       </>
                     )}
                     {isExpanded ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
                   </div>
-                </div>
+                </button>
               </div>
             );
           })}
         </div>
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          message="이 이슈를 삭제할까요?"
+          onConfirm={() => {
+            del(confirmDelete);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   );

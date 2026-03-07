@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, Play, Pause, Trash2, Plus } from 'lucide-react';
+import { Camera, Play, Pause, Trash2, Plus, Pencil } from 'lucide-react';
 import { db, TABLES, photoStorage } from '../services/dbService';
+import { ConfirmModal } from './ConfirmModal';
+import { toast } from './Toast';
 
 // 이미지를 최대 1200px로 리사이즈 후 Blob 반환
 const resizeImage = (file, maxW = 1200) =>
@@ -28,13 +30,20 @@ export default function CropTimelapse({ cropId }) {
   const [playing, setPlaying]     = useState(false);
   const [slideIdx, setSlideIdx]   = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [editingPhotoId, setEditingPhotoId] = useState(null);
+  const [editForm, setEditForm]   = useState({ date: '', note: '' });
+  const [confirmDelete, setConfirmDelete] = useState(null); // photo object to delete
   const inputRef  = useRef(null);
   const timerRef  = useRef(null);
 
   const load = async () => {
-    const list = await db.getList(TABLES.CROP_PHOTO, { cropId });
-    // 날짜순 정렬
-    setPhotos([...list].sort((a, b) => a.date.localeCompare(b.date)));
+    try {
+      const list = await db.getList(TABLES.CROP_PHOTO, { cropId });
+      // 날짜순 정렬
+      setPhotos([...list].sort((a, b) => a.date.localeCompare(b.date)));
+    } catch (err) {
+      toast.error('사진 목록을 불러오지 못했어요');
+    }
   };
 
   useEffect(() => { load(); }, [cropId]);
@@ -69,16 +78,46 @@ export default function CropTimelapse({ cropId }) {
       setForm({ date: new Date().toISOString().slice(0, 10), note: '' });
       setShowForm(false);
       if (inputRef.current) inputRef.current.value = '';
+      toast.success('사진이 추가되었어요');
+    } catch (err) {
+      toast.error('사진 업로드에 실패했어요');
     } finally {
       setUploading(false);
     }
   };
 
   const del = async (photo) => {
-    await photoStorage.remove(photo.storagePath);
-    await db.delete(TABLES.CROP_PHOTO, photo.id);
-    await load();
-    if (playing) setPlaying(false);
+    try {
+      await photoStorage.remove(photo.storagePath);
+      await db.delete(TABLES.CROP_PHOTO, photo.id);
+      await load();
+      if (playing) setPlaying(false);
+      toast.success('사진이 삭제되었어요');
+    } catch (err) {
+      toast.error('사진 삭제에 실패했어요');
+    }
+  };
+
+  const startEdit = (photo) => {
+    setEditingPhotoId(photo.id);
+    setEditForm({ date: photo.date, note: photo.note || '' });
+  };
+
+  const cancelEdit = () => {
+    setEditingPhotoId(null);
+    setEditForm({ date: '', note: '' });
+  };
+
+  const saveEdit = async (id) => {
+    try {
+      await db.update(TABLES.CROP_PHOTO, id, { date: editForm.date, note: editForm.note });
+      await load();
+      setEditingPhotoId(null);
+      setEditForm({ date: '', note: '' });
+      toast.success('사진이 수정되었어요');
+    } catch (err) {
+      toast.error('사진 수정에 실패했어요');
+    }
   };
 
   // 사진 URL (Supabase Storage 공개 URL)
@@ -228,8 +267,26 @@ export default function CropTimelapse({ cropId }) {
                 }}>
                   {p.date.replace(/-/g, '.').slice(5)}
                 </div>
+
+                {/* Edit button */}
+                {editingPhotoId !== p.id && (
+                  <button
+                    onClick={e => { e.stopPropagation(); startEdit(p); }}
+                    style={{
+                      position: 'absolute', top: '4px', left: '4px',
+                      width: '22px', height: '22px', borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.5)', border: 'none',
+                      color: '#fff', cursor: 'pointer', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <Pencil size={11} strokeWidth={1.5} />
+                  </button>
+                )}
+
+                {/* Delete button */}
                 <button
-                  onClick={e => { e.stopPropagation(); del(p); }}
+                  onClick={e => { e.stopPropagation(); setConfirmDelete(p); }}
                   style={{
                     position: 'absolute', top: '4px', right: '4px',
                     width: '22px', height: '22px', borderRadius: '50%',
@@ -240,6 +297,65 @@ export default function CropTimelapse({ cropId }) {
                 >
                   <Trash2 size={11} strokeWidth={1.5} />
                 </button>
+
+                {/* Inline edit form overlay */}
+                {editingPhotoId === p.id && (
+                  <div
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      position: 'absolute', inset: 0,
+                      background: 'rgba(0,0,0,0.75)',
+                      display: 'flex', flexDirection: 'column',
+                      justifyContent: 'center', alignItems: 'center',
+                      padding: '6px', gap: '4px',
+                    }}
+                  >
+                    <input
+                      type="date"
+                      value={editForm.date}
+                      onChange={e => setEditForm(prev => ({ ...prev, date: e.target.value }))}
+                      style={{
+                        width: '100%', padding: '4px', fontSize: '11px',
+                        borderRadius: '4px', border: 'none', background: '#fff',
+                        color: '#333', fontFamily: 'var(--font-sans)',
+                      }}
+                    />
+                    <input
+                      value={editForm.note}
+                      onChange={e => setEditForm(prev => ({ ...prev, note: e.target.value }))}
+                      placeholder="메모"
+                      style={{
+                        width: '100%', padding: '4px', fontSize: '11px',
+                        borderRadius: '4px', border: 'none', background: '#fff',
+                        color: '#333', fontFamily: 'var(--font-sans)',
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '4px', width: '100%' }}>
+                      <button
+                        onClick={cancelEdit}
+                        style={{
+                          flex: 1, padding: '4px', fontSize: '10px',
+                          borderRadius: '4px', border: 'none',
+                          background: 'rgba(255,255,255,0.3)', color: '#fff',
+                          cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                        }}
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={() => saveEdit(p.id)}
+                        style={{
+                          flex: 1, padding: '4px', fontSize: '10px',
+                          borderRadius: '4px', border: 'none',
+                          background: 'var(--color-primary)', color: '#fff',
+                          cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                        }}
+                      >
+                        저장
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -253,6 +369,15 @@ export default function CropTimelapse({ cropId }) {
         onChange={handleFile}
         style={{ display: 'none' }}
       />
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <ConfirmModal
+          message="이 사진을 삭제할까요?"
+          onConfirm={() => { del(confirmDelete); setConfirmDelete(null); }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
     </div>
   );
 }
