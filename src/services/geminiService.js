@@ -1,5 +1,5 @@
 // Gemini API 서비스 — 자농(JANONG) 자연농업 전용
-// 모델: gemini-1.5-flash (무료, 이미지 분석 지원)
+// 모델: gemini-2.5-flash (Supabase Edge Function에서 호출)
 // 화학농약·화학비료는 절대 언급 금지
 // API 키는 Supabase Edge Function에서 관리 — 프론트엔드 노출 없음
 
