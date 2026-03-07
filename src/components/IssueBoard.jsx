@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, AlertTriangle, CheckCircle, Trash2, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
+import { Plus, AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { ConfirmModal } from './ConfirmModal';
+import { SwipeableRow } from './SwipeableRow';
 import { toast } from './Toast';
 
 const SEVERITY = [
@@ -216,15 +217,16 @@ export default function IssueBoard() {
             const sev = getSev(issue.severity);
             const isExpanded = expandedId === issue.id;
             return (
-              <div
+              <SwipeableRow
                 key={issue.id}
-                className="card"
+                onEdit={() => startEdit(issue)}
+                onDelete={() => setConfirmDelete(issue.id)}
                 style={{
-                  padding: 0,
                   borderLeft: `3px solid ${issue.solved ? 'var(--border)' : sev.color}`,
                   borderRadius: '0 8px 8px 0',
                   opacity: issue.solved ? 0.65 : 1,
                   transition: 'opacity 0.2s',
+                  border: '1px solid var(--border)',
                 }}
               >
                 <button
@@ -275,46 +277,22 @@ export default function IssueBoard() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px', flexShrink: 0 }}>
                     {isExpanded && (
-                      <>
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          className="btn-icon"
-                          style={{ width: '28px', height: '28px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer' }}
-                          onClick={e => { e.stopPropagation(); startEdit(issue); }}
-                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); startEdit(issue); } }}
-                          title="수정"
-                        >
-                          <Pencil size={13} strokeWidth={1.5} />
-                        </span>
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          className="btn-icon"
-                          style={{ width: '28px', height: '28px', background: issue.solved ? 'var(--bg-subtle)' : 'var(--color-primary-light)', color: issue.solved ? 'var(--text-muted)' : 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer' }}
-                          onClick={e => { e.stopPropagation(); toggleSolved(issue.id); }}
-                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); toggleSolved(issue.id); } }}
-                          title={issue.solved ? '미해결로 되돌리기' : '해결됨으로 표시'}
-                        >
-                          <CheckCircle size={13} strokeWidth={1.5} />
-                        </span>
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          className="btn-icon"
-                          style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer' }}
-                          onClick={e => { e.stopPropagation(); setConfirmDelete(issue.id); }}
-                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); setConfirmDelete(issue.id); } }}
-                          title="삭제"
-                        >
-                          <Trash2 size={13} strokeWidth={1.5} />
-                        </span>
-                      </>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className="btn-icon"
+                        style={{ width: '28px', height: '28px', background: issue.solved ? 'var(--bg-subtle)' : 'var(--color-primary-light)', color: issue.solved ? 'var(--text-muted)' : 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer' }}
+                        onClick={e => { e.stopPropagation(); toggleSolved(issue.id); }}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); toggleSolved(issue.id); } }}
+                        title={issue.solved ? '미해결로 되돌리기' : '해결됨으로 표시'}
+                      >
+                        <CheckCircle size={13} strokeWidth={1.5} />
+                      </span>
                     )}
                     {isExpanded ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
                   </div>
                 </button>
-              </div>
+              </SwipeableRow>
             );
           })}
         </div>

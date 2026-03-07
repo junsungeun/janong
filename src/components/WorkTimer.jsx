@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, Square, Timer, BarChart2, Trash2, Pencil, Check, X } from 'lucide-react';
+import { Play, Pause, Square, Timer, BarChart2, Check, X } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { toast } from './Toast';
 import { ConfirmModal } from './ConfirmModal';
+import { SwipeableRow } from './SwipeableRow';
 
 const CATEGORIES = ['파종', '물주기', '방제', '수확', '전정', '멀칭', '기타'];
 
@@ -324,92 +325,68 @@ export default function WorkTimer() {
           {todaySessions.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {todaySessions.map(s => (
-                <div key={s.id} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '10px 14px', background: 'var(--bg-card)', borderRadius: '8px',
-                  border: '1px solid var(--border-light)',
-                }}>
-                  {/* Category: show inline editor or badge */}
-                  {editingId === s.id ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                      {CATEGORIES.map(cat => (
+                <SwipeableRow
+                  key={s.id}
+                  onEdit={() => { setEditingId(s.id); setEditCategory(s.category); }}
+                  onDelete={() => setDeleteTarget(s.id)}
+                  style={{ border: '1px solid var(--border-light)' }}
+                >
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 14px',
+                  }}>
+                    {/* Category: show inline editor or badge */}
+                    {editingId === s.id ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                        {CATEGORIES.map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => setEditCategory(cat)}
+                            style={{
+                              padding: '3px 8px', borderRadius: '100px', border: '1px solid',
+                              fontSize: '10px', fontWeight: 500, cursor: 'pointer',
+                              fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
+                              borderColor: editCategory === cat ? 'var(--color-primary)' : 'var(--border)',
+                              background: editCategory === cat ? 'var(--color-primary)' : 'transparent',
+                              color: editCategory === cat ? '#fff' : 'var(--text-muted)',
+                            }}
+                          >
+                            {cat}
+                          </button>
+                        ))}
                         <button
-                          key={cat}
-                          onClick={() => setEditCategory(cat)}
+                          onClick={() => handleEditSave(s.id)}
                           style={{
-                            padding: '3px 8px', borderRadius: '100px', border: '1px solid',
-                            fontSize: '10px', fontWeight: 500, cursor: 'pointer',
-                            fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
-                            borderColor: editCategory === cat ? 'var(--color-primary)' : 'var(--border)',
-                            background: editCategory === cat ? 'var(--color-primary)' : 'transparent',
-                            color: editCategory === cat ? '#fff' : 'var(--text-muted)',
+                            padding: '3px', borderRadius: '4px', border: 'none',
+                            background: 'var(--color-primary)', color: '#fff', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            marginLeft: '2px',
                           }}
+                          title="저장"
                         >
-                          {cat}
+                          <Check size={12} strokeWidth={2.5} />
                         </button>
-                      ))}
-                      <button
-                        onClick={() => handleEditSave(s.id)}
-                        style={{
-                          padding: '3px', borderRadius: '4px', border: 'none',
-                          background: 'var(--color-primary)', color: '#fff', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          marginLeft: '2px',
-                        }}
-                        title="저장"
-                      >
-                        <Check size={12} strokeWidth={2.5} />
-                      </button>
-                      <button
-                        onClick={() => { setEditingId(null); setEditCategory(''); }}
-                        style={{
-                          padding: '3px', borderRadius: '4px', border: 'none',
-                          background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                        title="취소"
-                      >
-                        <X size={12} strokeWidth={2.5} />
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="badge badge-good" style={{ fontSize: '11px' }}>{s.category}</span>
-                  )}
+                        <button
+                          onClick={() => { setEditingId(null); setEditCategory(''); }}
+                          style={{
+                            padding: '3px', borderRadius: '4px', border: 'none',
+                            background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                          title="취소"
+                        >
+                          <X size={12} strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="badge badge-good" style={{ fontSize: '11px' }}>{s.category}</span>
+                    )}
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-serif)' }}>
                       {fmtHM(s.duration)}
                     </span>
-                    {/* Edit button */}
-                    {editingId !== s.id && (
-                      <button
-                        onClick={() => { setEditingId(s.id); setEditCategory(s.category); }}
-                        style={{
-                          padding: '4px', borderRadius: '4px', border: 'none',
-                          background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transition: 'color 0.15s',
-                        }}
-                        title="카테고리 수정"
-                      >
-                        <Pencil size={13} strokeWidth={2} />
-                      </button>
-                    )}
-                    {/* Delete button */}
-                    <button
-                      onClick={() => setDeleteTarget(s.id)}
-                      style={{
-                        padding: '4px', borderRadius: '4px', border: 'none',
-                        background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'color 0.15s',
-                      }}
-                      title="삭제"
-                    >
-                      <Trash2 size={13} strokeWidth={2} />
-                    </button>
                   </div>
-                </div>
+                </SwipeableRow>
               ))}
             </div>
           )}

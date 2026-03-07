@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, Sprout, ChevronRight, ArrowLeft, Trash2, Pencil, CalendarDays, Camera } from 'lucide-react';
+import { Plus, Sprout, ChevronRight, ArrowLeft, CalendarDays, Camera } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { toast } from './Toast';
 import { ConfirmModal } from './ConfirmModal';
 import { SUPPORTED_CROPS, daysSincePlanting } from '../data/cropTimelines';
 import CropTimeline from './CropTimeline';
 import CropTimelapse from './CropTimelapse';
+import { SwipeableRow } from './SwipeableRow';
 
 const DETAIL_TABS = [
   { id: 'timeline',  label: '재배 타임라인' },
@@ -87,8 +88,7 @@ export default function CropList() {
     }
   };
 
-  const startEdit = (crop, e) => {
-    e.stopPropagation();
+  const startEdit = (crop) => {
     const isCustom = !SUPPORTED_CROPS.includes(crop.name);
     setForm({
       name:        isCustom ? '직접입력' : crop.name,
@@ -110,8 +110,7 @@ export default function CropList() {
     setShowForm(false);
   };
 
-  const requestDelete = (crop, e) => {
-    e.stopPropagation();
+  const requestDelete = (crop) => {
     setDeleteTarget(crop);
   };
 
@@ -360,80 +359,61 @@ export default function CropList() {
           {crops.map(crop => {
             const elapsed = daysSincePlanting(crop.plantingDate);
             return (
-              <button
+              <SwipeableRow
                 key={crop.id}
-                onClick={() => { setSelectedId(crop.id); setDetailTab('timeline'); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '14px',
-                  padding: '16px', background: 'var(--bg-card)',
-                  border: '1px solid var(--border)', borderRadius: '10px',
-                  cursor: 'pointer', textAlign: 'left', width: '100%',
-                  fontFamily: 'var(--font-sans)', transition: 'border-color 0.15s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                onEdit={() => startEdit(crop)}
+                onDelete={() => requestDelete(crop)}
               >
-                {/* 이모지 */}
-                <div style={{
-                  width: '44px', height: '44px', borderRadius: '10px',
-                  background: 'var(--color-primary-light)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '22px', flexShrink: 0,
-                }}>
-                  {CROP_EMOJI[crop.name] || '🌱'}
-                </div>
+                <button
+                  onClick={() => { setSelectedId(crop.id); setDetailTab('timeline'); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '14px',
+                    padding: '16px', background: 'transparent',
+                    border: 'none', borderRadius: '0',
+                    cursor: 'pointer', textAlign: 'left', width: '100%',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {/* 이모지 */}
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '10px',
+                    background: 'var(--color-primary-light)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '22px', flexShrink: 0,
+                  }}>
+                    {CROP_EMOJI[crop.name] || '🌱'}
+                  </div>
 
-                {/* 정보 */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{crop.name}</span>
-                    {crop.variety && <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>· {crop.variety}</span>}
-                    {crop.area && <span className="badge badge-info" style={{ fontSize: '10px' }}>{crop.area}</span>}
-                    {crop.growMethod && crop.growMethod !== '노지' && (
-                      <span className="badge badge-good" style={{ fontSize: '10px' }}>{crop.growMethod}</span>
+                  {/* 정보 */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{crop.name}</span>
+                      {crop.variety && <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>· {crop.variety}</span>}
+                      {crop.area && <span className="badge badge-info" style={{ fontSize: '10px' }}>{crop.area}</span>}
+                      {crop.growMethod && crop.growMethod !== '노지' && (
+                        <span className="badge badge-good" style={{ fontSize: '10px' }}>{crop.growMethod}</span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      {crop.plantingDate?.replace(/-/g, '.')} {crop.seedType || '정식'}
+                      <span style={{
+                        marginLeft: '8px', fontWeight: 700,
+                        color: elapsed > 0 ? 'var(--color-primary)' : 'var(--text-muted)',
+                      }}>
+                        D+{elapsed}
+                      </span>
+                    </p>
+                    {crop.note && (
+                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>{crop.note}</p>
                     )}
                   </div>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {crop.plantingDate?.replace(/-/g, '.')} {crop.seedType || '정식'}
-                    <span style={{
-                      marginLeft: '8px', fontWeight: 700,
-                      color: elapsed > 0 ? 'var(--color-primary)' : 'var(--text-muted)',
-                    }}>
-                      D+{elapsed}
-                    </span>
-                  </p>
-                  {crop.note && (
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>{crop.note}</p>
-                  )}
-                </div>
 
-                {/* 우측 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                  <button
-                    onClick={e => startEdit(crop, e)}
-                    style={{
-                      width: '28px', height: '28px', borderRadius: '6px',
-                      background: 'var(--color-primary-light)', border: 'none', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--color-primary)',
-                    }}
-                  >
-                    <Pencil size={13} strokeWidth={1.5} />
-                  </button>
-                  <button
-                    onClick={e => requestDelete(crop, e)}
-                    style={{
-                      width: '28px', height: '28px', borderRadius: '6px',
-                      background: '#FFF0F0', border: 'none', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--color-danger)',
-                    }}
-                  >
-                    <Trash2 size={13} strokeWidth={1.5} />
-                  </button>
-                  <ChevronRight size={18} color="var(--text-muted)" strokeWidth={1.5} />
-                </div>
-              </button>
+                  {/* 우측 화살표 */}
+                  <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                    <ChevronRight size={18} color="var(--text-muted)" strokeWidth={1.5} />
+                  </div>
+                </button>
+              </SwipeableRow>
             );
           })}
         </div>

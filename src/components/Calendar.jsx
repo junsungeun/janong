@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  Plus, X, CalendarDays, Sprout, AlertTriangle, CheckCircle, Pencil,
+  Plus, X, CalendarDays, Sprout, AlertTriangle, CheckCircle,
 } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { getCropTimeline } from '../data/cropTimelines';
 import { ConfirmModal } from './ConfirmModal';
+import { SwipeableRow } from './SwipeableRow';
 import { toast } from './Toast';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -57,14 +58,13 @@ const buildGrid = (year, month) => {
 };
 
 // ── 항목 카드 ──────────────────────────────────────────────────────────
-function AgendaItem({ ev, showDate, onDelete, onEdit, onToggle }) {
+function AgendaItem({ ev, showDate, onToggle }) {
   const color = TYPE_COLOR[ev.type] || 'var(--border)';
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '10px',
       padding: '11px 14px',
       background: 'var(--bg-card)',
-      border: '1px solid var(--border)',
       borderLeft: `3px solid ${color}`,
       borderRadius: '0 8px 8px 0',
     }}>
@@ -111,7 +111,7 @@ function AgendaItem({ ev, showDate, onDelete, onEdit, onToggle }) {
         )}
       </div>
 
-      {/* 날짜 + 수정 + 삭제 */}
+      {/* 날짜 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
         {showDate && ev.date && (
           <span style={{
@@ -121,18 +121,6 @@ function AgendaItem({ ev, showDate, onDelete, onEdit, onToggle }) {
           }}>
             {ev.date.slice(5).replace('-', '/')}
           </span>
-        )}
-        {ev.type === 'calendar' && ev.id && (
-          <>
-            <button onClick={() => onEdit(ev)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}>
-              <Pencil size={14} strokeWidth={1.5} />
-            </button>
-            <button onClick={() => onDelete(ev.id)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}>
-              <X size={14} strokeWidth={1.5} />
-            </button>
-          </>
         )}
       </div>
     </div>
@@ -331,6 +319,24 @@ export default function Calendar() {
   const cells = buildGrid(cur.year, cur.month);
   const hasAny = allItems.length > 0 || activeIssues.length > 0;
 
+  // ── 항목 렌더 헬퍼: calendar 타입은 SwipeableRow로 감싸기 ──
+  const renderAgendaItem = (ev, i, { showDate = false } = {}) => {
+    if (ev.type === 'calendar' && ev.id) {
+      return (
+        <SwipeableRow
+          key={`${ev.id}-${i}`}
+          onEdit={() => startEdit(ev)}
+          onDelete={() => requestDelete(ev.id)}
+        >
+          <AgendaItem ev={ev} showDate={showDate} onToggle={toggleTodo} />
+        </SwipeableRow>
+      );
+    }
+    return (
+      <AgendaItem key={i} ev={ev} showDate={showDate} onToggle={toggleTodo} />
+    );
+  };
+
   return (
     <div>
       <style>{`
@@ -476,9 +482,7 @@ export default function Calendar() {
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              {selItems.map((ev, i) => (
-                <AgendaItem key={i} ev={ev} onDelete={requestDelete} onEdit={startEdit} onToggle={toggleTodo} />
-              ))}
+              {selItems.map((ev, i) => renderAgendaItem(ev, i))}
             </div>
           )}
         </div>
@@ -542,9 +546,7 @@ export default function Calendar() {
             )}
             {(!isOverdue || showOverdue) && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                {items.map((ev, i) => (
-                  <AgendaItem key={i} ev={ev} showDate onDelete={requestDelete} onEdit={startEdit} onToggle={toggleTodo} />
-                ))}
+                {items.map((ev, i) => renderAgendaItem(ev, i, { showDate: true }))}
               </div>
             )}
           </div>

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Pencil, BookMarked, FlaskConical } from 'lucide-react';
+import { Plus, BookMarked, FlaskConical } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { ConfirmModal } from './ConfirmModal';
 import { toast } from './Toast';
+import { SwipeableRow } from './SwipeableRow';
 
 const MAT_TYPES = ['한방영양제', '토착미생물', '천혜녹즙', '목초액', '님오일', '마늘액', '키토산', '한방영양제+천혜녹즙', '직접입력'];
 const CROP_OPTIONS = ['고추', '토마토', '배추', '상추', '오이', '가지', '감자', '감자', '고구마', '옥수수', '딸기', '전체', '직접입력'];
@@ -359,8 +360,12 @@ export default function ChemicalLog() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {logs.map(log => (
-                <div key={log.id} className="card" style={{ padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <SwipeableRow
+                  key={log.id}
+                  onEdit={() => startLogEdit(log)}
+                  onDelete={() => requestDelLog(log.id)}
+                >
+                  <div style={{ padding: '12px 14px' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{log.date?.replace(/-/g, '.')}</span>
@@ -375,18 +380,8 @@ export default function ChemicalLog() {
                       </p>
                       {log.memo && <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{log.memo}</p>}
                     </div>
-                    <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                      <button className="btn-icon" style={{ width: '28px', height: '28px', background: 'var(--bg-subtle)', color: 'var(--text-muted)' }}
-                        onClick={() => startLogEdit(log)}>
-                        <Pencil size={13} strokeWidth={1.5} />
-                      </button>
-                      <button className="btn-icon" style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)' }}
-                        onClick={() => requestDelLog(log.id)}>
-                        <Trash2 size={13} strokeWidth={1.5} />
-                      </button>
-                    </div>
                   </div>
-                </div>
+                </SwipeableRow>
               ))}
             </div>
           )}
@@ -458,8 +453,12 @@ export default function ChemicalLog() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {recipes.map(r => (
-                <div key={r.id} className="card" style={{ padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <SwipeableRow
+                  key={r.id}
+                  onEdit={() => startRecipeEdit(r)}
+                  onDelete={() => requestDelRecipe(r.id)}
+                >
+                  <div style={{ padding: '14px 16px' }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-earth)' }}>{r.name}</span>
@@ -469,18 +468,8 @@ export default function ChemicalLog() {
                       {r.purpose && <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{r.purpose}</p>}
                       {r.memo && <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '3px' }}>{r.memo}</p>}
                     </div>
-                    <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                      <button className="btn-icon" style={{ width: '28px', height: '28px', background: 'var(--bg-subtle)', color: 'var(--text-muted)' }}
-                        onClick={() => startRecipeEdit(r)}>
-                        <Pencil size={13} strokeWidth={1.5} />
-                      </button>
-                      <button className="btn-icon" style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)' }}
-                        onClick={() => requestDelRecipe(r.id)}>
-                        <Trash2 size={13} strokeWidth={1.5} />
-                      </button>
-                    </div>
                   </div>
-                </div>
+                </SwipeableRow>
               ))}
             </div>
           )}

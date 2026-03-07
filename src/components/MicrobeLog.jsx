@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
   Plus, FlaskConical, ChevronDown, ChevronUp,
-  CheckCircle, Trash2, ClipboardList, Pencil, X,
+  CheckCircle, ClipboardList, X,
 } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { ConfirmModal } from './ConfirmModal';
 import { toast } from './Toast';
+import { SwipeableRow } from './SwipeableRow';
 
 // 배양 상태
 const STATUS = {
@@ -292,7 +293,12 @@ export default function MicrobeLog() {
             const isEditing = editingBatchId === batch.id;
 
             return (
-              <div key={batch.id} className="card" style={{ padding: '16px' }}>
+              <SwipeableRow
+                key={batch.id}
+                onEdit={() => startEditBatch(batch)}
+                onDelete={() => setConfirmDeleteBatchId(batch.id)}
+              >
+              <div className="card" style={{ padding: '16px', boxShadow: 'none', border: 'none' }}>
                 {/* 카드 헤더 */}
                 <div
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer' }}
@@ -320,25 +326,6 @@ export default function MicrobeLog() {
                     </p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                    {isOpen && (
-                      <>
-                        <button
-                          className="btn-icon"
-                          style={{ width: '28px', height: '28px', background: 'var(--bg-subtle)' }}
-                          onClick={e => { e.stopPropagation(); startEditBatch(batch); }}
-                          title="수정"
-                        >
-                          <Pencil size={13} strokeWidth={1.5} />
-                        </button>
-                        <button
-                          className="btn-icon"
-                          style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)' }}
-                          onClick={e => { e.stopPropagation(); setConfirmDeleteBatchId(batch.id); }}
-                        >
-                          <Trash2 size={13} strokeWidth={1.5} />
-                        </button>
-                      </>
-                    )}
                     {isOpen ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
                   </div>
                 </div>
@@ -634,6 +621,7 @@ export default function MicrobeLog() {
                   </div>
                 )}
               </div>
+              </SwipeableRow>
             );
           })}
         </div>

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, FlaskConical, ChevronDown, ChevronUp, Trash2, Copy, Check, Pencil } from 'lucide-react';
+import { Plus, FlaskConical, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { ConfirmModal } from './ConfirmModal';
 import { toast } from './Toast';
+import { SwipeableRow } from './SwipeableRow';
 
 const PURPOSE_OPTS = [
   '병해충 예방', '생장 촉진', '면역 강화', '수확 후 처리',
@@ -192,46 +193,41 @@ export default function RecipeBook() {
           {recipes.map(recipe => {
             const isOpen = expandedId === recipe.id;
             return (
-              <div
+              <SwipeableRow
                 key={recipe.id}
-                className="card"
-                style={{ padding: '14px 16px' }}
+                onEdit={() => startEdit(recipe)}
+                onDelete={() => setConfirmDeleteId(recipe.id)}
               >
-                {/* 헤더 행 */}
                 <div
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                  onClick={() => setExpanded(isOpen ? null : recipe.id)}
+                  className="card"
+                  style={{ padding: '14px 16px', boxShadow: 'none', border: 'none' }}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>
-                        {recipe.name}
-                      </span>
-                      <span style={{
-                        fontSize: '10px', padding: '2px 8px', borderRadius: '100px',
-                        background: 'var(--color-primary-light)', color: 'var(--color-primary)',
-                        fontWeight: 600,
-                      }}>
-                        {recipe.purpose}
-                      </span>
+                  {/* 헤더 행 */}
+                  <div
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                    onClick={() => setExpanded(isOpen ? null : recipe.id)}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>
+                          {recipe.name}
+                        </span>
+                        <span style={{
+                          fontSize: '10px', padding: '2px 8px', borderRadius: '100px',
+                          background: 'var(--color-primary-light)', color: 'var(--color-primary)',
+                          fontWeight: 600,
+                        }}>
+                          {recipe.purpose}
+                        </span>
+                      </div>
+                      {!isOpen && recipe.dilution && (
+                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                          희석 {recipe.dilution}
+                        </p>
+                      )}
                     </div>
-                    {!isOpen && recipe.dilution && (
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                        희석 {recipe.dilution}
-                      </p>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                    {isOpen && (
-                      <>
-                        <button
-                          className="btn-icon"
-                          style={{ width: '28px', height: '28px', background: 'var(--bg-subtle)' }}
-                          onClick={e => { e.stopPropagation(); startEdit(recipe); }}
-                          title="수정"
-                        >
-                          <Pencil size={13} strokeWidth={1.5} />
-                        </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                      {isOpen && (
                         <button
                           className="btn-icon"
                           style={{ width: '28px', height: '28px', background: 'var(--bg-subtle)' }}
@@ -243,63 +239,56 @@ export default function RecipeBook() {
                             : <Copy size={13} strokeWidth={1.5} />
                           }
                         </button>
-                        <button
-                          className="btn-icon"
-                          style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)' }}
-                          onClick={e => { e.stopPropagation(); setConfirmDeleteId(recipe.id); }}
-                        >
-                          <Trash2 size={13} strokeWidth={1.5} />
-                        </button>
-                      </>
-                    )}
-                    {isOpen
-                      ? <ChevronUp   size={16} color="var(--text-muted)" />
-                      : <ChevronDown size={16} color="var(--text-muted)" />
-                    }
+                      )}
+                      {isOpen
+                        ? <ChevronUp   size={16} color="var(--text-muted)" />
+                        : <ChevronDown size={16} color="var(--text-muted)" />
+                      }
+                    </div>
                   </div>
-                </div>
 
-                {/* 상세 */}
-                {isOpen && (
-                  <div style={{
-                    marginTop: '14px',
-                    paddingTop: '14px',
-                    borderTop: '1px solid var(--border-light)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                  }}>
-                    {recipe.materials && (
-                      <div>
-                        <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>재료 구성</p>
-                        <p style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.7 }}>{recipe.materials}</p>
-                      </div>
-                    )}
-                    {recipe.dilution && (
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>희석배율</span>
-                        <span style={{
-                          fontSize: '13px', fontWeight: 700,
-                          color: 'var(--color-primary)',
-                          background: 'var(--color-primary-light)',
-                          padding: '2px 10px', borderRadius: '100px',
-                        }}>
-                          {recipe.dilution}
-                        </span>
-                      </div>
-                    )}
-                    {recipe.note && (
-                      <div>
-                        <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>메모</p>
-                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.7 }}>{recipe.note}</p>
-                      </div>
-                    )}
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {recipe.createdAt?.slice(0, 10).replace(/-/g, '.')} 저장
-                    </p>
-                  </div>
-                )}
-              </div>
+                  {/* 상세 */}
+                  {isOpen && (
+                    <div style={{
+                      marginTop: '14px',
+                      paddingTop: '14px',
+                      borderTop: '1px solid var(--border-light)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                    }}>
+                      {recipe.materials && (
+                        <div>
+                          <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>재료 구성</p>
+                          <p style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.7 }}>{recipe.materials}</p>
+                        </div>
+                      )}
+                      {recipe.dilution && (
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>희석배율</span>
+                          <span style={{
+                            fontSize: '13px', fontWeight: 700,
+                            color: 'var(--color-primary)',
+                            background: 'var(--color-primary-light)',
+                            padding: '2px 10px', borderRadius: '100px',
+                          }}>
+                            {recipe.dilution}
+                          </span>
+                        </div>
+                      )}
+                      {recipe.note && (
+                        <div>
+                          <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>메모</p>
+                          <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.7 }}>{recipe.note}</p>
+                        </div>
+                      )}
+                      <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {recipe.createdAt?.slice(0, 10).replace(/-/g, '.')} 저장
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </SwipeableRow>
             );
           })}
         </div>

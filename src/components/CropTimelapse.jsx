@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, Play, Pause, Trash2, Plus, Pencil } from 'lucide-react';
+import { Camera, Play, Pause, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { db, TABLES, photoStorage } from '../services/dbService';
 import { ConfirmModal } from './ConfirmModal';
 import { toast } from './Toast';
@@ -33,6 +33,7 @@ export default function CropTimelapse({ cropId }) {
   const [editingPhotoId, setEditingPhotoId] = useState(null);
   const [editForm, setEditForm]   = useState({ date: '', note: '' });
   const [confirmDelete, setConfirmDelete] = useState(null); // photo object to delete
+  const [kebabOpen, setKebabOpen] = useState(null); // photo id with open kebab menu
   const inputRef  = useRef(null);
   const timerRef  = useRef(null);
 
@@ -268,35 +269,67 @@ export default function CropTimelapse({ cropId }) {
                   {p.date.replace(/-/g, '.').slice(5)}
                 </div>
 
-                {/* Edit button */}
+                {/* Kebab menu (⋮) */}
                 {editingPhotoId !== p.id && (
-                  <button
-                    onClick={e => { e.stopPropagation(); startEdit(p); }}
-                    style={{
-                      position: 'absolute', top: '4px', left: '4px',
-                      width: '22px', height: '22px', borderRadius: '50%',
-                      background: 'rgba(0,0,0,0.5)', border: 'none',
-                      color: '#fff', cursor: 'pointer', display: 'flex',
-                      alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    <Pencil size={11} strokeWidth={1.5} />
-                  </button>
+                  <div style={{ position: 'absolute', top: '4px', right: '4px', zIndex: 10 }}>
+                    <button
+                      onClick={e => { e.stopPropagation(); setKebabOpen(kebabOpen === p.id ? null : p.id); }}
+                      style={{
+                        width: '22px', height: '22px', borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.5)', border: 'none',
+                        color: '#fff', cursor: 'pointer', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      <MoreVertical size={12} strokeWidth={1.5} />
+                    </button>
+                    {kebabOpen === p.id && (
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          position: 'absolute', right: 0, top: '100%', marginTop: '4px',
+                          background: 'var(--bg-card)', border: '1px solid var(--border)',
+                          borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.14)',
+                          zIndex: 200, overflow: 'hidden', minWidth: '100px',
+                          animation: 'modalIn 0.12s ease',
+                        }}
+                      >
+                        <button
+                          onClick={() => { setKebabOpen(null); startEdit(p); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            width: '100%', padding: '10px 14px',
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            fontSize: '12px', fontWeight: 500, color: 'var(--text)',
+                            fontFamily: 'var(--font-sans)', textAlign: 'left',
+                            transition: 'background 0.1s',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-subtle)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                        >
+                          <Pencil size={13} strokeWidth={2} style={{ color: 'var(--color-primary)' }} />
+                          편집
+                        </button>
+                        <button
+                          onClick={() => { setKebabOpen(null); setConfirmDelete(p); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            width: '100%', padding: '10px 14px',
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            fontSize: '12px', fontWeight: 500, color: 'var(--color-danger)',
+                            fontFamily: 'var(--font-sans)', textAlign: 'left',
+                            transition: 'background 0.1s',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#FFF0F0'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                        >
+                          <Trash2 size={13} strokeWidth={2} />
+                          삭제
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
-
-                {/* Delete button */}
-                <button
-                  onClick={e => { e.stopPropagation(); setConfirmDelete(p); }}
-                  style={{
-                    position: 'absolute', top: '4px', right: '4px',
-                    width: '22px', height: '22px', borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.5)', border: 'none',
-                    color: '#fff', cursor: 'pointer', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  <Trash2 size={11} strokeWidth={1.5} />
-                </button>
 
                 {/* Inline edit form overlay */}
                 {editingPhotoId === p.id && (
