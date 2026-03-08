@@ -4,13 +4,9 @@ import { db, TABLES } from '../services/dbService';
 import { ConfirmModal } from './ConfirmModal';
 import { SwipeableRow } from './SwipeableRow';
 import { toast } from './Toast';
+import { SEVERITY, CROP_OPTIONS } from '../constants';
 
-const SEVERITY = [
-  { value: 'high',   label: '높음', color: 'var(--color-danger)', bg: '#FFF0F0' },
-  { value: 'mid',    label: '보통', color: 'var(--color-terra)',  bg: '#FFF8F5' },
-  { value: 'low',    label: '낮음', color: 'var(--color-info)',   bg: 'var(--color-earth-light)' },
-];
-const CROPS = ['고추', '토마토', '배추', '상추', '오이', '가지', '감자', '전체', '기타'];
+const CROPS = CROP_OPTIONS;
 
 const EMPTY_FORM = { title: '', content: '', severity: 'high', crop: '전체' };
 

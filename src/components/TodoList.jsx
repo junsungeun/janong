@@ -2,27 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, CheckSquare, Trash2, RotateCcw, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { toast } from './Toast';
+import { getGroup as _getGroup } from '../utils/dateUtils';
+import { REPEAT_OPTIONS } from '../constants';
 
-const REPEAT_OPTIONS = ['없음', '매일', '매주', '월·수·금', '화·목'];
-
-const todayYMD = new Date().toISOString().slice(0, 10);
-
-const diffDays = (ymd) => {
-  const t = new Date(todayYMD);
-  const d = new Date(ymd);
-  return Math.round((d - t) / 86400000);
-};
-
-const getGroup = (dateStr) => {
-  if (!dateStr) return 'nodate';
-  const diff = diffDays(dateStr);
-  if (diff < 0)  return 'overdue';
-  if (diff === 0) return 'today';
-  if (diff === 1) return 'tomorrow';
-  if (diff <= 7)  return 'week';
-  if (diff <= 30) return 'month';
-  return 'later';
-};
+const getGroup = (dateStr) => _getGroup(dateStr, 'nodate');
 
 const GROUPS = [
   { key: 'overdue',  label: '기한 초과', color: 'var(--color-danger)',  urgent: true  },

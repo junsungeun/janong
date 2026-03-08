@@ -4,15 +4,9 @@
 // API 키는 Supabase Edge Function에서 관리 — 프론트엔드 노출 없음
 
 import { CONFIG } from '../config.js';
+import { fetchWithTimeout } from '../utils/fetchUtils';
 
 const BASE_URL = `${CONFIG.SUPABASE_URL}/functions/v1/gemini-proxy`;
-
-// AbortSignal.timeout 미지원 브라우저 대응
-const fetchWithTimeout = (url, opts, ms) => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
-  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
-};
 
 // ── 자연농업 핵심 규칙 (모든 프롬프트에 적용) ─────────────────────────
 const NATURAL_FARMING_RULE = `

@@ -6,7 +6,7 @@ import { toast } from './Toast';
 import { SwipeableRow } from './SwipeableRow';
 
 const MAT_TYPES = ['한방영양제', '토착미생물', '천혜녹즙', '목초액', '님오일', '마늘액', '키토산', '한방영양제+천혜녹즙', '직접입력'];
-const CROP_OPTIONS = ['고추', '토마토', '배추', '상추', '오이', '가지', '감자', '감자', '고구마', '옥수수', '딸기', '전체', '직접입력'];
+const CROP_OPTIONS = ['고추', '토마토', '배추', '상추', '오이', '가지', '감자', '고구마', '옥수수', '딸기', '전체', '직접입력'];
 const SPRAY_METHODS = ['엽면살포', '토양관주', '뿌리관주', '드렌치', '연무', '기타'];
 
 const BLANK_RECIPE = { name: '', material: '한방영양제', dilution: '', purpose: '', memo: '' };

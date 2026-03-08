@@ -8,44 +8,11 @@ import { getCurrentSolarTerm, formatDate } from '../utils/solarTerms';
 import { db, TABLES } from '../services/dbService';
 import { getCropTimeline } from '../data/cropTimelines';
 import { adviseIssue, MOCK_ISSUE_ADVICE } from '../services/geminiService';
+import { toYMD, todayYMD } from '../utils/dateUtils';
+import { SEVERITY, CROP_OPTIONS, REPEAT_OPTIONS, WEEKDAYS, EVENT_TYPE_COLORS } from '../constants';
 import WeatherCard from './WeatherCard';
+import ResultView from './ResultView';
 import { getTodayVerse } from '../data/bibleVerses';
-
-const SEVERITY = [
-  { value: 'high', label: '높음', color: 'var(--color-danger)', bg: '#FFF0F0' },
-  { value: 'mid',  label: '보통', color: 'var(--color-terra)',  bg: '#FFF8F5' },
-  { value: 'low',  label: '낮음', color: 'var(--color-info)',   bg: 'var(--color-earth-light)' },
-];
-const CROP_OPTIONS = ['고추', '토마토', '배추', '상추', '오이', '가지', '감자', '고구마', '전체', '기타'];
-const REPEAT_OPTIONS = ['없음', '매일', '매주', '월·수·금', '화·목'];
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
-
-const toYMD = (d) => d.toISOString().slice(0, 10);
-
-// 결과 텍스트 파서
-function ResultView({ text }) {
-  const lines = text.split('\n').filter(l => l.trim());
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-      {lines.map((line, i) => {
-        const isSection = /^[📍🌿⚠️✅📊💡🌱]/.test(line);
-        const isList    = /^\s{2,}[\d\-]/.test(line);
-        return (
-          <p key={i} style={{
-            fontSize: isSection ? '13px' : '12px',
-            fontWeight: isSection ? 600 : 400,
-            color: isSection ? 'var(--text)' : 'var(--text-muted)',
-            lineHeight: 1.85,
-            marginTop: isSection && i !== 0 ? '8px' : 0,
-            paddingLeft: isList ? '4px' : 0,
-          }}>
-            {line}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
 
 export default function Dashboard({ onNavigate, trigger }) {
   const [todos, setTodos]       = useState([]);
@@ -72,7 +39,6 @@ export default function Dashboard({ onNavigate, trigger }) {
   const dateInfo  = formatDate();
   const solarTerm = getCurrentSolarTerm();
   const verse     = getTodayVerse();
-  const todayYMD  = toYMD(new Date());
 
   const load = async () => {
     const [td, iss, cr, cal] = await Promise.all([
@@ -181,13 +147,7 @@ export default function Dashboard({ onNavigate, trigger }) {
     setShowTodoForm(false);
   };
 
-  // ── 이벤트 타입별 색상 ─────────────────────────────────────────────
-  const dotColor = (type) => {
-    if (type === 'timeline') return 'var(--color-primary)';
-    if (type === 'calendar')  return 'var(--color-earth)';
-    if (type === 'todo')      return 'var(--color-info)';
-    return 'var(--border)';
-  };
+  const dotColor = (type) => EVENT_TYPE_COLORS[type] || 'var(--border)';
 
   return (
     <div className="dashboard">

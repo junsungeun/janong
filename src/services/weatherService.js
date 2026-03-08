@@ -3,15 +3,9 @@
 // ※ 브라우저 직접 호출 시 CORS 차단 → Supabase Edge Function으로 우회
 
 import { CONFIG } from '../config';
+import { fetchWithTimeout } from '../utils/fetchUtils';
 
 const EDGE_FN_URL = `${CONFIG.SUPABASE_URL}/functions/v1/weather-proxy`;
-
-// AbortSignal.timeout 미지원 브라우저 대응
-const fetchWithTimeout = (url, opts, ms) => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
-  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
-};
 
 // ── Mock 날씨 데이터 (호출 실패 시 fallback) ──────────────────────────
 export const mockWeather = {

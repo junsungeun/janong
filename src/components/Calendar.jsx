@@ -8,36 +8,10 @@ import { getCropTimeline } from '../data/cropTimelines';
 import { ConfirmModal } from './ConfirmModal';
 import { SwipeableRow } from './SwipeableRow';
 import { toast } from './Toast';
+import { todayYMD, tomorrowYMD, getGroup } from '../utils/dateUtils';
+import { WEEKDAYS, EVENT_TYPE_COLORS } from '../constants';
 
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
-
-const TYPE_COLOR = {
-  timeline: 'var(--color-primary)',
-  calendar: 'var(--color-earth)',
-  issue:    'var(--color-danger)',
-  todo:     'var(--color-info)',
-};
-
-const toYMD = (d) => d.toISOString().slice(0, 10);
-const todayYMD  = toYMD(new Date());
-const tomorrowYMD = toYMD(new Date(Date.now() + 86400000));
-
-const diffDays = (ymd) => {
-  const t = new Date(todayYMD);
-  const d = new Date(ymd);
-  return Math.round((d - t) / 86400000);
-};
-
-const getGroup = (dateStr) => {
-  if (!dateStr) return null;
-  const diff = diffDays(dateStr);
-  if (diff < 0)  return 'overdue';
-  if (diff === 0) return 'today';
-  if (diff === 1) return 'tomorrow';
-  if (diff <= 7)  return 'week';
-  if (diff <= 30) return 'month';
-  return 'later';
-};
+const TYPE_COLOR = EVENT_TYPE_COLORS;
 
 const GROUPS = [
   { key: 'overdue',  label: '기한 초과', color: 'var(--color-danger)', urgent: true  },

@@ -1,33 +1,7 @@
 import { useState, useRef } from 'react';
 import { Camera, Upload, RefreshCw, Bug, AlertCircle, Info } from 'lucide-react';
 import { diagnosePest, MOCK_PEST_DIAGNOSIS } from '../services/geminiService';
-
-function ResultView({ text }) {
-  const lines = text.split('\n').filter(l => l.trim());
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-      {lines.map((line, i) => {
-        const isSection = /^[🌱📊💡🌿📍📋⚠️✅]/.test(line);
-        const isList    = /^\s{2,}[-\d]/.test(line);
-        return (
-          <p
-            key={i}
-            style={{
-              fontSize: isSection ? '14px' : '13px',
-              fontWeight: isSection ? 600 : 400,
-              color: isSection ? 'var(--text)' : 'var(--text-muted)',
-              lineHeight: 1.85,
-              marginTop: isSection && i !== 0 ? '10px' : 0,
-              paddingLeft: isList ? '4px' : 0,
-            }}
-          >
-            {line}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
+import ResultView from './ResultView';
 
 export default function PestDiagnosis() {
   const [image, setImage]     = useState(null);
@@ -198,7 +172,7 @@ export default function PestDiagnosis() {
                   <button className="btn-ghost" onClick={reset} style={{ fontSize: '12px' }}>새 사진</button>
                 </div>
               </div>
-              <ResultView text={result} />
+              <ResultView text={result} size="lg" />
             </div>
           )}
         </div>

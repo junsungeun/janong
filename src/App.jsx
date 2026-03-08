@@ -8,6 +8,7 @@ import './styles/globals.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import { db, TABLES } from './services/dbService';
 import { getCropTimeline } from './data/cropTimelines';
+import { toYMD, todayYMD } from './utils/dateUtils';
 
 // ── Eager imports — 탭 전환 딜레이 제거 ──────────────────────────────
 import Dashboard    from './components/Dashboard';
@@ -23,9 +24,6 @@ const TABS = [
   { id: 'calendar', label: '캘린더', icon: Calendar },
   { id: 'more',     label: '더보기', icon: MoreHorizontal },
 ];
-
-const toYMD = (d) => d.toISOString().slice(0, 10);
-const todayYMD = toYMD(new Date());
 
 // ── 알림 패널 ─────────────────────────────────────────────────────────
 function NotifPanel({ onClose, onNavigate }) {
