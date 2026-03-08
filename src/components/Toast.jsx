@@ -18,7 +18,7 @@ export function ToastContainer() {
 
   useEffect(() => {
     const handler = (e) => {
-      const id = Date.now() + Math.random();
+      const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
       setToasts(prev => [...prev, { id, ...e.detail }]);
       setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 2800);
     };
@@ -30,7 +30,6 @@ export function ToastContainer() {
 
   return (
     <>
-      <style>{`@keyframes toastIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }`}</style>
       <div style={{
         position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
         display: 'flex', flexDirection: 'column', gap: '8px',

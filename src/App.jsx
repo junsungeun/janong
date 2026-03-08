@@ -310,7 +310,7 @@ function App() {
         const todayTimeline = crops.reduce((acc, crop) =>
           acc + getCropTimeline(crop.name, crop.plantingDate).filter(i => i.date === todayYMD).length, 0);
         setNotifCount(overdueTodos + todayTodos + activeIssues + todayTimeline);
-      } catch { /* 무시 */ }
+      } catch (e) { console.warn('알림 카운트 로드 실패:', e); }
     };
     loadCount();
   }, []);
@@ -392,24 +392,14 @@ function App() {
         )}
       </header>
 
-      {/* ── 콘텐츠 — 모든 탭 즉시 마운트, display 토글만으로 전환 ── */}
+      {/* ── 콘텐츠 — 조건부 마운트 ── */}
       <main className="app-content" ref={contentRef}>
         <ErrorBoundary>
-          <div style={{ display: activeTab === 'home'     ? 'block' : 'none' }}>
-            <Dashboard onNavigate={handleTabChange} trigger={homeTrigger} />
-          </div>
-          <div style={{ display: activeTab === 'crop'     ? 'block' : 'none' }}>
-            <CropTab onSetSubPage={handleSetSubPage} />
-          </div>
-          <div style={{ display: activeTab === 'record'   ? 'block' : 'none' }}>
-            <RecordTab trigger={recordTrigger} />
-          </div>
-          <div style={{ display: activeTab === 'calendar' ? 'block' : 'none' }}>
-            <CalendarView />
-          </div>
-          <div style={{ display: activeTab === 'more'     ? 'block' : 'none' }}>
-            <MoreTab />
-          </div>
+          {activeTab === 'home'     && <Dashboard onNavigate={handleTabChange} trigger={homeTrigger} />}
+          {activeTab === 'crop'     && <CropTab onSetSubPage={handleSetSubPage} />}
+          {activeTab === 'record'   && <RecordTab trigger={recordTrigger} />}
+          {activeTab === 'calendar' && <CalendarView />}
+          {activeTab === 'more'     && <MoreTab />}
         </ErrorBoundary>
       </main>
 

@@ -639,7 +639,7 @@ export default function Dashboard({ onNavigate, trigger }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--color-earth-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '14px' }}>🤖</span>
+                      <span role="img" aria-label="AI" style={{ fontSize: '14px' }}>🤖</span>
                     </div>
                     <div>
                       <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-earth)' }}>Gemini 자연농업 조언</p>
@@ -654,7 +654,6 @@ export default function Dashboard({ onNavigate, trigger }) {
                     <RefreshCw size={24} color="var(--color-earth)" strokeWidth={1.5}
                       style={{ margin: '0 auto 10px', display: 'block', animation: 'spin 1s linear infinite' }} />
                     <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>이슈를 분석하는 중...</p>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                   </div>
                 ) : issueAdvice ? (
                   <ResultView text={issueAdvice} />

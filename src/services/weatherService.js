@@ -6,6 +6,13 @@ import { CONFIG } from '../config';
 
 const EDGE_FN_URL = `${CONFIG.SUPABASE_URL}/functions/v1/weather-proxy`;
 
+// AbortSignal.timeout 미지원 브라우저 대응
+const fetchWithTimeout = (url, opts, ms) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
+};
+
 // ── Mock 날씨 데이터 (호출 실패 시 fallback) ──────────────────────────
 export const mockWeather = {
   temp:  18.5,
@@ -111,10 +118,9 @@ export const fetchWeather = async (stationCode, apiKey) => {
     // Supabase Edge Function으로 서버사이드 중계 (CORS 우회)
     const proxyUrl = `${EDGE_FN_URL}?${params}`;
 
-    const response = await fetch(proxyUrl, {
+    const response = await fetchWithTimeout(proxyUrl, {
       headers: { 'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
-      signal:  AbortSignal.timeout(20000),
-    });
+    }, 20000);
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 

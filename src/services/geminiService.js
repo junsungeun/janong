@@ -7,6 +7,13 @@ import { CONFIG } from '../config.js';
 
 const BASE_URL = `${CONFIG.SUPABASE_URL}/functions/v1/gemini-proxy`;
 
+// AbortSignal.timeout 미지원 브라우저 대응
+const fetchWithTimeout = (url, opts, ms) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
+};
+
 // ── 자연농업 핵심 규칙 (모든 프롬프트에 적용) ─────────────────────────
 const NATURAL_FARMING_RULE = `
 반드시 지켜야 할 규칙:
@@ -46,7 +53,7 @@ ${NATURAL_FARMING_RULE}
 
 // ── 텍스트 전용 Gemini 호출 ──────────────────────────────────────────
 const callGeminiText = async (prompt) => {
-  const res = await fetch(BASE_URL, {
+  const res = await fetchWithTimeout(BASE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -56,8 +63,7 @@ const callGeminiText = async (prompt) => {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
     }),
-    signal: AbortSignal.timeout(20000),
-  });
+  }, 20000);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -100,7 +106,7 @@ const toBase64 = (file) =>
 
 // ── Gemini API 공통 호출 ─────────────────────────────────────────────
 const callGemini = async (base64Image, mimeType, prompt) => {
-  const res = await fetch(BASE_URL, {
+  const res = await fetchWithTimeout(BASE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -115,8 +121,7 @@ const callGemini = async (base64Image, mimeType, prompt) => {
       }],
       generationConfig: { temperature: 0.6, maxOutputTokens: 1024 },
     }),
-    signal: AbortSignal.timeout(30000),
-  });
+  }, 30000);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

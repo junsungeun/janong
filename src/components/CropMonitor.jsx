@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, RefreshCw, Leaf, AlertCircle, Info } from 'lucide-react';
 import { analyzeCrop, MOCK_CROP_ANALYSIS } from '../services/geminiService';
 
@@ -38,9 +38,15 @@ export default function CropMonitor() {
   const [isMock, setIsMock]     = useState(false);
   const inputRef = useRef(null);
 
+  // blob URL 메모리 누수 방지
+  useEffect(() => {
+    return () => { if (image?.url) URL.revokeObjectURL(image.url); };
+  }, [image]);
+
   const handleFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (image?.url) URL.revokeObjectURL(image.url);
     setImage({ file, url: URL.createObjectURL(file) });
     setResult(null);
     setError(null);
@@ -65,6 +71,7 @@ export default function CropMonitor() {
   };
 
   const reset = () => {
+    if (image?.url) URL.revokeObjectURL(image.url);
     setImage(null);
     setResult(null);
     setError(null);
@@ -162,7 +169,6 @@ export default function CropMonitor() {
                 style={{ margin: '0 auto 12px', display: 'block', animation: 'spin 1s linear infinite' }} />
               <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>작물 상태 분석 중...</p>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Gemini AI가 생태 건강 상태를 살피고 있어요</p>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           )}
 

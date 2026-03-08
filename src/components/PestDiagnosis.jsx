@@ -167,7 +167,6 @@ export default function PestDiagnosis() {
                 style={{ margin: '0 auto 12px', display: 'block', animation: 'spin 1s linear infinite' }} />
               <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>병해충 진단 중...</p>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>이상 증상을 분석하고 자연농업 방제법을 찾고 있어요</p>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           )}
 

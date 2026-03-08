@@ -188,8 +188,6 @@ export default function WeatherCard() {
         </div>
       )}
 
-      {/* spin 키프레임 */}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

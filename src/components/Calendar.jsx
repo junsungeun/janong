@@ -252,7 +252,7 @@ export default function Calendar() {
     const result = {};
     GROUPS.forEach(g => { result[g.key] = []; });
     allItems.forEach(item => { result[item.group]?.push(item); });
-    Object.values(result).forEach(arr => arr.sort((a, b) => a.date.localeCompare(b.date)));
+    Object.values(result).forEach(arr => arr.sort((a, b) => (a.date || '').localeCompare(b.date || '')));
     return result;
   }, [allItems]);
 
