@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Pencil, Trash2, MoreVertical } from 'lucide-react';
 
 // ── 스와이프 + 케밥 메뉴 통합 액션 컴포넌트 ──
 // 모바일: 좌측 스와이프 → 편집/삭제 노출
-// 공통: ⋮ 버튼 → 드롭다운 메뉴
+// 공통: ⋮ 버튼 → 드롭다운 메뉴 (Portal로 렌더링하여 잘림 방지)
 
 const ACTION_WIDTH = 72;
 const TOTAL_ACTION = ACTION_WIDTH * 2;
@@ -13,11 +14,13 @@ export function SwipeableRow({ children, onEdit, onDelete, style = {} }) {
   const [offsetX, setOffsetX] = useState(0);
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const startX = useRef(0);
   const startY = useRef(0);
   const dragging = useRef(false);
   const isHorizontal = useRef(null);
   const rowRef = useRef(null);
+  const menuBtnRef = useRef(null);
   const menuRef = useRef(null);
 
   const close = useCallback(() => {
@@ -30,7 +33,12 @@ export function SwipeableRow({ children, onEdit, onDelete, style = {} }) {
   useEffect(() => {
     if (!open && !menuOpen) return;
     const handler = (e) => {
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
       if (rowRef.current && !rowRef.current.contains(e.target)) close();
+      if (menuOpen && menuBtnRef.current && !menuBtnRef.current.contains(e.target) &&
+          menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     document.addEventListener('touchstart', handler);
@@ -39,6 +47,14 @@ export function SwipeableRow({ children, onEdit, onDelete, style = {} }) {
       document.removeEventListener('touchstart', handler);
     };
   }, [open, menuOpen, close]);
+
+  // 스크롤 시 드롭다운 닫기
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = () => setMenuOpen(false);
+    window.addEventListener('scroll', handler, true);
+    return () => window.removeEventListener('scroll', handler, true);
+  }, [menuOpen]);
 
   const onTouchStart = (e) => {
     startX.current = e.touches[0].clientX;
@@ -52,7 +68,6 @@ export function SwipeableRow({ children, onEdit, onDelete, style = {} }) {
     const dx = e.touches[0].clientX - startX.current;
     const dy = e.touches[0].clientY - startY.current;
 
-    // 방향 판별 (처음 10px 이동으로 결정)
     if (isHorizontal.current === null) {
       if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
         isHorizontal.current = Math.abs(dx) > Math.abs(dy);
@@ -88,6 +103,21 @@ export function SwipeableRow({ children, onEdit, onDelete, style = {} }) {
   const handleDelete = () => {
     close();
     onDelete?.();
+  };
+
+  const openMenu = (e) => {
+    e.stopPropagation();
+    if (menuOpen) {
+      setMenuOpen(false);
+      return;
+    }
+    // 버튼 위치 기준으로 드롭다운 위치 계산
+    const rect = menuBtnRef.current.getBoundingClientRect();
+    setMenuPos({
+      top: rect.bottom + 4,
+      right: window.innerWidth - rect.right,
+    });
+    setMenuOpen(true);
   };
 
   return (
@@ -147,13 +177,10 @@ export function SwipeableRow({ children, onEdit, onDelete, style = {} }) {
             {children}
           </div>
           {/* 케밥 메뉴 (⋮) */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{ flexShrink: 0 }}>
             <button
-              ref={menuRef}
-              onClick={(e) => {
-                e.stopPropagation();
-                setMenuOpen(v => !v);
-              }}
+              ref={menuBtnRef}
+              onClick={openMenu}
               aria-label="더보기"
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
@@ -166,57 +193,63 @@ export function SwipeableRow({ children, onEdit, onDelete, style = {} }) {
             >
               <MoreVertical size={16} strokeWidth={2} />
             </button>
-
-            {/* 드롭다운 */}
-            {menuOpen && (
-              <div style={{
-                position: 'absolute', right: 0, top: '100%', marginTop: '4px',
-                background: 'var(--bg-card)', border: '1px solid var(--border)',
-                borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.14)',
-                zIndex: 200, overflow: 'hidden', minWidth: '120px',
-                animation: 'modalIn 0.12s ease',
-              }}>
-                {onEdit && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleEdit(); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      width: '100%', padding: '11px 16px',
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      fontSize: '13px', fontWeight: 500, color: 'var(--text)',
-                      fontFamily: 'var(--font-sans)', textAlign: 'left',
-                      transition: 'background 0.1s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-subtle)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                  >
-                    <Pencil size={14} strokeWidth={2} style={{ color: 'var(--color-primary)' }} />
-                    편집
-                  </button>
-                )}
-                {onDelete && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      width: '100%', padding: '11px 16px',
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      fontSize: '13px', fontWeight: 500, color: 'var(--color-danger)',
-                      fontFamily: 'var(--font-sans)', textAlign: 'left',
-                      transition: 'background 0.1s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#FFF0F0'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                  >
-                    <Trash2 size={14} strokeWidth={2} />
-                    삭제
-                  </button>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>
+
+      {/* 드롭다운 — Portal로 body에 렌더링 (overflow:hidden 회피) */}
+      {menuOpen && createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            top: menuPos.top + 'px',
+            right: menuPos.right + 'px',
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.14)',
+            zIndex: 10000, overflow: 'hidden', minWidth: '120px',
+            animation: 'modalIn 0.12s ease',
+          }}
+        >
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleEdit(); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                width: '100%', padding: '11px 16px',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '13px', fontWeight: 500, color: 'var(--text)',
+                fontFamily: 'var(--font-sans)', textAlign: 'left',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-subtle)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            >
+              <Pencil size={14} strokeWidth={2} style={{ color: 'var(--color-primary)' }} />
+              편집
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleDelete(); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                width: '100%', padding: '11px 16px',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '13px', fontWeight: 500, color: 'var(--color-danger)',
+                fontFamily: 'var(--font-sans)', textAlign: 'left',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#FFF0F0'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            >
+              <Trash2 size={14} strokeWidth={2} />
+              삭제
+            </button>
+          )}
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

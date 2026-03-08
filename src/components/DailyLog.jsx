@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { formatDate } from '../utils/solarTerms';
 import { toast } from './Toast';
+import { ConfirmModal } from './ConfirmModal';
+import { SwipeableRow } from './SwipeableRow';
 
 const WEATHER_OPTIONS = ['맑음', '흐림', '비', '눈', '바람'];
 const WORK_TYPES = ['파종', '정식', '물주기', '방제', '수확', '전정', '멀칭', '기타'];
@@ -10,12 +12,9 @@ const WORK_TYPES = ['파종', '정식', '물주기', '방제', '수확', '전정
 export default function DailyLog({ addTrigger }) {
   const [logs, setLogs] = useState([]);
   const [showForm, setShowForm] = useState(false);
-
-  useEffect(() => {
-    if (addTrigger) setShowForm(true);
-  }, [addTrigger]);
   const [expandedId, setExpandedId] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
     weather: '맑음',
@@ -24,25 +23,39 @@ export default function DailyLog({ addTrigger }) {
     memo: '',
   });
 
-  const load = async () => setLogs(await db.getList(TABLES.DAILY_LOG));
+  useEffect(() => {
+    if (addTrigger) setShowForm(true);
+  }, [addTrigger]);
+
+  const load = async () => {
+    try {
+      setLogs(await db.getList(TABLES.DAILY_LOG));
+    } catch {
+      toast.error('일지를 불러오지 못했어요');
+    }
+  };
 
   useEffect(() => { load(); }, []);
+
+  const resetForm = () => {
+    setForm({ date: new Date().toISOString().slice(0, 10), weather: '맑음', workTypes: [], content: '', memo: '' });
+    setEditingId(null);
+    setShowForm(false);
+  };
 
   const save = async () => {
     if (!form.content.trim()) return;
     try {
       if (editingId) {
         await db.update(TABLES.DAILY_LOG, editingId, form);
-        setEditingId(null);
-        toast.success('일지 수정 완료');
+        toast.success('일지가 수정되었어요');
       } else {
         await db.add(TABLES.DAILY_LOG, form);
-        toast.success('오늘의 농사 기록 저장됨');
+        toast.success('농사 기록이 저장되었어요');
       }
       await load();
-      setForm({ date: new Date().toISOString().slice(0, 10), weather: '맑음', workTypes: [], content: '', memo: '' });
-      setShowForm(false);
-    } catch (e) {
+      resetForm();
+    } catch {
       toast.error('저장 중 오류가 발생했어요');
     }
   };
@@ -50,12 +63,19 @@ export default function DailyLog({ addTrigger }) {
   const startEdit = (log) => {
     setForm({ date: log.date, weather: log.weather, workTypes: log.workTypes || [], content: log.content, memo: log.memo || '' });
     setEditingId(log.id);
+    setExpandedId(null);
     setShowForm(true);
   };
 
   const del = async (id) => {
-    await db.delete(TABLES.DAILY_LOG, id);
-    await load();
+    try {
+      await db.delete(TABLES.DAILY_LOG, id);
+      toast.success('일지가 삭제되었어요');
+      await load();
+    } catch {
+      toast.error('삭제 중 오류가 발생했어요');
+    }
+    setConfirmDelete(null);
   };
 
   const toggleWorkType = (type) => {
@@ -163,11 +183,11 @@ export default function DailyLog({ addTrigger }) {
           </div>
 
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-            <button className="btn-secondary" onClick={() => { setShowForm(false); setEditingId(null); }}>
+            <button className="btn-secondary" onClick={resetForm}>
               취소
             </button>
             <button className="btn-primary" onClick={save} disabled={!form.content.trim()}>
-              {editingId ? '수정 완료' : '저장'}
+              {editingId ? '수정' : '저장'}
             </button>
           </div>
         </div>
@@ -188,57 +208,62 @@ export default function DailyLog({ addTrigger }) {
             const dateStr = log.date ? log.date.replace(/-/g, '.') : '';
             const isExpanded = expandedId === log.id;
             return (
-              <div key={log.id} className="card" style={{ padding: '14px 16px' }}>
+              <SwipeableRow
+                key={log.id}
+                onEdit={() => startEdit(log)}
+                onDelete={() => setConfirmDelete(log.id)}
+                style={{ border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}
+              >
                 <div
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer' }}
+                  style={{ padding: '14px 16px', cursor: 'pointer' }}
                   onClick={() => setExpandedId(isExpanded ? null : log.id)}
                 >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>{dateStr}</span>
-                      <span className="badge badge-info" style={{ fontSize: '10px' }}>{log.weather}</span>
-                      {log.workTypes?.slice(0, 2).map(t => (
-                        <span key={t} className="badge badge-good" style={{ fontSize: '10px' }}>{t}</span>
-                      ))}
-                      {log.workTypes?.length > 2 && (
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>+{log.workTypes.length - 2}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>{dateStr}</span>
+                        <span className="badge badge-info" style={{ fontSize: '10px' }}>{log.weather}</span>
+                        {log.workTypes?.slice(0, 2).map(t => (
+                          <span key={t} className="badge badge-good" style={{ fontSize: '10px' }}>{t}</span>
+                        ))}
+                        {log.workTypes?.length > 2 && (
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>+{log.workTypes.length - 2}</span>
+                        )}
+                      </div>
+                      <p style={{
+                        fontSize: '13px',
+                        color: 'var(--text)',
+                        lineHeight: 1.6,
+                        overflow: isExpanded ? 'visible' : 'hidden',
+                        display: isExpanded ? 'block' : '-webkit-box',
+                        WebkitLineClamp: isExpanded ? 'unset' : 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}>
+                        {log.content}
+                      </p>
+                      {isExpanded && log.memo && (
+                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', fontStyle: 'italic' }}>
+                          메모: {log.memo}
+                        </p>
                       )}
                     </div>
-                    <p style={{
-                      fontSize: '13px',
-                      color: 'var(--text)',
-                      lineHeight: 1.6,
-                      overflow: isExpanded ? 'visible' : 'hidden',
-                      display: isExpanded ? 'block' : '-webkit-box',
-                      WebkitLineClamp: isExpanded ? 'unset' : 2,
-                      WebkitBoxOrient: 'vertical',
-                    }}>
-                      {log.content}
-                    </p>
-                    {isExpanded && log.memo && (
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', fontStyle: 'italic' }}>
-                        메모: {log.memo}
-                      </p>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '10px' }}>
-                    {isExpanded && (
-                      <>
-                        <button className="btn-icon" style={{ width: '28px', height: '28px' }} onClick={e => { e.stopPropagation(); startEdit(log); }}>
-                          <Pencil size={13} strokeWidth={1.5} />
-                        </button>
-                        <button className="btn-icon" style={{ width: '28px', height: '28px', background: '#FFF0F0', color: 'var(--color-danger)' }} onClick={e => { e.stopPropagation(); del(log.id); }}>
-                          <Trash2 size={13} strokeWidth={1.5} />
-                        </button>
-                      </>
-                    )}
-                    {isExpanded ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
+                    <div style={{ marginLeft: '10px', display: 'flex', alignItems: 'center' }}>
+                      {isExpanded ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </SwipeableRow>
             );
           })}
         </div>
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          message="이 일지를 삭제할까요?"
+          onConfirm={() => del(confirmDelete)}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   );
