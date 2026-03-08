@@ -24,9 +24,9 @@ export default function WeatherCard() {
   const weatherIcon = () => {
     if (!weather) return <CloudSun size={36} color="var(--color-earth)" strokeWidth={1.5} />;
     const { re, rh, si } = weather;
-    if (re > 1) return <span style={{ fontSize: '32px' }}>🌧</span>;
-    if (rh > 85) return <span style={{ fontSize: '32px' }}>☁</span>;
-    if (si > 400) return <span style={{ fontSize: '32px' }}>☀</span>;
+    if (re > 1) return <span role="img" aria-label="비" style={{ fontSize: '32px' }}>🌧</span>;
+    if (rh > 85) return <span role="img" aria-label="흐림" style={{ fontSize: '32px' }}>☁</span>;
+    if (si > 400) return <span role="img" aria-label="맑음" style={{ fontSize: '32px' }}>☀</span>;
     return <CloudSun size={36} color="var(--color-earth)" strokeWidth={1.5} />;
   };
 

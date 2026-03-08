@@ -442,7 +442,7 @@ export default function Calendar() {
                     {day}
                   </span>
                   <div style={{ display: 'flex', gap: '2px' }}>
-                    {dotTypes.slice(0, 3).map((type, j) => (
+                    {dotTypes.map((type, j) => (
                       <div key={j} style={{
                         width: '4px', height: '4px', borderRadius: '50%',
                         background: isSel ? 'rgba(255,255,255,0.8)' : TYPE_COLOR[type] || 'var(--border)',

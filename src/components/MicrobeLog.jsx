@@ -64,10 +64,14 @@ export default function MicrobeLog() {
   };
 
   // ── 일별 상태 체크 추가 ─────────────────────────────────────────────
+  const [submittingCheck, setSubmittingCheck] = useState(false);
+
   const addCheck = async (batchId) => {
+    if (submittingCheck) return;
     const cf = checkForms[batchId] || initCheckForm();
     const batch = batches.find(b => b.id === batchId);
     if (!batch) return;
+    setSubmittingCheck(true);
     try {
       const newChecks = [
         ...(batch.checks || []),
@@ -79,6 +83,8 @@ export default function MicrobeLog() {
       toast.success('상태 기록이 추가되었어요');
     } catch (err) {
       toast.error('상태 기록 추가에 실패했어요');
+    } finally {
+      setSubmittingCheck(false);
     }
   };
 
@@ -553,6 +559,7 @@ export default function MicrobeLog() {
                           <button
                             className="btn-primary"
                             onClick={() => addCheck(batch.id)}
+                            disabled={submittingCheck}
                             style={{ width: '100%', justifyContent: 'center', padding: '10px', fontSize: '13px' }}
                           >
                             <ClipboardList size={14} strokeWidth={1.5} /> 상태 기록
@@ -589,7 +596,7 @@ export default function MicrobeLog() {
                               <button
                                 onClick={() => setConfirmDeleteCheck({ batchId: batch.id, checkId: chk.id })}
                                 style={{
-                                  width: '20px', height: '20px', borderRadius: '50%',
+                                  width: '28px', height: '28px', borderRadius: '50%',
                                   background: 'transparent', border: 'none',
                                   color: 'var(--text-muted)', cursor: 'pointer', display: 'flex',
                                   alignItems: 'center', justifyContent: 'center', flexShrink: 0,

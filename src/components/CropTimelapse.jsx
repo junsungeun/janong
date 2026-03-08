@@ -63,7 +63,7 @@ export default function CropTimelapse({ cropId }) {
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || uploading) return;
     setUploading(true);
     try {
       const blob = await resizeImage(file);
@@ -275,7 +275,7 @@ export default function CropTimelapse({ cropId }) {
                     <button
                       onClick={e => { e.stopPropagation(); setKebabOpen(kebabOpen === p.id ? null : p.id); }}
                       style={{
-                        width: '22px', height: '22px', borderRadius: '50%',
+                        width: '28px', height: '28px', borderRadius: '50%',
                         background: 'rgba(0,0,0,0.5)', border: 'none',
                         color: '#fff', cursor: 'pointer', display: 'flex',
                         alignItems: 'center', justifyContent: 'center',

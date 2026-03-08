@@ -22,6 +22,7 @@ export default function IssueBoard() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [editingId, setEditingId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmSolve, setConfirmSolve] = useState(null);
   const [triedSubmit, setTriedSubmit] = useState(false);
 
   const load = async () => setIssues(await db.getList(TABLES.ISSUE));
@@ -282,8 +283,8 @@ export default function IssueBoard() {
                         tabIndex={0}
                         className="btn-icon"
                         style={{ width: '28px', height: '28px', background: issue.solved ? 'var(--bg-subtle)' : 'var(--color-primary-light)', color: issue.solved ? 'var(--text-muted)' : 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', cursor: 'pointer' }}
-                        onClick={e => { e.stopPropagation(); toggleSolved(issue.id); }}
-                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); toggleSolved(issue.id); } }}
+                        onClick={e => { e.stopPropagation(); issue.solved ? toggleSolved(issue.id) : setConfirmSolve(issue.id); }}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); issue.solved ? toggleSolved(issue.id) : setConfirmSolve(issue.id); } }}
                         title={issue.solved ? '미해결로 되돌리기' : '해결됨으로 표시'}
                       >
                         <CheckCircle size={13} strokeWidth={1.5} />
@@ -306,6 +307,19 @@ export default function IssueBoard() {
             setConfirmDelete(null);
           }}
           onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+
+      {confirmSolve && (
+        <ConfirmModal
+          message="이 이슈를 해결됨으로 표시할까요?"
+          confirmLabel="해결"
+          danger={false}
+          onConfirm={() => {
+            toggleSolved(confirmSolve);
+            setConfirmSolve(null);
+          }}
+          onCancel={() => setConfirmSolve(null)}
         />
       )}
     </div>

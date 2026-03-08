@@ -43,7 +43,7 @@ export function ConfirmModal({ message, onConfirm, onCancel, confirmLabel = '삭
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <button onClick={onCancel} style={{
+          <button onClick={onCancel} autoFocus style={{
             padding: '10px 20px', fontSize: '13px', fontWeight: 600,
             background: 'var(--bg-subtle)', color: 'var(--text)',
             border: 'none', borderRadius: '8px', cursor: 'pointer',

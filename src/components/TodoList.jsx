@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Plus, CheckSquare, Trash2, RotateCcw, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
+import { toast } from './Toast';
 
 const REPEAT_OPTIONS = ['없음', '매일', '매주', '월·수·금', '화·목'];
 
@@ -176,22 +177,43 @@ export default function TodoList() {
 
   const add = async () => {
     if (!form.text.trim()) return;
-    await db.add(TABLES.TODO, { ...form, done: false });
-    await load();
-    setForm({ text: '', date: '', repeat: '없음' });
-    setShowForm(false);
+    try {
+      await db.add(TABLES.TODO, { ...form, done: false });
+      await load();
+      setForm({ text: '', date: '', repeat: '없음' });
+      setShowForm(false);
+      toast.success('할 일이 추가되었어요');
+    } catch {
+      toast.error('추가 중 오류가 발생했어요');
+    }
   };
 
   const toggle = async (id) => {
-    await db.update(TABLES.TODO, id, { done: !todos.find(t => t.id === id)?.done });
-    await load();
+    try {
+      await db.update(TABLES.TODO, id, { done: !todos.find(t => t.id === id)?.done });
+      await load();
+    } catch {
+      toast.error('처리 중 오류가 발생했어요');
+    }
   };
 
-  const del = async (id) => { await db.delete(TABLES.TODO, id); await load(); };
+  const del = async (id) => {
+    try {
+      await db.delete(TABLES.TODO, id);
+      await load();
+    } catch {
+      toast.error('삭제 중 오류가 발생했어요');
+    }
+  };
 
   const save = async (id, fields) => {
-    await db.update(TABLES.TODO, id, fields);
-    await load();
+    try {
+      await db.update(TABLES.TODO, id, fields);
+      await load();
+      toast.success('수정되었어요');
+    } catch {
+      toast.error('수정 중 오류가 발생했어요');
+    }
   };
 
   const toggleCollapse = (key) => setCollapsedGroups(p => ({ ...p, [key]: !p[key] }));
