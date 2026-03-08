@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Home, Sprout, BookOpen, Calendar, MoreHorizontal,
-  Bell, AlertTriangle, CheckSquare, Sprout as SproutIcon, X, Plus,
+  Bell, AlertTriangle, CheckSquare, Sprout as SproutIcon, X, Plus, ArrowLeft,
 } from 'lucide-react';
 import { ToastContainer } from './components/Toast';
 import './styles/globals.css';
@@ -219,9 +219,77 @@ function App() {
   const [recordTrigger, setRecordTrigger] = useState(null);
   const [homeTrigger, setHomeTrigger]     = useState(null);
   const contentRef = useRef(null);
+  const [subPage, setSubPage] = useState(null);
+  const scrollPositions = useRef({});
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const subPageRef = useRef(subPage);
+  subPageRef.current = subPage;
+  const programmaticBack = useRef(false);
+  const historyPushed = useRef(false);
+
+  // ── 서브 페이지 네비게이션 ──
+  const handleSetSubPage = useCallback((info) => {
+    setSubPage(info);
+    subPageRef.current = info;
+    if (info && !historyPushed.current) {
+      window.history.pushState({ subPage: true }, '');
+      historyPushed.current = true;
+    } else if (!info && historyPushed.current) {
+      historyPushed.current = false;
+      programmaticBack.current = true;
+      window.history.back();
+    }
+  }, []);
+
+  const goBack = useCallback(() => {
+    const sp = subPageRef.current;
+    if (!sp) return;
+    sp.onBack();
+    setSubPage(null);
+    subPageRef.current = null;
+    if (historyPushed.current) {
+      historyPushed.current = false;
+      programmaticBack.current = true;
+      window.history.back();
+    }
+  }, []);
+
+  // 브라우저 뒤로가기 버튼 지원
+  useEffect(() => {
+    const handler = () => {
+      if (programmaticBack.current) {
+        programmaticBack.current = false;
+        return;
+      }
+      const sp = subPageRef.current;
+      if (sp) {
+        sp.onBack();
+        setSubPage(null);
+        subPageRef.current = null;
+        historyPushed.current = false;
+      }
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, []);
 
   // useCallback — 안정적인 함수 참조로 자식 컴포넌트 불필요 재렌더 방지
   const handleTabChange = useCallback((tabId, params = null) => {
+    if (contentRef.current) {
+      scrollPositions.current[activeTabRef.current] = contentRef.current.scrollTop;
+    }
+    const sp = subPageRef.current;
+    if (sp) {
+      sp.onBack();
+      setSubPage(null);
+      subPageRef.current = null;
+      if (historyPushed.current) {
+        historyPushed.current = false;
+        programmaticBack.current = true;
+        window.history.back();
+      }
+    }
     setActiveTab(tabId);
     setShowNotif(false);
     if (tabId === 'record' && params) setRecordTrigger({ ...params, key: Date.now() });
@@ -248,7 +316,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (contentRef.current) contentRef.current.scrollTop = 0;
+    if (contentRef.current) {
+      contentRef.current.scrollTop = scrollPositions.current[activeTab] || 0;
+    }
   }, [activeTab]);
 
   return (
@@ -256,27 +326,36 @@ function App() {
 
       {/* ── 상단 헤더 ── */}
       <header className="app-header" style={{ position: 'relative' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-            <span style={{
-              fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 700,
-              letterSpacing: '0.18em', color: 'var(--color-primary)', textTransform: 'uppercase',
-            }}>
-              JANONG
-            </span>
-            <span style={{
-              fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 500,
-              letterSpacing: '0.22em', color: 'var(--text-muted)', textTransform: 'uppercase', paddingBottom: '1px',
-            }}>
-              Farm System
-            </span>
+        {subPage ? (
+          <div className="sub-page-header">
+            <button className="sub-page-back" onClick={goBack} aria-label="뒤로가기">
+              <ArrowLeft size={20} strokeWidth={1.5} />
+            </button>
+            <span className="sub-page-title">{subPage.title}</span>
           </div>
-          {activeTab === 'home' && (
-            <div className="app-header-sub" style={{ fontStyle: 'italic', letterSpacing: '0.01em' }}>
-              In the beginning God created the heavens and the earth.
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+              <span style={{
+                fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 700,
+                letterSpacing: '0.18em', color: 'var(--color-primary)', textTransform: 'uppercase',
+              }}>
+                JANONG
+              </span>
+              <span style={{
+                fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 500,
+                letterSpacing: '0.22em', color: 'var(--text-muted)', textTransform: 'uppercase', paddingBottom: '1px',
+              }}>
+                Farm System
+              </span>
             </div>
-          )}
-        </div>
+            {activeTab === 'home' && (
+              <div className="app-header-sub" style={{ fontStyle: 'italic', letterSpacing: '0.01em' }}>
+                In the beginning God created the heavens and the earth.
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="app-header-right">
           <div style={{ position: 'relative' }}>
@@ -320,7 +399,7 @@ function App() {
             <Dashboard onNavigate={handleTabChange} trigger={homeTrigger} />
           </div>
           <div style={{ display: activeTab === 'crop'     ? 'block' : 'none' }}>
-            <CropTab />
+            <CropTab onSetSubPage={handleSetSubPage} />
           </div>
           <div style={{ display: activeTab === 'record'   ? 'block' : 'none' }}>
             <RecordTab trigger={recordTrigger} />
@@ -334,7 +413,7 @@ function App() {
         </ErrorBoundary>
       </main>
 
-      <FAB onNavigate={handleTabChange} />
+      {!subPage && <FAB onNavigate={handleTabChange} />}
       <ToastContainer />
 
       {/* ── 하단 탭 네비게이션 ── */}

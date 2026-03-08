@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Sprout, Leaf, Bug } from 'lucide-react';
 import CropList from './CropList';
 import CropMonitor from './CropMonitor';
@@ -10,29 +10,37 @@ const SUB_TABS = [
   { id: 'pest',    label: '병해충',   icon: Bug },
 ];
 
-export default function CropTab() {
+export default function CropTab({ onSetSubPage }) {
   const [active, setActive] = useState('crops');
+  const [inDetail, setInDetail] = useState(false);
+
+  const handleSetSubPage = useCallback((info) => {
+    setInDetail(!!info);
+    onSetSubPage?.(info);
+  }, [onSetSubPage]);
 
   return (
     <div>
-      <div className="sub-tab-bar">
-        {SUB_TABS.map(tab => {
-          const Icon = tab.icon;
-          const isActive = active === tab.id;
-          return (
-            <button
-              key={tab.id}
-              className={`sub-tab-btn${isActive ? ' active' : ''}`}
-              onClick={() => setActive(tab.id)}
-            >
-              <Icon size={14} strokeWidth={isActive ? 2 : 1.5} />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      {!inDetail && (
+        <div className="sub-tab-bar">
+          {SUB_TABS.map(tab => {
+            const Icon = tab.icon;
+            const isActive = active === tab.id;
+            return (
+              <button
+                key={tab.id}
+                className={`sub-tab-btn${isActive ? ' active' : ''}`}
+                onClick={() => setActive(tab.id)}
+              >
+                <Icon size={14} strokeWidth={isActive ? 2 : 1.5} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-      {active === 'crops'   && <CropList />}
+      {active === 'crops'   && <CropList onSetSubPage={handleSetSubPage} />}
       {active === 'monitor' && <CropMonitor />}
       {active === 'pest'    && <PestDiagnosis />}
     </div>

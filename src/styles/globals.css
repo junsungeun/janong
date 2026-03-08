@@ -542,6 +542,63 @@ button:focus-visible,
   to { opacity: 1; transform: scale(1); }
 }
 
+/* ─── 페이지 전환 ─── */
+@keyframes slideInRight {
+  from { transform: translateX(40px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.page-slide-in {
+  animation: slideInRight 0.2s ease;
+}
+
+.page-fade-in {
+  animation: fadeIn 0.15s ease;
+}
+
+/* ─── 서브페이지 헤더 ─── */
+.sub-page-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sub-page-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-primary);
+  border-radius: 8px;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.sub-page-back:hover {
+  background: var(--color-primary-light);
+}
+
+.sub-page-title {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ─── 360px 이하 소형 기기 반응형 ─── */
 @media (max-width: 360px) {
   :root {

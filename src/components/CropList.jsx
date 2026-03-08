@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Sprout, ChevronRight, ArrowLeft, CalendarDays, Camera } from 'lucide-react';
+import { Plus, Sprout, ChevronRight, CalendarDays, Camera } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { toast } from './Toast';
 import { ConfirmModal } from './ConfirmModal';
@@ -21,7 +21,7 @@ const CROP_EMOJI = {
   '딸기': '🍓', '수박': '🍉', '참외': '🍈', '기타': '🌱',
 };
 
-export default function CropList() {
+export default function CropList({ onSetSubPage }) {
   const [crops, setCrops]         = useState([]);
   const [showForm, setShowForm]   = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -38,6 +38,16 @@ export default function CropList() {
   const load = async () => setCrops(await db.getList(TABLES.CROP));
 
   useEffect(() => { load(); }, []);
+
+  // 서브 페이지 연동 — selectedId 해제 시 헤더 복원
+  useEffect(() => {
+    if (!selectedId) onSetSubPage?.(null);
+  }, [selectedId]);
+
+  // 언마운트 시 서브 페이지 정리
+  useEffect(() => {
+    return () => onSetSubPage?.(null);
+  }, []);
 
   const add = async () => {
     const finalName = form.name === '직접입력' ? form.customName.trim() : form.name.trim();
@@ -135,24 +145,25 @@ export default function CropList() {
   // ── 상세 뷰 ─────────────────────────────────────────────────────────
   if (selectedCrop) {
     return (
-      <div>
-        {/* 헤더 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-          <button
-            onClick={() => setSelectedId(null)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--text-muted)', display: 'flex', padding: '4px',
-            }}
-          >
-            <ArrowLeft size={20} strokeWidth={1.5} />
-          </button>
+      <div className="page-slide-in">
+        {/* 작물 정보 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+          <div style={{
+            width: '48px', height: '48px', borderRadius: '12px',
+            background: 'var(--color-primary-light)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '24px', flexShrink: 0,
+          }}>
+            {CROP_EMOJI[selectedCrop.name] || '🌱'}
+          </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '20px' }}>{CROP_EMOJI[selectedCrop.name] || '🌱'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
                 {selectedCrop.name}
               </span>
+              {selectedCrop.variety && (
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>· {selectedCrop.variety}</span>
+              )}
               {selectedCrop.area && (
                 <span className="badge badge-info">{selectedCrop.area}</span>
               )}
@@ -365,7 +376,14 @@ export default function CropList() {
                 onDelete={() => requestDelete(crop)}
               >
                 <button
-                  onClick={() => { setSelectedId(crop.id); setDetailTab('timeline'); }}
+                  onClick={() => {
+                    setSelectedId(crop.id);
+                    setDetailTab('timeline');
+                    onSetSubPage?.({
+                      title: `${CROP_EMOJI[crop.name] || '🌱'} ${crop.name}`,
+                      onBack: () => setSelectedId(null),
+                    });
+                  }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '14px',
                     padding: '16px', background: 'transparent',
