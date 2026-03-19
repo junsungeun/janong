@@ -38,7 +38,10 @@ export const db = {
     let q = supabase.from(table).select('*').order('created_at', { ascending: false });
     Object.entries(snakify(filters)).forEach(([col, val]) => { q = q.eq(col, val); });
     const { data, error } = await q;
-    if (error) throw error;
+    if (error) {
+      console.warn(`[db.getList] ${table}:`, error.message);
+      return [];
+    }
     return (data || []).map(camelify);
   },
 
