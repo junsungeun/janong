@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Plus, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
-import { db, TABLES } from '../services/dbService';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, ChevronDown, ChevronUp, BookOpen, Camera, X, Image as ImageIcon } from 'lucide-react';
+import { db, TABLES, photoStorage } from '../services/dbService';
 import { formatDate } from '../utils/solarTerms';
 import { toast } from './Toast';
 import { ConfirmModal } from './ConfirmModal';
@@ -9,16 +9,35 @@ import { SwipeableRow } from './SwipeableRow';
 const WEATHER_OPTIONS = ['맑음', '흐림', '비', '눈', '바람'];
 const WORK_TYPES = ['파종', '정식', '물주기', '방제', '수확', '전정', '멀칭', '기타'];
 
+// 이미지 리사이즈 (최대 1200px, JPEG 80%)
+const resizeImage = (file, maxW = 1200) =>
+  new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => resolve(new File([blob], file.name, { type: 'image/jpeg' })), 'image/jpeg', 0.8);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
 export default function DailyLog({ addTrigger }) {
   const [logs, setLogs] = useState([]);
+  const [crops, setCrops] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [photos, setPhotos] = useState([]); // { file, preview }
+  const fileRef = useRef(null);
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
     weather: '맑음',
     workTypes: [],
+    cropId: '',
     content: '',
     memo: '',
   });
@@ -28,29 +47,57 @@ export default function DailyLog({ addTrigger }) {
   }, [addTrigger]);
 
   const load = async () => {
-    try {
-      setLogs(await db.getList(TABLES.DAILY_LOG));
-    } catch {
-      toast.error('일지를 불러오지 못했어요');
-    }
+    const [logData, cropData] = await Promise.all([
+      db.getList(TABLES.DAILY_LOG),
+      db.getList(TABLES.CROP),
+    ]);
+    setLogs(logData);
+    setCrops(cropData);
   };
 
   useEffect(() => { load(); }, []);
 
   const resetForm = () => {
-    setForm({ date: new Date().toISOString().slice(0, 10), weather: '맑음', workTypes: [], content: '', memo: '' });
+    setForm({ date: new Date().toISOString().slice(0, 10), weather: '맑음', workTypes: [], cropId: '', content: '', memo: '' });
+    setPhotos([]);
     setEditingId(null);
     setShowForm(false);
+  };
+
+  const handlePhotos = (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const preview = URL.createObjectURL(file);
+      setPhotos(prev => [...prev, { file, preview }]);
+    });
+    e.target.value = '';
+  };
+
+  const removePhoto = (idx) => {
+    setPhotos(prev => {
+      URL.revokeObjectURL(prev[idx].preview);
+      return prev.filter((_, i) => i !== idx);
+    });
   };
 
   const save = async () => {
     if (!form.content.trim()) return;
     try {
+      // 사진 업로드
+      const photoPaths = [];
+      for (const p of photos) {
+        const resized = await resizeImage(p.file);
+        const path = await photoStorage.upload(form.cropId || 'general', resized);
+        photoPaths.push(path);
+      }
+
+      const logData = { ...form, photos: photoPaths };
+
       if (editingId) {
-        await db.update(TABLES.DAILY_LOG, editingId, form);
+        await db.update(TABLES.DAILY_LOG, editingId, logData);
         toast.success('일지가 수정되었어요');
       } else {
-        await db.add(TABLES.DAILY_LOG, form);
+        await db.add(TABLES.DAILY_LOG, logData);
         toast.success('농사 기록이 저장되었어요');
       }
       await load();
@@ -61,8 +108,12 @@ export default function DailyLog({ addTrigger }) {
   };
 
   const startEdit = (log) => {
-    setForm({ date: log.date, weather: log.weather, workTypes: log.workTypes || [], content: log.content, memo: log.memo || '' });
+    setForm({
+      date: log.date, weather: log.weather, workTypes: log.workTypes || [],
+      cropId: log.cropId || '', content: log.content, memo: log.memo || '',
+    });
     setEditingId(log.id);
+    setPhotos([]);
     setExpandedId(null);
     setShowForm(true);
   };
@@ -86,6 +137,8 @@ export default function DailyLog({ addTrigger }) {
         : [...prev.workTypes, type],
     }));
   };
+
+  const getCropName = (cropId) => crops.find(c => c.id === cropId)?.name || '';
 
   return (
     <div>
@@ -132,6 +185,22 @@ export default function DailyLog({ addTrigger }) {
             </div>
           </div>
 
+          {/* 작물 선택 */}
+          {crops.length > 0 && (
+            <div style={{ marginBottom: '12px' }}>
+              <label className="label">작물</label>
+              <select
+                className="input"
+                value={form.cropId}
+                onChange={e => setForm(p => ({ ...p, cropId: e.target.value }))}
+                style={{ fontSize: '14px' }}
+              >
+                <option value="">전체 (작물 미지정)</option>
+                {crops.map(c => <option key={c.id} value={c.id}>{c.name}{c.variety ? ` · ${c.variety}` : ''}</option>)}
+              </select>
+            </div>
+          )}
+
           <div style={{ marginBottom: '12px' }}>
             <label className="label">작업 종류</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -140,13 +209,9 @@ export default function DailyLog({ addTrigger }) {
                   key={type}
                   onClick={() => toggleWorkType(type)}
                   style={{
-                    padding: '5px 12px',
-                    borderRadius: '100px',
-                    border: '1px solid',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
+                    padding: '5px 12px', borderRadius: '100px',
+                    border: '1px solid', fontSize: '12px', fontWeight: 500,
+                    cursor: 'pointer', transition: 'all 0.15s',
                     fontFamily: 'var(--font-sans)',
                     borderColor: form.workTypes.includes(type) ? 'var(--color-primary)' : 'var(--border)',
                     background: form.workTypes.includes(type) ? 'var(--color-primary)' : 'transparent',
@@ -171,6 +236,50 @@ export default function DailyLog({ addTrigger }) {
             />
           </div>
 
+          {/* 사진 첨부 */}
+          <div style={{ marginBottom: '12px' }}>
+            <label className="label">사진</label>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotos}
+              style={{ display: 'none' }}
+            />
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {photos.map((p, i) => (
+                <div key={i} style={{ position: 'relative', width: '72px', height: '72px', borderRadius: '8px', overflow: 'hidden' }}>
+                  <img src={p.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button
+                    onClick={() => removePhoto(i)}
+                    style={{
+                      position: 'absolute', top: '2px', right: '2px',
+                      width: '20px', height: '20px', borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.6)', border: 'none',
+                      color: '#fff', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', cursor: 'pointer', padding: 0,
+                    }}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => fileRef.current?.click()}
+                style={{
+                  width: '72px', height: '72px', borderRadius: '8px',
+                  border: '1.5px dashed var(--border)', background: 'var(--bg-subtle)',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  justifyContent: 'center', cursor: 'pointer', gap: '2px',
+                }}
+              >
+                <Camera size={18} color="var(--text-muted)" strokeWidth={1.5} />
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>추가</span>
+              </button>
+            </div>
+          </div>
+
           <div style={{ marginBottom: '16px' }}>
             <label className="label">메모 (선택)</label>
             <input
@@ -183,9 +292,7 @@ export default function DailyLog({ addTrigger }) {
           </div>
 
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-            <button className="btn-secondary" onClick={resetForm}>
-              취소
-            </button>
+            <button className="btn-secondary" onClick={resetForm}>취소</button>
             <button className="btn-primary" onClick={save} disabled={!form.content.trim()}>
               {editingId ? '수정' : '저장'}
             </button>
@@ -207,6 +314,8 @@ export default function DailyLog({ addTrigger }) {
           {logs.map(log => {
             const dateStr = log.date ? log.date.replace(/-/g, '.') : '';
             const isExpanded = expandedId === log.id;
+            const cropName = getCropName(log.cropId);
+            const logPhotos = log.photos || [];
             return (
               <SwipeableRow
                 key={log.id}
@@ -220,20 +329,19 @@ export default function DailyLog({ addTrigger }) {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>{dateStr}</span>
                         <span className="badge badge-info" style={{ fontSize: '10px' }}>{log.weather}</span>
+                        {cropName && <span className="badge badge-good" style={{ fontSize: '10px' }}>{cropName}</span>}
                         {log.workTypes?.slice(0, 2).map(t => (
-                          <span key={t} className="badge badge-good" style={{ fontSize: '10px' }}>{t}</span>
+                          <span key={t} className="badge" style={{ fontSize: '10px', background: 'var(--bg-subtle)', color: 'var(--text-muted)' }}>{t}</span>
                         ))}
-                        {log.workTypes?.length > 2 && (
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>+{log.workTypes.length - 2}</span>
+                        {logPhotos.length > 0 && (
+                          <ImageIcon size={13} color="var(--text-muted)" strokeWidth={1.5} />
                         )}
                       </div>
                       <p style={{
-                        fontSize: '13px',
-                        color: 'var(--text)',
-                        lineHeight: 1.6,
+                        fontSize: '13px', color: 'var(--text)', lineHeight: 1.6,
                         overflow: isExpanded ? 'visible' : 'hidden',
                         display: isExpanded ? 'block' : '-webkit-box',
                         WebkitLineClamp: isExpanded ? 'unset' : 2,
@@ -245,6 +353,19 @@ export default function DailyLog({ addTrigger }) {
                         <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', fontStyle: 'italic' }}>
                           메모: {log.memo}
                         </p>
+                      )}
+                      {/* 사진 미리보기 */}
+                      {isExpanded && logPhotos.length > 0 && (
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
+                          {logPhotos.map((path, i) => (
+                            <img
+                              key={i}
+                              src={photoStorage.getUrl(path)}
+                              alt=""
+                              style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px' }}
+                            />
+                          ))}
+                        </div>
                       )}
                     </div>
                     <div style={{ marginLeft: '10px', display: 'flex', alignItems: 'center' }}>

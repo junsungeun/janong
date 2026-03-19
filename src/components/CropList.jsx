@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Plus, Sprout, ChevronRight, CalendarDays, Camera } from 'lucide-react';
+import { Plus, Sprout, ChevronRight, CalendarDays, Camera, BookOpen } from 'lucide-react';
 import { db, TABLES } from '../services/dbService';
 import { toast } from './Toast';
 import { ConfirmModal } from './ConfirmModal';
 import { SUPPORTED_CROPS, daysSincePlanting } from '../data/cropTimelines';
 import CropTimeline from './CropTimeline';
 import CropTimelapse from './CropTimelapse';
+import CropHistory from './CropHistory';
 import { SwipeableRow } from './SwipeableRow';
 
 const DETAIL_TABS = [
-  { id: 'timeline',  label: '재배 타임라인' },
+  { id: 'history',   label: '기록 히스토리' },
   { id: 'timelapse', label: '성장 타임랩스' },
+  { id: 'timeline',  label: '재배 타임라인' },
 ];
 
 // 작물 이모지 매핑
@@ -25,7 +27,7 @@ export default function CropList({ onSetSubPage }) {
   const [crops, setCrops]         = useState([]);
   const [showForm, setShowForm]   = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [detailTab, setDetailTab] = useState('timeline');
+  const [detailTab, setDetailTab] = useState('history');
   const [editingId, setEditingId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const BLANK_FORM = {
@@ -194,16 +196,18 @@ export default function CropList({ onSetSubPage }) {
                   boxShadow:  isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                 }}
               >
-                {tab.id === 'timeline'  && <CalendarDays size={14} strokeWidth={isActive ? 2 : 1.5} style={{ verticalAlign: 'middle', marginRight: '4px' }} />}
+                {tab.id === 'history'   && <BookOpen     size={14} strokeWidth={isActive ? 2 : 1.5} style={{ verticalAlign: 'middle', marginRight: '4px' }} />}
                 {tab.id === 'timelapse' && <Camera       size={14} strokeWidth={isActive ? 2 : 1.5} style={{ verticalAlign: 'middle', marginRight: '4px' }} />}
+                {tab.id === 'timeline'  && <CalendarDays size={14} strokeWidth={isActive ? 2 : 1.5} style={{ verticalAlign: 'middle', marginRight: '4px' }} />}
                 {tab.label}
               </button>
             );
           })}
         </div>
 
-        {detailTab === 'timeline'  && <CropTimeline  cropName={selectedCrop.name} plantingDate={selectedCrop.plantingDate} />}
+        {detailTab === 'history'   && <CropHistory   cropId={selectedCrop.id} />}
         {detailTab === 'timelapse' && <CropTimelapse cropId={selectedCrop.id} />}
+        {detailTab === 'timeline'  && <CropTimeline  cropName={selectedCrop.name} plantingDate={selectedCrop.plantingDate} />}
       </div>
     );
   }
@@ -378,7 +382,7 @@ export default function CropList({ onSetSubPage }) {
                 <button
                   onClick={() => {
                     setSelectedId(crop.id);
-                    setDetailTab('timeline');
+                    setDetailTab('history');
                     onSetSubPage?.({
                       title: `${CROP_EMOJI[crop.name] || '🌱'} ${crop.name}`,
                       onBack: () => setSelectedId(null),
