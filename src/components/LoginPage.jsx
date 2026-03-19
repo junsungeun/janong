@@ -27,15 +27,19 @@ export default function LoginPage() {
           setError('비밀번호는 6자 이상이어야 합니다.');
           return;
         }
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { name: name || '', role: 'user' } },
         });
         if (signUpError) throw signUpError;
-        setSuccess('가입 완료! 로그인해주세요.');
-        setMode('login');
-        setPassword('');
+        // 이메일 확인 필요 없으면 바로 로그인
+        if (signUpData?.session) {
+          // 자동 로그인됨 — onAuthStateChange가 처리
+          return;
+        }
+        // 세션이 없으면 수동 로그인
+        await signIn(email, password);
       }
     } catch (err) {
       setError(
