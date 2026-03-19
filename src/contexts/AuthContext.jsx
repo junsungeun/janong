@@ -9,11 +9,21 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
+    console.log('[AuthContext] fetchProfile:', { userId, data, error });
+    if (error) {
+      console.error('[AuthContext] profile 조회 실패:', error.message);
+      // RLS로 못 읽을 경우 — rpc로 직접 조회
+      const { data: rpcData } = await supabase.rpc('get_my_profile');
+      if (rpcData) {
+        setProfile(rpcData);
+        return;
+      }
+    }
     setProfile(data);
   };
 
