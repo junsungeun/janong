@@ -11,6 +11,7 @@ import { getCropTimeline } from './data/cropTimelines';
 import { toYMD, todayYMD } from './utils/dateUtils';
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './components/LoginPage';
+import { LogOut } from 'lucide-react';
 
 // ── Eager imports — 탭 전환 딜레이 제거 ──────────────────────────────
 import Dashboard    from './components/Dashboard';
@@ -234,6 +235,7 @@ function App() {
 
 // ── 앱 메인 ──────────────────────────────────────────────────────────
 function AppMain() {
+  const { signOut } = useAuth();
   const [activeTab, setActiveTab]     = useState('home');
   const [showNotif, setShowNotif]     = useState(false);
   const [notifCount, setNotifCount]   = useState(0);
@@ -378,7 +380,7 @@ function AppMain() {
           </div>
         )}
 
-        <div className="app-header-right">
+        <div className="app-header-right" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setShowNotif(v => !v)}
@@ -406,6 +408,17 @@ function AppMain() {
               </div>
             )}
           </div>
+          <button
+            onClick={signOut}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--text-muted)', display: 'flex', padding: '6px',
+              borderRadius: '8px', transition: 'all 0.15s',
+            }}
+            aria-label="로그아웃"
+          >
+            <LogOut size={18} strokeWidth={1.5} />
+          </button>
         </div>
 
         {showNotif && (
