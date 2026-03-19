@@ -2,7 +2,7 @@
 // API 키는 Supabase 서버 환경변수에만 보관. 프론트엔드에 노출 없음.
 
 const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
