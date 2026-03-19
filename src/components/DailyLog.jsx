@@ -36,6 +36,8 @@ export default function DailyLog({ addTrigger }) {
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
     weather: '맑음',
+    tempHigh: '',
+    tempLow: '',
     workTypes: [],
     cropId: '',
     content: '',
@@ -58,7 +60,7 @@ export default function DailyLog({ addTrigger }) {
   useEffect(() => { load(); }, []);
 
   const resetForm = () => {
-    setForm({ date: new Date().toISOString().slice(0, 10), weather: '맑음', workTypes: [], cropId: '', content: '', memo: '' });
+    setForm({ date: new Date().toISOString().slice(0, 10), weather: '맑음', tempHigh: '', tempLow: '', workTypes: [], cropId: '', content: '', memo: '' });
     setPhotos([]);
     setEditingId(null);
     setShowForm(false);
@@ -109,7 +111,9 @@ export default function DailyLog({ addTrigger }) {
 
   const startEdit = (log) => {
     setForm({
-      date: log.date, weather: log.weather, workTypes: log.workTypes || [],
+      date: log.date, weather: log.weather,
+      tempHigh: log.tempHigh ?? '', tempLow: log.tempLow ?? '',
+      workTypes: log.workTypes || [],
       cropId: log.cropId || '', content: log.content, memo: log.memo || '',
     });
     setEditingId(log.id);
@@ -182,6 +186,32 @@ export default function DailyLog({ addTrigger }) {
               >
                 {WEATHER_OPTIONS.map(w => <option key={w}>{w}</option>)}
               </select>
+            </div>
+          </div>
+
+          {/* 기온 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+            <div>
+              <label className="label">최저 기온 (°C)</label>
+              <input
+                type="number"
+                className="input"
+                placeholder="예: 5"
+                value={form.tempLow}
+                onChange={e => setForm(p => ({ ...p, tempLow: e.target.value }))}
+                style={{ fontSize: '14px' }}
+              />
+            </div>
+            <div>
+              <label className="label">최고 기온 (°C)</label>
+              <input
+                type="number"
+                className="input"
+                placeholder="예: 22"
+                value={form.tempHigh}
+                onChange={e => setForm(p => ({ ...p, tempHigh: e.target.value }))}
+                style={{ fontSize: '14px' }}
+              />
             </div>
           </div>
 
@@ -332,6 +362,11 @@ export default function DailyLog({ addTrigger }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>{dateStr}</span>
                         <span className="badge badge-info" style={{ fontSize: '10px' }}>{log.weather}</span>
+                        {(log.tempLow || log.tempHigh) && (
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            {log.tempLow ? `${log.tempLow}°` : ''}{log.tempLow && log.tempHigh ? '~' : ''}{log.tempHigh ? `${log.tempHigh}°` : ''}
+                          </span>
+                        )}
                         {cropName && <span className="badge badge-good" style={{ fontSize: '10px' }}>{cropName}</span>}
                         {log.workTypes?.slice(0, 2).map(t => (
                           <span key={t} className="badge" style={{ fontSize: '10px', background: 'var(--bg-subtle)', color: 'var(--text-muted)' }}>{t}</span>

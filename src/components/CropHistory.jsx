@@ -106,8 +106,13 @@ export default function CropHistory({ cropId }) {
             {/* 일지 내용 */}
             {entry.logs.map(log => (
               <div key={log.id} className="card" style={{ padding: '12px 14px', marginBottom: '6px' }}>
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <span className="badge badge-info" style={{ fontSize: '10px' }}>{log.weather}</span>
+                  {(log.tempLow || log.tempHigh) && (
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {log.tempLow ? `${log.tempLow}°` : ''}{log.tempLow && log.tempHigh ? '~' : ''}{log.tempHigh ? `${log.tempHigh}°` : ''}
+                    </span>
+                  )}
                   {log.workTypes?.map(t => (
                     <span key={t} className="badge badge-good" style={{ fontSize: '10px' }}>{t}</span>
                   ))}
