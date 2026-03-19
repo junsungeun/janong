@@ -25,6 +25,7 @@ export default function LoginPage() {
       } else {
         if (password.length < 6) {
           setError('비밀번호는 6자 이상이어야 합니다.');
+          setLoading(false);
           return;
         }
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({

@@ -17,16 +17,6 @@ export default function AdminApp() {
 
   if (!user) return <LoginPage />;
 
-  // profile 아직 로딩 중
-  if (user && !profile) {
-    return (
-      <div style={centerStyle}>
-        <Loader size={24} color="var(--color-primary)" style={{ animation: 'spin 1s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
-
   if (!isAdmin) {
     return (
       <div style={centerStyle}>

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Home, Sprout, BookOpen, Calendar, MoreHorizontal,
-  Bell, AlertTriangle, CheckSquare, Sprout as SproutIcon, X, Plus, ArrowLeft, Loader,
+  Bell, AlertTriangle, CheckSquare, Sprout as SproutIcon, X, Plus, ArrowLeft, Loader, LogOut,
 } from 'lucide-react';
 import { ToastContainer } from './components/Toast';
 import './styles/globals.css';
@@ -11,7 +11,6 @@ import { getCropTimeline } from './data/cropTimelines';
 import { toYMD, todayYMD } from './utils/dateUtils';
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './components/LoginPage';
-import { LogOut } from 'lucide-react';
 
 // ── Eager imports — 탭 전환 딜레이 제거 ──────────────────────────────
 import Dashboard    from './components/Dashboard';

@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 const AuthContext = createContext(null);
 
 async function loadProfile(userId) {
-  // 1차: 일반 조회
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -13,7 +12,6 @@ async function loadProfile(userId) {
 
   if (!error && data) return data;
 
-  // 2차: RLS 우회 rpc
   try {
     const { data: rpcData } = await supabase.rpc('get_my_profile');
     if (rpcData) return rpcData;
@@ -23,42 +21,43 @@ async function loadProfile(userId) {
 }
 
 export function AuthProvider({ children }) {
-  const [state, setState] = useState({
-    user: null,
-    profile: null,
-    loading: true,
-  });
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
-
-  const updateAuth = async (session) => {
-    const u = session?.user ?? null;
-
-    if (!u) {
-      if (mountedRef.current) {
-        setState({ user: null, profile: null, loading: false });
-      }
-      return;
-    }
-
-    const profile = await loadProfile(u.id);
-    if (mountedRef.current) {
-      setState({ user: u, profile, loading: false });
-    }
-  };
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
 
     // 초기 세션 로드
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      updateAuth(session);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mountedRef.current) return;
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        const p = await loadProfile(u.id);
+        if (mountedRef.current) setProfile(p);
+      }
+      if (mountedRef.current) {
+        setLoading(false);
+        initializedRef.current = true;
+      }
     });
 
-    // 이후 세션 변경 감지
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      // 초기 로드 후 변경만 처리
-      if (!state.loading) {
-        updateAuth(session);
+    // 이후 세션 변경 감지 (로그인/로그아웃)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mountedRef.current) return;
+      // 초기 로드 전이면 무시 (getSession이 처리)
+      if (!initializedRef.current) return;
+
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        const p = await loadProfile(u.id);
+        if (mountedRef.current) setProfile(p);
+      } else {
+        setProfile(null);
       }
     });
 
@@ -71,27 +70,20 @@ export function AuthProvider({ children }) {
   const signIn = async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    // onAuthStateChange가 처리
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
     if (mountedRef.current) {
-      setState({ user: null, profile: null, loading: false });
+      setUser(null);
+      setProfile(null);
     }
   };
 
-  const isAdmin = state.profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{
-      user: state.user,
-      profile: state.profile,
-      loading: state.loading,
-      signIn,
-      signOut,
-      isAdmin,
-    }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );
