@@ -114,8 +114,12 @@ export const fetchWeather = async (stationCode, apiKey) => {
     const proxyUrl = `${EDGE_FN_URL}?${params}`;
 
     const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || CONFIG.SUPABASE_ANON_KEY;
     const response = await fetchWithTimeout(proxyUrl, {
-      headers: { 'Authorization': `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}` },
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': CONFIG.SUPABASE_ANON_KEY,
+      },
     }, 20000);
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);

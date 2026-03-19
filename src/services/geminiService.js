@@ -3,20 +3,7 @@
 // 화학농약·화학비료는 절대 언급 금지
 // API 키는 Supabase Edge Function에서 관리 — 프론트엔드 노출 없음
 
-import { CONFIG } from '../config.js';
-import { fetchWithTimeout } from '../utils/fetchUtils';
 import { supabase } from '../lib/supabase';
-
-const BASE_URL = `${CONFIG.SUPABASE_URL}/functions/v1/gemini-proxy`;
-
-const getAuthHeaders = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  return {
-    'Content-Type': 'application/json',
-    'apikey': CONFIG.SUPABASE_ANON_KEY,
-    'Authorization': `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}`,
-  };
-};
 
 // ── 자연농업 핵심 규칙 (모든 프롬프트에 적용) ─────────────────────────
 const NATURAL_FARMING_RULE = `
@@ -57,23 +44,15 @@ ${NATURAL_FARMING_RULE}
 
 // ── 텍스트 전용 Gemini 호출 ──────────────────────────────────────────
 const callGeminiText = async (prompt) => {
-  const headers = await getAuthHeaders();
-  const res = await fetchWithTimeout(BASE_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
+  const { data, error } = await supabase.functions.invoke('gemini-proxy', {
+    body: {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
-    }),
-  }, 20000);
+    },
+  });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `HTTP ${res.status}`);
-  }
-
-  const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (error) throw new Error(error.message || 'Gemini 호출 실패');
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 };
 
 // ── 이슈 해결 조언 프롬프트 ──────────────────────────────────────────
@@ -108,11 +87,8 @@ const toBase64 = (file) =>
 
 // ── Gemini API 공통 호출 ─────────────────────────────────────────────
 const callGemini = async (base64Image, mimeType, prompt) => {
-  const headers = await getAuthHeaders();
-  const res = await fetchWithTimeout(BASE_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
+  const { data, error } = await supabase.functions.invoke('gemini-proxy', {
+    body: {
       contents: [{
         parts: [
           { text: prompt },
@@ -120,17 +96,11 @@ const callGemini = async (base64Image, mimeType, prompt) => {
         ],
       }],
       generationConfig: { temperature: 0.6, maxOutputTokens: 1024 },
-    }),
-  }, 30000);
+    },
+  });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    const msg = err?.error?.message || `HTTP ${res.status}`;
-    throw new Error(msg);
-  }
-
-  const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (error) throw new Error(error.message || 'Gemini 호출 실패');
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 };
 
 // ── 공개 API ─────────────────────────────────────────────────────────
