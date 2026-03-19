@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
@@ -8,45 +8,62 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId) => {
+  const fetchProfile = useCallback(async (userId) => {
+    // 1차: 일반 조회
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
-    console.log('[AuthContext] fetchProfile:', { userId, data, error });
-    if (error) {
-      console.error('[AuthContext] profile 조회 실패:', error.message);
-      // RLS로 못 읽을 경우 — rpc로 직접 조회
-      const { data: rpcData } = await supabase.rpc('get_my_profile');
-      if (rpcData) {
-        setProfile(rpcData);
-        return;
-      }
+
+    if (!error && data) {
+      setProfile(data);
+      return;
     }
-    setProfile(data);
-  };
+
+    // 2차: RLS 우회 rpc
+    const { data: rpcData } = await supabase.rpc('get_my_profile');
+    if (rpcData) {
+      setProfile(rpcData);
+      return;
+    }
+
+    setProfile(null);
+  }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) fetchProfile(u.id);
-      setLoading(false);
-    });
+    let mounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const u = session?.user ?? null;
+      if (!mounted) return;
+
+      setUser(u);
+      if (u) {
+        await fetchProfile(u.id);
+      }
+      if (mounted) setLoading(false);
+    };
+
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
-        fetchProfile(u.id);
+        await fetchProfile(u.id);
       } else {
         setProfile(null);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchProfile]);
 
   const signIn = async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
