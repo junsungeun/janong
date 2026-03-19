@@ -1,11 +1,100 @@
-import { CheckCircle, MapPin, Cpu, CloudSun } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle, MapPin, Cpu, CloudSun, LogOut, Shield, User } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import AdminDashboard from './admin/AdminDashboard';
 
 export default function SettingsPanel() {
+  const { user, profile, signOut, isAdmin } = useAuth();
+  const [showAdmin, setShowAdmin] = useState(false);
+
+  if (showAdmin && isAdmin) {
+    return <AdminDashboard onBack={() => setShowAdmin(false)} />;
+  }
+
   return (
     <div>
       <div className="section-header" style={{ marginBottom: '20px' }}>
         <span className="section-title">앱 설정</span>
       </div>
+
+      {/* ── 내 계정 ── */}
+      <div className="card" style={{ padding: '16px 18px', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '8px',
+            background: 'var(--color-primary-light)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <User size={18} color="var(--color-primary)" strokeWidth={1.5} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>
+              {profile?.name || '사용자'}
+            </p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+              {user?.email}
+            </p>
+          </div>
+          {isAdmin && (
+            <span style={{
+              fontSize: '10px', fontWeight: 700, color: 'var(--color-primary)',
+              background: 'var(--color-primary-light)',
+              padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.06em',
+            }}>
+              ADMIN
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* ── 어드민 패널 ── */}
+      {isAdmin && (
+        <button
+          onClick={() => setShowAdmin(true)}
+          className="card"
+          style={{
+            width: '100%', padding: '14px 18px', marginBottom: '10px',
+            display: 'flex', alignItems: 'center', gap: '12px',
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: '12px', cursor: 'pointer', textAlign: 'left',
+            fontFamily: 'var(--font-sans)',
+          }}
+        >
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '8px',
+            background: '#EFF6FF',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Shield size={18} color="#3B82F6" strokeWidth={1.5} />
+          </div>
+          <div>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>유저 관리</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>계정 생성 · 삭제 · 비밀번호 변경</p>
+          </div>
+        </button>
+      )}
+
+      {/* ── 로그아웃 ── */}
+      <button
+        onClick={signOut}
+        className="card"
+        style={{
+          width: '100%', padding: '14px 18px', marginBottom: '24px',
+          display: 'flex', alignItems: 'center', gap: '12px',
+          background: 'var(--bg-card)', border: '1px solid var(--border)',
+          borderRadius: '12px', cursor: 'pointer', textAlign: 'left',
+          fontFamily: 'var(--font-sans)',
+        }}
+      >
+        <div style={{
+          width: '36px', height: '36px', borderRadius: '8px',
+          background: '#FFF0F0',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <LogOut size={18} color="var(--color-danger)" strokeWidth={1.5} />
+        </div>
+        <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-danger)' }}>로그아웃</p>
+      </button>
 
       {/* ── 연동 현황 ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>

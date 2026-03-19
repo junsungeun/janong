@@ -49,9 +49,11 @@ export const db = {
     return camelify(data);
   },
 
-  // 추가
+  // 추가 (user_id 자동 주입)
   add: async (table, item) => {
-    const { data, error } = await supabase.from(table).insert(snakify(item)).select().single();
+    const { data: { user } } = await supabase.auth.getUser();
+    const row = { ...snakify(item), user_id: user?.id };
+    const { data, error } = await supabase.from(table).insert(row).select().single();
     if (error) throw error;
     return camelify(data);
   },

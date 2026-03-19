@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Home, Sprout, BookOpen, Calendar, MoreHorizontal,
-  Bell, AlertTriangle, CheckSquare, Sprout as SproutIcon, X, Plus, ArrowLeft,
+  Bell, AlertTriangle, CheckSquare, Sprout as SproutIcon, X, Plus, ArrowLeft, Loader,
 } from 'lucide-react';
 import { ToastContainer } from './components/Toast';
 import './styles/globals.css';
@@ -9,6 +9,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { db, TABLES } from './services/dbService';
 import { getCropTimeline } from './data/cropTimelines';
 import { toYMD, todayYMD } from './utils/dateUtils';
+import { useAuth } from './contexts/AuthContext';
+import LoginPage from './components/LoginPage';
 
 // ── Eager imports — 탭 전환 딜레이 제거 ──────────────────────────────
 import Dashboard    from './components/Dashboard';
@@ -209,8 +211,29 @@ function FAB({ onNavigate }) {
   );
 }
 
-// ── 앱 ────────────────────────────────────────────────────────────────
+// ── 인증 게이트 ──────────────────────────────────────────────────────
 function App() {
+  const { user, loading: authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div style={{
+        minHeight: '100dvh', background: 'var(--bg)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Loader size={24} color="var(--color-primary)" style={{ animation: 'spin 1s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (!user) return <LoginPage />;
+
+  return <AppMain />;
+}
+
+// ── 앱 메인 ──────────────────────────────────────────────────────────
+function AppMain() {
   const [activeTab, setActiveTab]     = useState('home');
   const [showNotif, setShowNotif]     = useState(false);
   const [notifCount, setNotifCount]   = useState(0);
