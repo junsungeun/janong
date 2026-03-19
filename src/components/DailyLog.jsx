@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, ChevronDown, ChevronUp, BookOpen, Camera, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, BookOpen, Camera, X, Image as ImageIcon, Thermometer } from 'lucide-react';
 import { db, TABLES, photoStorage } from '../services/dbService';
 import { formatDate } from '../utils/solarTerms';
 import { toast } from './Toast';
 import { ConfirmModal } from './ConfirmModal';
 import { SwipeableRow } from './SwipeableRow';
+import { fetchCurrentWeather } from '../services/kmaWeatherService';
 
 const WEATHER_OPTIONS = ['맑음', '흐림', '비', '눈', '바람'];
 const WORK_TYPES = ['파종', '정식', '물주기', '방제', '수확', '전정', '멀칭', '기타'];
@@ -93,7 +94,22 @@ export default function DailyLog({ addTrigger }) {
         photoPaths.push(path);
       }
 
-      const logData = { ...form, photos: photoPaths };
+      // 자동 기온 가져오기 (수동 입력 없을 때만)
+      let autoTemp = null;
+      if (!form.tempHigh && !form.tempLow) {
+        const weather = await fetchCurrentWeather();
+        if (weather?.temp !== null) {
+          autoTemp = weather.temp;
+        }
+      }
+
+      const logData = {
+        ...form,
+        photos: photoPaths,
+        ...(autoTemp !== null && !form.tempHigh ? { tempHigh: autoTemp } : {}),
+        ...(autoTemp !== null && !form.tempLow ? { tempLow: autoTemp } : {}),
+        ...(autoTemp !== null ? { autoTemp, autoTempAt: new Date().toISOString() } : {}),
+      };
 
       if (editingId) {
         await db.update(TABLES.DAILY_LOG, editingId, logData);

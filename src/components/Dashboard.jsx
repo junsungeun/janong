@@ -1,159 +1,69 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  CheckSquare, AlertTriangle,
-  RefreshCw, X, ChevronDown, ChevronUp,
-  ChevronLeft, ChevronRight, CalendarDays, Sprout,
+  Sprout, BookOpen, Camera, Thermometer,
+  ChevronRight, TrendingUp, Calendar as CalIcon,
 } from 'lucide-react';
+import { db, TABLES, photoStorage } from '../services/dbService';
 import { getCurrentSolarTerm, formatDate } from '../utils/solarTerms';
-import { db, TABLES } from '../services/dbService';
-import { getCropTimeline } from '../data/cropTimelines';
-import { adviseIssue, MOCK_ISSUE_ADVICE } from '../services/geminiService';
-import { toYMD, todayYMD } from '../utils/dateUtils';
-import { SEVERITY, CROP_OPTIONS, REPEAT_OPTIONS, WEEKDAYS, EVENT_TYPE_COLORS } from '../constants';
-import WeatherCard from './WeatherCard';
-import ResultView from './ResultView';
+import { daysSincePlanting } from '../data/cropTimelines';
+import { todayYMD } from '../utils/dateUtils';
 import { getTodayVerse } from '../data/bibleVerses';
+import { fetchCurrentWeather, getRainTypeText } from '../services/kmaWeatherService';
 
 export default function Dashboard({ onNavigate, trigger }) {
-  const [todos, setTodos]       = useState([]);
-  const [issues, setIssues]     = useState([]);
-  const [crops, setCrops]       = useState([]);
-  const [calEvents, setCalEvents] = useState([]);
+  const [crops, setCrops] = useState([]);
+  const [logs, setLogs] = useState([]);
+  const [photos, setPhotos] = useState([]);
+  const [weather, setWeather] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
 
-  // 이슈 등록 상태
-  const [showIssueForm, setShowIssueForm] = useState(false);
-  const [issueForm, setIssueForm] = useState({ title: '', content: '', severity: 'high', crop: '전체' });
-  const [issueAdvice, setIssueAdvice] = useState(null);
-  const [adviceLoading, setAdviceLoading] = useState(false);
-  const [savedIssue, setSavedIssue] = useState(null);
-
-  // 할 일 추가 상태
-  const [showTodoForm, setShowTodoForm] = useState(false);
-  const [todoForm, setTodoForm] = useState({ text: '', date: '', repeat: '없음' });
-
-  // 캘린더 펼치기 상태
-  const [calExpanded, setCalExpanded] = useState(false);
-  const [calSelDate, setCalSelDate]   = useState(null);
-  const [calMonth, setCalMonth]       = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
-
-  const dateInfo  = formatDate();
+  const dateInfo = formatDate();
   const solarTerm = getCurrentSolarTerm();
-  const verse     = getTodayVerse();
+  const verse = getTodayVerse();
 
-  const load = async () => {
-    const [td, iss, cr, cal] = await Promise.all([
-      db.getList(TABLES.TODO),
-      db.getList(TABLES.ISSUE),
-      db.getList(TABLES.CROP),
-      db.getList(TABLES.CALENDAR),
-    ]);
-    setTodos(td);
-    setIssues(iss);
-    setCrops(cr);
-    setCalEvents(cal);
-  };
-
-  useEffect(() => { load(); }, []);
-
-  // FAB / 외부 트리거 처리
   useEffect(() => {
-    if (!trigger?.key) return;
-    if (trigger.action === 'todo') {
-      setShowTodoForm(true);
-      setShowIssueForm(false);
-    } else if (trigger.action === 'issue') {
-      setShowIssueForm(true);
-      setShowTodoForm(false);
-      setSavedIssue(null);
-      setIssueAdvice(null);
-    }
-  }, [trigger?.key]);
+    const load = async () => {
+      const [cr, lg, ph] = await Promise.all([
+        db.getList(TABLES.CROP),
+        db.getList(TABLES.DAILY_LOG),
+        db.getList(TABLES.CROP_PHOTO),
+      ]);
+      setCrops(cr);
+      setLogs(lg);
+      setPhotos(ph);
+    };
+    load();
 
-  const toggleTodo = async (id) => {
-    await db.update(TABLES.TODO, id, { done: !todos.find(t => t.id === id)?.done });
-    await load();
-  };
-
-  // ── 이번 주 날짜 배열 (일~토) ─────────────────────────────────────
-  const weekDates = useMemo(() => {
-    const today = new Date();
-    const dow = today.getDay(); // 0=일
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(today);
-      d.setDate(today.getDate() - dow + i);
-      return toYMD(d);
+    fetchCurrentWeather().then(w => {
+      setWeather(w);
+      setWeatherLoading(false);
     });
   }, []);
 
-  // ── 날짜별 이벤트 맵 ──────────────────────────────────────────────
-  const eventsByDate = useMemo(() => {
-    const map = {};
-    const push = (ymd, ev) => { map[ymd] = [...(map[ymd] || []), ev]; };
+  // 통계
+  const totalLogs = logs.length;
+  const totalPhotos = photos.length + logs.reduce((acc, l) => acc + (l.photos?.length || 0), 0);
+  const thisWeekLogs = logs.filter(l => {
+    const d = new Date(l.date);
+    const now = new Date();
+    const diff = (now - d) / (1000 * 60 * 60 * 24);
+    return diff <= 7 && diff >= 0;
+  }).length;
 
-    // 작물 타임라인
-    crops.forEach(crop => {
-      getCropTimeline(crop.name, crop.plantingDate).forEach(item => {
-        push(item.date, { type: 'timeline', label: item.label, icon: item.icon, crop: crop.name });
-      });
-    });
+  // 최근 기온 데이터 (최근 7개)
+  const tempLogs = logs
+    .filter(l => l.autoTemp || l.tempHigh || l.tempLow)
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+    .slice(-7);
 
-    // 캘린더 이벤트
-    calEvents.forEach(ev => push(ev.date, { type: 'calendar', label: ev.title }));
-
-    // 할 일
-    todos.filter(t => t.date && !t.done).forEach(t => push(t.date, { type: 'todo', label: t.text }));
-
-    return map;
-  }, [crops, calEvents, todos]);
-
-  // 오늘 이벤트
-  const todayEvents = eventsByDate[todayYMD] || [];
-  // 오늘 미완료 할 일
-  const pendingTodos = todos.filter(t => !t.done).slice(0, 3);
-  const activeIssues = issues.filter(i => !i.solved);
-
-  // ── 이슈 저장 + Gemini 조언 ─────────────────────────────────────────
-  const saveIssue = async () => {
-    if (!issueForm.title.trim()) return;
-    setAdviceLoading(true);
-    setIssueAdvice(null);
-    const saved = await db.add(TABLES.ISSUE, { ...issueForm, solved: false });
-    setSavedIssue(saved);
-    await load();
-    try {
-      const text = await adviseIssue(issueForm);
-      setIssueAdvice(text);
-    } catch {
-      setIssueAdvice(MOCK_ISSUE_ADVICE);
-    } finally {
-      setAdviceLoading(false);
-    }
-  };
-
-  const resetIssueForm = () => {
-    setShowIssueForm(false);
-    setIssueForm({ title: '', content: '', severity: 'high', crop: '전체' });
-    setIssueAdvice(null);
-    setSavedIssue(null);
-    setAdviceLoading(false);
-  };
-
-  // ── 할 일 저장 ───────────────────────────────────────────────────────
-  const saveTodo = async () => {
-    if (!todoForm.text.trim()) return;
-    await db.add(TABLES.TODO, { ...todoForm, done: false });
-    await load();
-    setTodoForm({ text: '', date: '', repeat: '없음' });
-    setShowTodoForm(false);
-  };
-
-  const dotColor = (type) => EVENT_TYPE_COLORS[type] || 'var(--border)';
+  // 최근 기록 3개
+  const recentLogs = logs.slice(0, 3);
 
   return (
     <div className="dashboard">
 
       {/* ── 날짜 + 절기 ── */}
-      <div className="date-header mb-4">
+      <div style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
           <span style={{
             fontFamily: 'var(--font-serif)', fontSize: '22px',
@@ -161,469 +71,198 @@ export default function Dashboard({ onNavigate, trigger }) {
           }}>
             {dateInfo.month}월 {dateInfo.day}일
           </span>
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-            {dateInfo.weekday}요일
-          </span>
-          {solarTerm && <span className="badge badge-good" style={{ marginLeft: '4px' }}>{solarTerm}</span>}
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{dateInfo.weekday}요일</span>
+          {solarTerm && <span className="badge badge-good">{solarTerm}</span>}
         </div>
+      </div>
+
+      {/* ── 현재 날씨 (기상청 실시간) ── */}
+      <div className="card" style={{ padding: '18px 20px', marginBottom: '12px' }}>
+        {weatherLoading ? (
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>날씨 불러오는 중...</p>
+        ) : weather ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-sans)' }}>
+                  {weather.temp}°
+                </span>
+                {weather.rainType > 0 && (
+                  <span className="badge badge-info">{getRainTypeText(weather.rainType)}</span>
+                )}
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                습도 {weather.rh}% · 풍속 {weather.windSpeed}m/s
+                {weather.rain > 0 ? ` · 강수 ${weather.rain}mm` : ''}
+              </p>
+            </div>
+            <Thermometer size={28} color="var(--color-terra)" strokeWidth={1.5} />
+          </div>
+        ) : (
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center' }}>
+            위치 권한을 허용하면 현재 기온을 볼 수 있어요
+          </p>
+        )}
       </div>
 
       {/* ── 오늘의 말씀 ── */}
-      <div className="mb-5" style={{
+      <div style={{
         background: 'var(--color-primary)', borderRadius: '10px',
-        padding: '18px 20px', position: 'relative', overflow: 'hidden',
+        padding: '16px 20px', marginBottom: '16px',
       }}>
-        <div style={{ position: 'absolute', right: '-20px', top: '-20px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', right: '20px', bottom: '-30px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-        <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: '10px' }}>
-          오늘의 말씀
-        </p>
-        <p style={{ fontFamily: 'var(--font-serif)', fontSize: '14px', color: 'rgba(255,255,255,0.92)', lineHeight: 1.85, marginBottom: '12px' }}>
+        <p style={{ fontFamily: 'var(--font-serif)', fontSize: '13px', color: 'rgba(255,255,255,0.9)', lineHeight: 1.85 }}>
           "{verse.text}"
         </p>
-        <p style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.05em' }}>
-          — {verse.ref}
-        </p>
+        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginTop: '8px' }}>— {verse.ref}</p>
       </div>
 
-      {/* ── 미해결 이슈 알림 (긴급 — 날씨 위) ── */}
-      {activeIssues.length > 0 && !showIssueForm && (
-        <div className="mb-5">
-          <div className="section-header">
-            <span className="section-title" style={{ color: 'var(--color-danger)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '16px' }}>
-              <AlertTriangle size={16} strokeWidth={1.5} />
-              미해결 이슈 {activeIssues.length}건
-            </span>
-            <button className="btn-ghost" onClick={() => onNavigate('more')}>전체 보기</button>
+      {/* ── 요약 통계 ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
+        <StatCard icon={<Sprout size={18} />} label="내 작물" value={`${crops.length}종`} color="var(--color-primary)" />
+        <StatCard icon={<BookOpen size={18} />} label="이번주 기록" value={`${thisWeekLogs}건`} color="var(--color-earth)" />
+        <StatCard icon={<Camera size={18} />} label="총 사진" value={`${totalPhotos}장`} color="var(--color-terra)" />
+      </div>
+
+      {/* ── 기온 추이 (간단 바 차트) ── */}
+      {tempLogs.length > 0 && (
+        <div className="card" style={{ padding: '16px 18px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
+            <TrendingUp size={15} color="var(--color-terra)" strokeWidth={1.5} />
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>최근 기온</span>
           </div>
-          {activeIssues.slice(0, 2).map(issue => (
-            <div key={issue.id} className="card" style={{
-              borderLeft: '3px solid var(--color-danger)', borderRadius: '0 8px 8px 0',
-              padding: '14px 16px', marginBottom: '6px',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{issue.title}</p>
-                  <p style={{ fontSize: 'var(--text-caption)', color: 'var(--text-muted)', marginTop: '3px' }}>작물: {issue.crop}</p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '80px' }}>
+            {tempLogs.map((log, i) => {
+              const temp = log.autoTemp || log.tempHigh || log.tempLow || 0;
+              const maxTemp = Math.max(...tempLogs.map(l => l.autoTemp || l.tempHigh || l.tempLow || 0), 1);
+              const h = Math.max(10, (temp / maxTemp) * 60);
+              return (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text)' }}>{Math.round(temp)}°</span>
+                  <div style={{
+                    width: '100%', height: `${h}px`, borderRadius: '4px',
+                    background: `linear-gradient(to top, var(--color-primary), var(--color-terra))`,
+                    opacity: 0.7 + (i / tempLogs.length) * 0.3,
+                  }} />
+                  <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
+                    {(log.date || '').slice(5).replace('-', '/')}
+                  </span>
                 </div>
-                <span className="badge badge-danger">
-                  {issue.severity === 'high' ? '높음' : issue.severity === 'mid' ? '보통' : '낮음'}
-                </span>
-              </div>
-            </div>
-          ))}
-          {activeIssues.length > 2 && (
-            <button className="btn-ghost" onClick={() => onNavigate('more')} style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              +{activeIssues.length - 2}건 더 보기
-            </button>
-          )}
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* ── 날씨 카드 ── */}
-      <WeatherCard />
-
-      {/* ── 일정 캘린더 ── */}
-      <div className="mb-5">
-        <div className="section-header" style={{ marginBottom: '12px' }}>
-          <span className="section-title">일정</span>
-          <button
-            onClick={() => { setCalExpanded(v => !v); setCalSelDate(null); }}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: '32px', height: '32px', borderRadius: '8px',
-              background: calExpanded ? 'var(--color-primary-light)' : 'var(--bg-card)',
-              border: `1px solid ${calExpanded ? 'var(--color-primary)' : 'var(--border)'}`,
-              cursor: 'pointer', color: calExpanded ? 'var(--color-primary)' : 'var(--text-muted)',
-              transition: 'all 0.15s', flexShrink: 0,
-            }}
-          >
-            {calExpanded ? <ChevronUp size={15} strokeWidth={2} /> : <ChevronDown size={15} strokeWidth={2} />}
-          </button>
-        </div>
-
-        {/* 주간 날짜 스트립 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '10px' }}>
-          {weekDates.map((ymd, i) => {
-            const isToday  = ymd === todayYMD;
-            const isSel    = ymd === calSelDate;
-            const d        = new Date(ymd);
-            const dayEvs   = eventsByDate[ymd] || [];
-            const isSun    = i === 0;
-            const isSat    = i === 6;
-            return (
-              <button key={ymd}
-                onClick={() => setCalSelDate(isSel ? null : ymd)}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 0',
-                }}
-              >
-                <p style={{
-                  fontSize: '10px', fontWeight: 500, marginBottom: '4px',
-                  color: isSun ? 'var(--color-danger)' : isSat ? 'var(--color-info)' : 'var(--text-muted)',
-                }}>
-                  {WEEKDAYS[d.getDay()]}
-                </p>
-                <div style={{
-                  width: '32px', height: '32px', borderRadius: '50%', margin: '0 auto',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: isSel ? 'var(--color-earth)' : isToday ? 'var(--color-primary)' : 'transparent',
-                }}>
-                  <span style={{
-                    fontSize: '13px', fontWeight: (isToday || isSel) ? 700 : 400,
-                    color: (isToday || isSel) ? '#fff' : isSun ? 'var(--color-danger)' : isSat ? 'var(--color-info)' : 'var(--text)',
+      {/* ── 내 작물 요약 ── */}
+      {crops.length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          <div className="section-header" style={{ marginBottom: '10px' }}>
+            <span className="section-title">내 작물</span>
+            <button className="btn-ghost" onClick={() => onNavigate('crop')}>
+              전체 보기
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {crops.slice(0, 4).map(crop => {
+              const elapsed = daysSincePlanting(crop.plantingDate);
+              const cropLogs = logs.filter(l => l.cropId === crop.id).length;
+              return (
+                <button
+                  key={crop.id}
+                  onClick={() => onNavigate('crop')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '12px 14px', background: 'var(--bg-card)',
+                    border: '1px solid var(--border)', borderRadius: '10px',
+                    cursor: 'pointer', textAlign: 'left', width: '100%',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  <div style={{
+                    width: '40px', height: '40px', borderRadius: '10px',
+                    background: 'var(--color-primary-light)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '20px', flexShrink: 0,
                   }}>
-                    {d.getDate()}
-                  </span>
-                </div>
-                <div style={{ height: '6px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px', marginTop: '3px' }}>
-                  {dayEvs.slice(0, 3).map((ev, j) => (
-                    <div key={j} style={{ width: '4px', height: '4px', borderRadius: '50%', background: dotColor(ev.type) }} />
-                  ))}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ── 펼친 월간 캘린더 ── */}
-        {calExpanded && (() => {
-          const cells = [];
-          const first = new Date(calMonth.year, calMonth.month, 1);
-          const last  = new Date(calMonth.year, calMonth.month + 1, 0).getDate();
-          for (let i = 0; i < first.getDay(); i++) cells.push(null);
-          for (let d = 1; d <= last; d++) cells.push(d);
-
-          return (
-            <div style={{
-              background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: '12px', padding: '14px', marginBottom: '10px',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <button onClick={() => setCalMonth(p => { const d = new Date(p.year, p.month - 1); return { year: d.getFullYear(), month: d.getMonth() }; })}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '4px' }}>
-                  <ChevronLeft size={16} strokeWidth={1.5} />
-                </button>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-serif)' }}>
-                  {calMonth.year}년 {calMonth.month + 1}월
-                </span>
-                <button onClick={() => setCalMonth(p => { const d = new Date(p.year, p.month + 1); return { year: d.getFullYear(), month: d.getMonth() }; })}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '4px' }}>
-                  <ChevronRight size={16} strokeWidth={1.5} />
-                </button>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '4px' }}>
-                {WEEKDAYS.map((w, i) => (
-                  <div key={w} style={{
-                    textAlign: 'center', fontSize: '10px', fontWeight: 600, padding: '3px 0',
-                    color: i === 0 ? 'var(--color-danger)' : i === 6 ? 'var(--color-info)' : 'var(--text-muted)',
-                  }}>{w}</div>
-                ))}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-                {cells.map((day, i) => {
-                  if (!day) return <div key={`e-${i}`} />;
-                  const ymd    = `${calMonth.year}-${String(calMonth.month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                  const isToday = ymd === todayYMD;
-                  const isSel   = ymd === calSelDate;
-                  const colIdx  = i % 7;
-                  const dots    = [...new Set((eventsByDate[ymd] || []).map(e => e.type))];
-                  return (
-                    <button key={ymd} onClick={() => setCalSelDate(isSel ? null : ymd)}
-                      style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                        padding: '5px 2px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-                        background: isSel ? 'var(--color-earth)' : isToday ? 'var(--color-primary-light)' : 'transparent',
-                        minHeight: '40px',
-                      }}
-                    >
-                      <span style={{
-                        fontSize: '12px', lineHeight: 1, marginBottom: '4px', fontWeight: (isToday || isSel) ? 700 : 400,
-                        color: isSel ? '#fff' : isToday ? 'var(--color-primary)'
-                          : colIdx === 0 ? 'var(--color-danger)' : colIdx === 6 ? 'var(--color-info)' : 'var(--text)',
-                      }}>
-                        {day}
-                      </span>
-                      <div style={{ display: 'flex', gap: '2px' }}>
-                        {dots.slice(0, 3).map((type, j) => (
-                          <div key={j} style={{
-                            width: '4px', height: '4px', borderRadius: '50%',
-                            background: isSel ? 'rgba(255,255,255,0.8)' : dotColor(type),
-                          }} />
-                        ))}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ── 선택된 날짜 항목 ── */}
-        {calSelDate && (() => {
-          const items = eventsByDate[calSelDate] || [];
-          const d     = new Date(calSelDate);
-          const label = calSelDate === todayYMD ? '오늘' : `${d.getMonth() + 1}/${d.getDate()}`;
-          return (
-            <div style={{
-              background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: '10px', padding: '14px', marginBottom: '6px',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{label} 일정</p>
-                <button onClick={() => setCalSelDate(null)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
-                  <X size={15} strokeWidth={1.5} />
-                </button>
-              </div>
-              {items.length === 0 ? (
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>
-                  이날 등록된 항목이 없어요
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                  {items.map((ev, i) => (
-                    <div key={i} style={{
-                      display: 'flex', alignItems: 'center', gap: '8px',
-                      padding: '9px 12px', borderRadius: '7px',
-                      background: 'var(--bg-subtle)',
-                      border: '1px solid var(--border)',
-                      borderLeft: `3px solid ${dotColor(ev.type)}`,
-                    }}>
-                      <div style={{ flexShrink: 0 }}>
-                        {ev.type === 'timeline' && <Sprout size={13} color={dotColor('timeline')} strokeWidth={1.5} />}
-                        {ev.type === 'calendar'  && <CalendarDays size={13} color={dotColor('calendar')} strokeWidth={1.5} />}
-                        {ev.type === 'todo'      && <CheckSquare size={13} color={dotColor('todo')} strokeWidth={1.5} />}
-                        {ev.type === 'issue'     && <AlertTriangle size={13} color={dotColor('issue')} strokeWidth={1.5} />}
-                      </div>
-                      <span style={{ fontSize: '12px', color: 'var(--text)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                        {ev.icon ? `${ev.icon} ` : ''}{ev.label}
-                      </span>
-                      {ev.crop && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{ev.crop}</span>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* 오늘 항목 (날짜 미선택 상태) */}
-        {!calSelDate && (() => {
-          const todayEvs = eventsByDate[todayYMD] || [];
-          if (todayEvs.length === 0) return (
-            <div style={{ padding: '14px', borderRadius: '8px', textAlign: 'center', background: 'var(--bg-subtle)', color: 'var(--text-muted)' }}>
-              <p style={{ fontSize: '12px' }}>오늘 예정된 일정이 없어요</p>
-            </div>
-          );
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              {todayEvs.slice(0, 4).map((ev, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  padding: '9px 12px', borderRadius: '7px',
-                  background: 'var(--bg-card)', border: '1px solid var(--border)',
-                  borderLeft: `3px solid ${dotColor(ev.type)}`,
-                }}>
-                  <div style={{ flexShrink: 0 }}>
-                    {ev.type === 'timeline' && <Sprout size={13} color={dotColor('timeline')} strokeWidth={1.5} />}
-                    {ev.type === 'calendar'  && <CalendarDays size={13} color={dotColor('calendar')} strokeWidth={1.5} />}
-                    {ev.type === 'todo'      && <CheckSquare size={13} color={dotColor('todo')} strokeWidth={1.5} />}
-                    {ev.type === 'issue'     && <AlertTriangle size={13} color={dotColor('issue')} strokeWidth={1.5} />}
+                    🌱
                   </div>
-                  <span style={{ fontSize: '12px', color: 'var(--text)', flex: 1 }}>
-                    {ev.icon ? `${ev.icon} ` : ''}{ev.label}
-                  </span>
-                  {ev.crop && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{ev.crop}</span>}
-                </div>
-              ))}
-              {todayEvs.length > 4 && (
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', padding: '4px 0' }}>
-                  +{todayEvs.length - 4}개 더
-                </p>
-              )}
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* ── 할 일 미리보기 ── */}
-      <div className="mb-5">
-        <div className="section-header">
-          <span className="section-title">할 일</span>
-          <button className="btn-ghost" onClick={() => onNavigate('more')}>전체 보기</button>
-        </div>
-
-        {/* 인라인 할 일 추가 폼 */}
-        {showTodoForm && (
-          <div className="card mb-4" style={{ borderLeft: '3px solid var(--color-primary)', borderRadius: '0 8px 8px 0', padding: '16px 18px' }}>
-            <div style={{ marginBottom: '10px' }}>
-              <input className="input" placeholder="할 일을 입력해요"
-                value={todoForm.text}
-                onChange={e => setTodoForm(p => ({ ...p, text: e.target.value }))}
-                onKeyDown={e => e.key === 'Enter' && saveTodo()}
-                style={{ fontSize: '14px' }} autoFocus />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
-              <input type="date" className="input" value={todoForm.date}
-                onChange={e => setTodoForm(p => ({ ...p, date: e.target.value }))} style={{ fontSize: '13px' }} />
-              <select className="input" value={todoForm.repeat}
-                onChange={e => setTodoForm(p => ({ ...p, repeat: e.target.value }))} style={{ fontSize: '13px' }}>
-                {REPEAT_OPTIONS.map(r => <option key={r}>{r}</option>)}
-              </select>
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn-secondary" onClick={() => setShowTodoForm(false)} style={{ flex: 1 }}>취소</button>
-              <button className="btn-primary" onClick={saveTodo} disabled={!todoForm.text.trim()} style={{ flex: 2, justifyContent: 'center' }}>
-                추가
-              </button>
-            </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>
+                      {crop.name}
+                    </span>
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      D+{elapsed} · 기록 {cropLogs}건
+                    </p>
+                  </div>
+                  <ChevronRight size={16} color="var(--text-muted)" />
+                </button>
+              );
+            })}
           </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {pendingTodos.length === 0 && !showTodoForm ? (
-            <div className="card-record" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-              <CheckSquare size={28} strokeWidth={1.5} style={{ margin: '0 auto 8px', display: 'block' }} />
-              <p style={{ fontSize: 'var(--text-sm)' }}>오늘 할 일이 없어요</p>
-            </div>
-          ) : (
-            pendingTodos.map(todo => (
-              <button key={todo.id} onClick={() => toggleTodo(todo.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '12px 14px', background: 'var(--bg-card)',
-                  border: '1px solid var(--border)', borderRadius: '8px',
-                  cursor: 'pointer', textAlign: 'left', width: '100%',
-                  transition: 'background 0.15s', fontFamily: 'var(--font-sans)',
-                }}
-              >
-                <div style={{
-                  width: '18px', height: '18px', borderRadius: '4px',
-                  border: '1.5px solid var(--border)', background: 'transparent', flexShrink: 0,
-                }} />
-                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text)', flex: 1 }}>{todo.text}</span>
-                {todo.date && (
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    {todo.date.replace(/-/g, '.')}
-                  </span>
-                )}
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* ── 이슈 등록 인라인 폼 ── */}
-      {showIssueForm && (
-        <div className="mb-5">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <span className="section-title" style={{ color: 'var(--color-danger)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <AlertTriangle size={16} strokeWidth={1.5} /> 이슈 등록
-              </span>
-            </span>
-            <button onClick={resetIssueForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
-              <X size={18} strokeWidth={1.5} />
-            </button>
-          </div>
-
-          {!savedIssue && (
-            <div className="card" style={{ borderLeft: '3px solid var(--color-danger)', borderRadius: '0 8px 8px 0', padding: '18px 20px', marginBottom: '12px' }}>
-              <div style={{ marginBottom: '10px' }}>
-                <label className="label">이슈 제목 *</label>
-                <input className="input" placeholder="예: 고추 잎 황변, 진딧물 발생"
-                  value={issueForm.title}
-                  onChange={e => setIssueForm(p => ({ ...p, title: e.target.value }))}
-                  style={{ fontSize: '14px' }} autoFocus />
-              </div>
-              <div style={{ marginBottom: '10px' }}>
-                <label className="label">증상 설명</label>
-                <textarea className="input" placeholder="언제부터, 어느 부위, 어떤 증상인지 자세히 적을수록 좋아요"
-                  value={issueForm.content}
-                  onChange={e => setIssueForm(p => ({ ...p, content: e.target.value }))}
-                  rows={3} style={{ fontSize: '14px', lineHeight: 1.7, resize: 'none' }} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-                <div>
-                  <label className="label">심각도</label>
-                  <div style={{ display: 'flex', gap: '5px' }}>
-                    {SEVERITY.map(s => (
-                      <button key={s.value}
-                        onClick={() => setIssueForm(p => ({ ...p, severity: s.value }))}
-                        style={{
-                          flex: 1, padding: '8px 4px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                          border: '1.5px solid', fontFamily: 'var(--font-sans)', cursor: 'pointer',
-                          borderColor: issueForm.severity === s.value ? s.color : 'var(--border)',
-                          background: issueForm.severity === s.value ? s.bg : 'transparent',
-                          color: issueForm.severity === s.value ? s.color : 'var(--text-muted)',
-                        }}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="label">관련 작물</label>
-                  <select className="input" value={issueForm.crop}
-                    onChange={e => setIssueForm(p => ({ ...p, crop: e.target.value }))} style={{ fontSize: '14px' }}>
-                    {CROP_OPTIONS.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <button onClick={saveIssue} disabled={!issueForm.title.trim() || adviceLoading}
-                className="btn-primary"
-                style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: '14px' }}>
-                <AlertTriangle size={15} strokeWidth={1.5} /> 이슈 등록 + AI 조언 받기
-              </button>
-            </div>
-          )}
-
-          {savedIssue && (
-            <div>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '10px 14px', borderRadius: '8px',
-                background: 'var(--color-primary-light)', marginBottom: '12px',
-              }}>
-                <CheckSquare size={15} color="var(--color-primary)" strokeWidth={2} />
-                <span style={{ fontSize: '13px', color: 'var(--color-primary)', fontWeight: 600 }}>
-                  이슈 등록 완료 — {savedIssue.title}
-                </span>
-              </div>
-
-              <div className="card" style={{ padding: '18px 20px', borderLeft: '3px solid var(--color-earth)', borderRadius: '0 10px 10px 0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--color-earth-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span role="img" aria-label="AI" style={{ fontSize: '14px' }}>🤖</span>
-                    </div>
-                    <div>
-                      <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-earth)' }}>Gemini 자연농업 조언</p>
-                      <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>AI 기반 자연농업 해결법</p>
-                    </div>
-                  </div>
-                  <button className="btn-ghost" onClick={resetIssueForm} style={{ fontSize: '12px' }}>닫기</button>
-                </div>
-
-                {adviceLoading ? (
-                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                    <RefreshCw size={24} color="var(--color-earth)" strokeWidth={1.5}
-                      style={{ margin: '0 auto 10px', display: 'block', animation: 'spin 1s linear infinite' }} />
-                    <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>이슈를 분석하는 중...</p>
-                  </div>
-                ) : issueAdvice ? (
-                  <ResultView text={issueAdvice} />
-                ) : null}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
+      {/* ── 최근 기록 ── */}
+      {recentLogs.length > 0 && (
+        <div>
+          <div className="section-header" style={{ marginBottom: '10px' }}>
+            <span className="section-title">최근 기록</span>
+            <button className="btn-ghost" onClick={() => onNavigate('record')}>
+              전체 보기
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {recentLogs.map(log => (
+              <div key={log.id} className="card" style={{ padding: '12px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                    {(log.date || '').replace(/-/g, '.')}
+                  </span>
+                  <span className="badge badge-info" style={{ fontSize: '10px' }}>{log.weather}</span>
+                  {(log.autoTemp || log.tempHigh) && (
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {Math.round(log.autoTemp || log.tempHigh)}°C
+                    </span>
+                  )}
+                  {log.photos?.length > 0 && <Camera size={12} color="var(--text-muted)" />}
+                </div>
+                <p style={{
+                  fontSize: '13px', color: 'var(--text)', lineHeight: 1.6,
+                  overflow: 'hidden', display: '-webkit-box',
+                  WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                }}>
+                  {log.content}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── 빈 상태 ── */}
+      {crops.length === 0 && recentLogs.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+          <Sprout size={40} strokeWidth={1.5} style={{ margin: '0 auto 14px', display: 'block', opacity: 0.3 }} />
+          <p style={{ fontSize: '14px', fontWeight: 500, marginBottom: '6px' }}>시작해볼까요?</p>
+          <p style={{ fontSize: '12px', lineHeight: 1.8 }}>
+            작물을 등록하고 매일 기록을 남겨보세요.<br />
+            데이터가 쌓일수록 농사가 보입니다.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value, color }) {
+  return (
+    <div className="card" style={{
+      padding: '14px 12px', textAlign: 'center',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+    }}>
+      <div style={{ color, opacity: 0.8 }}>{icon}</div>
+      <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>{value}</p>
+      <p style={{ fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '0.02em' }}>{label}</p>
     </div>
   );
 }
