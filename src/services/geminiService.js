@@ -5,8 +5,18 @@
 
 import { CONFIG } from '../config.js';
 import { fetchWithTimeout } from '../utils/fetchUtils';
+import { supabase } from '../lib/supabase';
 
 const BASE_URL = `${CONFIG.SUPABASE_URL}/functions/v1/gemini-proxy`;
+
+const getAuthHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return {
+    'Content-Type': 'application/json',
+    'apikey': CONFIG.SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}`,
+  };
+};
 
 // ── 자연농업 핵심 규칙 (모든 프롬프트에 적용) ─────────────────────────
 const NATURAL_FARMING_RULE = `
@@ -47,12 +57,10 @@ ${NATURAL_FARMING_RULE}
 
 // ── 텍스트 전용 Gemini 호출 ──────────────────────────────────────────
 const callGeminiText = async (prompt) => {
+  const headers = await getAuthHeaders();
   const res = await fetchWithTimeout(BASE_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': CONFIG.SUPABASE_ANON_KEY,
-    },
+    headers,
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
@@ -100,12 +108,10 @@ const toBase64 = (file) =>
 
 // ── Gemini API 공통 호출 ─────────────────────────────────────────────
 const callGemini = async (base64Image, mimeType, prompt) => {
+  const headers = await getAuthHeaders();
   const res = await fetchWithTimeout(BASE_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': CONFIG.SUPABASE_ANON_KEY,
-    },
+    headers,
     body: JSON.stringify({
       contents: [{
         parts: [

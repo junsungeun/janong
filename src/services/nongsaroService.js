@@ -20,8 +20,10 @@ const call = async (endpoint, params = {}) => {
     ...params,
   });
 
+  const { supabase: sb } = await import('../lib/supabase');
+  const { data: { session } } = await sb.auth.getSession();
   const res = await fetch(`${EDGE_FN_URL}?${qs}`, {
-    headers: { 'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+    headers: { 'Authorization': `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}` },
     signal:  AbortSignal.timeout(15000),
   });
 

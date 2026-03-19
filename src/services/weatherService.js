@@ -4,6 +4,7 @@
 
 import { CONFIG } from '../config';
 import { fetchWithTimeout } from '../utils/fetchUtils';
+import { supabase } from '../lib/supabase';
 
 const EDGE_FN_URL = `${CONFIG.SUPABASE_URL}/functions/v1/weather-proxy`;
 
@@ -112,8 +113,9 @@ export const fetchWeather = async (stationCode, apiKey) => {
     // Supabase Edge Function으로 서버사이드 중계 (CORS 우회)
     const proxyUrl = `${EDGE_FN_URL}?${params}`;
 
+    const { data: { session } } = await supabase.auth.getSession();
     const response = await fetchWithTimeout(proxyUrl, {
-      headers: { 'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+      headers: { 'Authorization': `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}` },
     }, 20000);
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
