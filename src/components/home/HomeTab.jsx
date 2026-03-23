@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useList } from '../../hooks/useList';
 import { TABLES } from '../../services/dbService';
 import { getCurrentSolarTerm, formatDate } from '../../utils/solarTerms';
@@ -9,10 +9,13 @@ import Spinner from '../ui/Spinner';
 import WeatherCard from './WeatherCard';
 import CropCard from './CropCard';
 import MiniCalendar from '../ui/MiniCalendar';
+import CropManager from '../settings/CropManager';
+import { Plus } from 'lucide-react';
 
 export default function HomeTab({ onNavigate }) {
-  const { items: crops, loading: cropsLoading } = useList(TABLES.CROP);
+  const { items: crops, loading: cropsLoading, reload: reloadCrops } = useList(TABLES.CROP);
   const { items: logs, loading: logsLoading } = useList(TABLES.DAILY_LOG);
+  const [showCropManager, setShowCropManager] = useState(false);
 
   const dateInfo = formatDate();
   const solarTerm = getCurrentSolarTerm();
@@ -64,7 +67,9 @@ export default function HomeTab({ onNavigate }) {
       <div className="home-section">
         <div className="section-header">
           <span className="section-title">내 작물</span>
-          <span className="section-sub">{crops.length}종</span>
+          <Button variant="ghost" size="sm" icon={<Plus size={14} />} onClick={() => setShowCropManager(true)}>
+            작물 등록
+          </Button>
         </div>
 
         {cropsLoading ? (
@@ -109,6 +114,18 @@ export default function HomeTab({ onNavigate }) {
           기록하기
         </Button>
       </div>
+
+      {/* Crop Manager Modal */}
+      {showCropManager && (
+        <div className="modal-overlay" onClick={() => { setShowCropManager(false); reloadCrops(); }}>
+          <div className="modal-content card" style={{ maxHeight: '80vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <CropManager />
+            <div className="form-actions" style={{ marginTop: '16px' }}>
+              <Button variant="secondary" onClick={() => { setShowCropManager(false); reloadCrops(); }}>닫기</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
