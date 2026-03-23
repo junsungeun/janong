@@ -29,8 +29,16 @@ const getBaseDateTime = () => {
   return { baseDate: date, baseTime: time };
 };
 
+// 캐시 (10분간 유지 — 기상청 데이터가 정시 기준이라 자주 호출할 필요 없음)
+let _weatherCache = null;
+let _weatherCacheTime = 0;
+const CACHE_TTL = 10 * 60 * 1000; // 10분
+
 // 초단기실황 조회
 export const fetchCurrentWeather = async () => {
+  if (_weatherCache && Date.now() - _weatherCacheTime < CACHE_TTL) {
+    return _weatherCache;
+  }
   try {
     const { lat, lon } = await getCurrentPosition();
     const { nx, ny } = gpsToGrid(lat, lon);
@@ -58,7 +66,7 @@ export const fetchCurrentWeather = async () => {
       data[item.category] = parseFloat(item.obsrValue);
     });
 
-    return {
+    const result = {
       temp: data.T1H ?? null,       // 기온 (°C)
       rh: data.REH ?? null,         // 습도 (%)
       rain: data.RN1 ?? 0,          // 1시간 강수량 (mm)
@@ -73,6 +81,9 @@ export const fetchCurrentWeather = async () => {
       baseTime,
       fetchedAt: new Date().toISOString(),
     };
+    _weatherCache = result;
+    _weatherCacheTime = Date.now();
+    return result;
   } catch (err) {
     console.warn('[기상청 API] 날씨 조회 실패:', err.message);
     return null;

@@ -57,10 +57,10 @@ export const db = {
     return camelify(data);
   },
 
-  // 추가 (user_id 자동 주입)
+  // 추가 (user_id 자동 주입 — getSession 캐시 사용으로 빠름)
   add: async (table, item) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const row = { ...snakify(item), user_id: user?.id };
+    const { data: { session } } = await supabase.auth.getSession();
+    const row = { ...snakify(item), user_id: session?.user?.id };
     const { data, error } = await supabase.from(table).insert(row).select().single();
     if (error) throw error;
     return camelify(data);
