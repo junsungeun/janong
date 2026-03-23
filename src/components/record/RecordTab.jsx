@@ -15,37 +15,30 @@ export default function RecordTab() {
   const { items: crops, loading: cropsLoading } = useList(TABLES.CROP);
   const { items: logs, loading: logsLoading, reload } = useList(TABLES.DAILY_LOG);
 
-  const [view, setView] = useState('list'); // list | form | detail | pest
+  const [view, setView] = useState('list');
   const [selectedLog, setSelectedLog] = useState(null);
   const [filterCrop, setFilterCrop] = useState('all');
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  // Crop name lookup
   const cropMap = useMemo(() => {
     const m = {};
     crops.forEach((c) => { m[c.id] = c.name; });
     return m;
   }, [crops]);
 
-  // Filtered logs
   const filteredLogs = useMemo(() => {
     if (filterCrop === 'all') return logs;
     return logs.filter((l) => l.cropId === filterCrop);
   }, [logs, filterCrop]);
 
-  // Logs with cropName for export
   const logsForExport = useMemo(() => {
     return filteredLogs.map((l) => ({ ...l, cropName: cropMap[l.cropId] || '' }));
   }, [filteredLogs, cropMap]);
 
-  const handleSaveForm = () => {
-    setView('list');
-    reload();
-  };
+  const handleSaveForm = () => { setView('list'); reload(); };
 
   const handleSavePest = async (logData) => {
     try {
-      // Upload pest photos if any
       const photos = logData.photos || [];
       const paths = [];
       for (const f of photos) {
@@ -80,14 +73,9 @@ export default function RecordTab() {
     }
   };
 
-  const handleView = (log) => {
-    setSelectedLog(log);
-    setView('detail');
-  };
-
+  const handleView = (log) => { setSelectedLog(log); setView('detail'); };
   const loading = cropsLoading || logsLoading;
 
-  // Sub-views
   if (view === 'form') {
     return (
       <RecordForm
@@ -113,29 +101,30 @@ export default function RecordTab() {
       <RecordDetail
         log={selectedLog}
         cropName={cropMap[selectedLog.cropId]}
-        onEdit={() => {/* TODO: edit mode */}}
+        onEdit={() => {}}
         onDelete={(log) => setDeleteTarget(log)}
         onClose={() => { setSelectedLog(null); setView('list'); }}
       />
     );
   }
 
-  // Main list view
   return (
     <div className="record-tab">
+      {/* Header with CTA */}
       <div className="record-tab-header">
-        <h2 className="page-title">재배 기록</h2>
-        <div className="record-tab-btns">
-          <Button variant="secondary" size="sm" onClick={() => setView('pest')}>
-            병해충 진단
-          </Button>
-          <Button variant="primary" size="sm" onClick={() => setView('form')}>
-            + 새 기록
-          </Button>
+        <div className="page-header">
+          <h2 className="page-title">재배 기록</h2>
+          <p className="page-subtitle">일일 재배 상태를 기록하세요</p>
         </div>
+        <button
+          className="record-tab-cta"
+          onClick={() => setView('form')}
+        >
+          + 새 기록
+        </button>
       </div>
 
-      {/* Crop filter chips */}
+      {/* Pill-style crop filter chips */}
       <div className="record-filter-chips">
         <button
           className={`record-chip ${filterCrop === 'all' ? 'active' : ''}`}
@@ -176,13 +165,20 @@ export default function RecordTab() {
         </div>
       )}
 
-      {/* Export */}
+      {/* Bottom action bar */}
       {filteredLogs.length > 0 && (
-        <div className="record-export-wrap">
+        <div className="record-bottom-bar">
           <ExportButton
             logs={logsForExport}
             cropName={filterCrop === 'all' ? '전체' : cropMap[filterCrop] || ''}
           />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setView('pest')}
+          >
+            병해충 진단
+          </Button>
         </div>
       )}
 

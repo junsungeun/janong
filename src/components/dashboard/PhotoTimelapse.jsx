@@ -6,7 +6,6 @@ export default function PhotoTimelapse({ logs = [], getPhotoUrl }) {
   const intervalRef = useRef(null);
   const stripRef = useRef(null);
 
-  // Filter logs that have photos, sorted by date ascending
   const photos = logs
     .filter((l) => l.photoPath)
     .sort((a, b) => (a.date > b.date ? 1 : -1));
@@ -49,32 +48,48 @@ export default function PhotoTimelapse({ logs = [], getPhotoUrl }) {
         <span className="section-title">사진 기록</span>
         {photos.length >= 2 && (
           <button
-            className="btn-secondary btn-sm"
+            className="timelapse-play-btn"
             onClick={playing ? stopPlay : startPlay}
           >
-            {playing ? '정지' : '재생'}
+            {playing ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16" rx="1"/>
+                <rect x="14" y="4" width="4" height="16" rx="1"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5,3 19,12 5,21"/>
+              </svg>
+            )}
+            <span>{playing ? '정지' : '재생'}</span>
           </button>
         )}
       </div>
 
       {/* Lightbox */}
       {viewIdx !== null && (
-        <div className="timelapse-lightbox" onClick={() => { stopPlay(); setViewIdx(null); }}>
+        <div
+          className="timelapse-lightbox"
+          onClick={() => { stopPlay(); setViewIdx(null); }}
+        >
           <img
             src={getPhotoUrl(photos[viewIdx].photoPath)}
             alt={photos[viewIdx].date}
             className="timelapse-lightbox-img"
           />
           <p className="timelapse-lightbox-date">{photos[viewIdx].date}</p>
+          <p className="timelapse-lightbox-counter">
+            {viewIdx + 1} / {photos.length}
+          </p>
         </div>
       )}
 
-      {/* Horizontal strip */}
+      {/* Horizontal scroll strip with snap points */}
       <div className="timelapse-strip" ref={stripRef}>
         {photos.map((p, i) => (
           <div
             key={p.id || i}
-            className="timelapse-thumb"
+            className={`timelapse-thumb ${viewIdx === i ? 'timelapse-thumb-active' : ''}`}
             onClick={() => setViewIdx(i)}
           >
             <img

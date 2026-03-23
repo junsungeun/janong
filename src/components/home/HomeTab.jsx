@@ -4,7 +4,6 @@ import { TABLES } from '../../services/dbService';
 import { getCurrentSolarTerm, formatDate } from '../../utils/solarTerms';
 import { getTodayVerse } from '../../data/bibleVerses';
 import Button from '../ui/Button';
-import EmptyState from '../ui/EmptyState';
 import Spinner from '../ui/Spinner';
 import WeatherCard from './WeatherCard';
 import CropCard from './CropCard';
@@ -54,10 +53,12 @@ export default function HomeTab({ onNavigate }) {
 
       {/* Bible verse */}
       {verse && (
-        <p className="home-verse">
-          {verse.text}
-          <span className="home-verse-ref"> - {verse.ref}</span>
-        </p>
+        <div className="home-verse-card">
+          <p className="home-verse">
+            {verse.text}
+            <span className="home-verse-ref">{verse.ref}</span>
+          </p>
+        </div>
       )}
 
       {/* Weather */}
@@ -75,10 +76,13 @@ export default function HomeTab({ onNavigate }) {
         {cropsLoading ? (
           <Spinner />
         ) : crops.length === 0 ? (
-          <EmptyState
-            title="등록된 작물이 없습니다"
-            description="작물을 등록하고 재배 기록을 시작하세요."
-          />
+          <div className="home-empty-crops">
+            <span className="home-empty-crops-icon" aria-hidden="true">&#127807;</span>
+            <p className="home-empty-crops-title">아직 등록된 작물이 없어요</p>
+            <p className="home-empty-crops-desc">
+              작물을 등록하고 매일의 성장을<br />기록해보세요.
+            </p>
+          </div>
         ) : (
           <div className="home-crop-list">
             {crops.map((crop) => {
@@ -106,19 +110,18 @@ export default function HomeTab({ onNavigate }) {
 
       {/* Quick Record Button */}
       <div className="home-record-btn-wrap">
-        <Button
-          variant="primary"
-          className="home-record-btn"
+        <button
+          className="btn-terra home-record-btn"
           onClick={() => onNavigate?.('record')}
         >
           기록하기
-        </Button>
+        </button>
       </div>
 
       {/* Crop Manager Modal */}
       {showCropManager && (
         <div className="modal-overlay" onClick={() => { setShowCropManager(false); reloadCrops(); }}>
-          <div className="modal-content card" style={{ maxHeight: '80vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content card" onClick={(e) => e.stopPropagation()}>
             <CropManager />
             <div className="form-actions" style={{ marginTop: '16px' }}>
               <Button variant="secondary" onClick={() => { setShowCropManager(false); reloadCrops(); }}>닫기</Button>

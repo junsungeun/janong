@@ -14,8 +14,6 @@ export default function DashboardTab() {
   const [selectedCropId, setSelectedCropId] = useState(null);
 
   const loading = cropsLoading || logsLoading;
-
-  // Auto-select first crop if none selected
   const activeCropId = selectedCropId || (crops.length > 0 ? crops[0].id : null);
 
   const filteredLogs = useMemo(() => {
@@ -36,7 +34,7 @@ export default function DashboardTab() {
         <p className="page-subtitle">작물별 생육 현황을 확인하세요</p>
       </div>
 
-      {/* Crop selector chips */}
+      {/* Horizontal scroll pill selector */}
       {crops.length > 0 && (
         <div className="dash-crop-chips">
           {crops.map((crop) => (
@@ -51,7 +49,7 @@ export default function DashboardTab() {
         </div>
       )}
 
-      {/* No crop case */}
+      {/* Empty states */}
       {crops.length === 0 ? (
         <EmptyState
           title="등록된 작물이 없습니다"
@@ -69,13 +67,35 @@ export default function DashboardTab() {
         />
       ) : (
         <div className="dash-content">
-          <PhotoTimelapse
-            logs={filteredLogs}
-            getPhotoUrl={photoStorage.getUrl}
-          />
-          <GrowthChart logs={filteredLogs} />
-          <StatusHistory logs={filteredLogs} />
-          <div className="dash-calendar-section">
+          {/* Section: Photo timeline */}
+          <div className="dash-section">
+            <PhotoTimelapse
+              logs={filteredLogs}
+              getPhotoUrl={photoStorage.getUrl}
+            />
+          </div>
+
+          {/* Divider */}
+          <div className="dash-divider" />
+
+          {/* Section: Growth chart */}
+          <div className="dash-section">
+            <GrowthChart logs={filteredLogs} />
+          </div>
+
+          {/* Divider */}
+          <div className="dash-divider" />
+
+          {/* Section: Status history */}
+          <div className="dash-section">
+            <StatusHistory logs={filteredLogs} />
+          </div>
+
+          {/* Divider */}
+          <div className="dash-divider" />
+
+          {/* Section: Calendar */}
+          <div className="dash-section">
             <span className="section-title">기록 달력</span>
             <MiniCalendar logDates={logDates} />
           </div>

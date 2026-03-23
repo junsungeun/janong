@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { Mail, Lock, User } from 'lucide-react';
 
 export default function LoginPage() {
   const { signIn, signUp } = useAuth();
@@ -40,8 +41,11 @@ export default function LoginPage() {
       <div className="login-page">
         <div className="login-card">
           <div className="login-brand">
-            <div className="login-logo">JANONG</div>
-            <div className="login-subtitle">Farm R&D</div>
+            <div className="login-logo">
+              JANONG
+              <span className="login-sprout" aria-hidden="true">&#127793;</span>
+            </div>
+            <div className="login-subtitle">Farm R&amp;D Platform</div>
           </div>
           <div className="login-success">
             <p>회원가입이 완료되었습니다.</p>
@@ -59,53 +63,66 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <div className="login-logo">JANONG</div>
-          <div className="login-subtitle">Farm R&D</div>
+          <div className="login-logo">
+            JANONG
+            <span className="login-sprout" aria-hidden="true">&#127793;</span>
+          </div>
+          <div className="login-subtitle">Farm R&amp;D Platform</div>
+          <div className="login-tagline">내 땅을 아는 농사</div>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           {mode === 'signup' && (
             <div className="login-field">
               <label className="label" htmlFor="login-name">이름</label>
-              <input
-                id="login-name"
-                className="input"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="이름을 입력하세요"
-                autoComplete="name"
-              />
+              <div className="login-field-icon">
+                <User size={16} className="login-field-icon-svg" />
+                <input
+                  id="login-name"
+                  className="input"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="이름을 입력하세요"
+                  autoComplete="name"
+                />
+              </div>
             </div>
           )}
 
           <div className="login-field">
             <label className="label" htmlFor="login-email">이메일</label>
-            <input
-              id="login-email"
-              className="input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="example@janong.kr"
-              autoComplete="email"
-              required
-            />
+            <div className="login-field-icon">
+              <Mail size={16} className="login-field-icon-svg" />
+              <input
+                id="login-email"
+                className="input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@janong.kr"
+                autoComplete="email"
+                required
+              />
+            </div>
           </div>
 
           <div className="login-field">
             <label className="label" htmlFor="login-password">비밀번호</label>
-            <input
-              id="login-password"
-              className="input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === 'signup' ? '6자 이상 입력하세요' : '비밀번호를 입력하세요'}
-              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-              required
-              minLength={mode === 'signup' ? 6 : undefined}
-            />
+            <div className="login-field-icon">
+              <Lock size={16} className="login-field-icon-svg" />
+              <input
+                id="login-password"
+                className="input"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === 'signup' ? '6자 이상 입력하세요' : '비밀번호를 입력하세요'}
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                required
+                minLength={mode === 'signup' ? 6 : undefined}
+              />
+            </div>
           </div>
 
           {error && <div className="login-error">{error}</div>}

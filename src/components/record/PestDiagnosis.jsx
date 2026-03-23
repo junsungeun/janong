@@ -58,17 +58,27 @@ export default function PestDiagnosis({ crops = [], onSave, onClose }) {
         <Button variant="ghost" onClick={onClose}>닫기</Button>
       </div>
 
-      {/* Photo upload */}
+      {/* Photo upload - prominent area */}
       <div
-        className="pest-photo-upload"
+        className={`pest-photo-upload ${preview ? 'has-photo' : ''}`}
         onClick={() => fileRef.current?.click()}
       >
         {preview ? (
           <img src={preview} alt="진단 사진" className="pest-photo-preview" />
         ) : (
           <div className="pest-photo-placeholder">
-            <span className="pest-photo-icon">+</span>
-            <span>사진 촬영/선택</span>
+            <div className="pest-photo-placeholder-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+            </div>
+            <span className="pest-photo-placeholder-text">
+              증상 사진 촬영/선택
+            </span>
+            <span className="pest-photo-placeholder-hint">
+              잎, 줄기, 열매의 이상 부위를 촬영해주세요
+            </span>
           </div>
         )}
         <input
@@ -81,12 +91,18 @@ export default function PestDiagnosis({ crops = [], onSave, onClose }) {
         />
       </div>
 
+      {/* Analyze button */}
       {file && !result && !loading && (
-        <Button variant="primary" className="pest-analyze-btn" onClick={handleAnalyze}>
+        <Button
+          variant="primary"
+          className="pest-analyze-btn"
+          onClick={handleAnalyze}
+        >
           AI 진단 시작
         </Button>
       )}
 
+      {/* Loading state */}
       {loading && (
         <div className="pest-loading">
           <Spinner />
@@ -96,27 +112,34 @@ export default function PestDiagnosis({ crops = [], onSave, onClose }) {
 
       {error && <p className="pest-error">{error}</p>}
 
-      {/* Results */}
+      {/* Results in structured cards */}
       {result && (
         <div className="pest-results">
-          <Card variant="warning">
+          <Card variant="warning" className="pest-result-card">
             <div className="pest-result-header">
               <Badge variant="danger">{result.pest}</Badge>
             </div>
+
             <div className="pest-result-section">
               <p className="pest-result-label">발생 원인</p>
               <p className="pest-result-text">{result.cause}</p>
             </div>
+
+            {/* Solutions as numbered list with green bullets */}
             {result.solutions?.length > 0 && (
               <div className="pest-result-section">
                 <p className="pest-result-label">자연농업 방제법</p>
-                <ol className="pest-solutions-list">
+                <ul className="pest-solutions-list">
                   {result.solutions.map((s, i) => (
-                    <li key={i}>{s}</li>
+                    <li key={i} className="pest-solution-item">
+                      <span className="pest-solution-num">{i + 1}</span>
+                      <span>{s}</span>
+                    </li>
                   ))}
-                </ol>
+                </ul>
               </div>
             )}
+
             {result.warning && (
               <div className="pest-result-section">
                 <p className="pest-result-label">주의사항</p>

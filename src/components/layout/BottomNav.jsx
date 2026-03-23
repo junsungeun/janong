@@ -9,16 +9,20 @@ const tabs = [
 
 export default function BottomNav({ activeTab, onTabChange }) {
   return (
-    <nav className="tab-nav" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+    <nav className="tab-nav" role="tablist">
       {tabs.map(({ key, label, Icon }) => (
         <button
           key={key}
           className={`tab-item${activeTab === key ? ' active' : ''}`}
           onClick={() => onTabChange(key)}
           aria-label={label}
+          role="tab"
+          aria-selected={activeTab === key}
         >
-          <Icon size={22} strokeWidth={1.8} />
-          <span style={{ fontSize: 10 }}>{label}</span>
+          <span className="tab-item-inner">
+            <Icon size={21} strokeWidth={activeTab === key ? 2.2 : 1.7} />
+            <span className="tab-item-label">{label}</span>
+          </span>
         </button>
       ))}
     </nav>
