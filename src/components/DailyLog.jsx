@@ -104,14 +104,7 @@ export default function DailyLog({ addTrigger }) {
       }
 
       const logData = {
-        date: form.date,
-        weather: form.weather,
-        tempHigh: form.tempHigh || null,
-        tempLow: form.tempLow || null,
-        workTypes: form.workTypes,
-        cropId: form.cropId || null,
-        content: form.content,
-        memo: form.memo,
+        ...form,
         photos: photoPaths,
         ...(autoTemp !== null && !form.tempHigh ? { tempHigh: autoTemp } : {}),
         ...(autoTemp !== null && !form.tempLow ? { tempLow: autoTemp } : {}),

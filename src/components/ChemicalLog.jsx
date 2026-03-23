@@ -55,18 +55,7 @@ export default function ChemicalLog() {
     if (!form.dilution.trim()) return;
     const finalMat  = form.material === '직접입력' ? form.customMaterial.trim() : form.material;
     const finalCrop = form.crop === '직접입력' ? form.customCrop.trim() : form.crop;
-    const data = {
-      date: form.date,
-      material: finalMat,
-      dilution: form.dilution,
-      amount: form.amount,
-      crop: finalCrop,
-      sprayMethod: form.sprayMethod,
-      weather: form.weather,
-      temp: form.temp,
-      memo: form.memo,
-      recipeId: form.recipeId || null,
-    };
+    const data = { ...form, material: finalMat, crop: finalCrop };
 
     try {
       if (editingLogId) {
