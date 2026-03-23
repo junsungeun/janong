@@ -1,5 +1,5 @@
 import { useAuth } from '../../contexts/AuthContext';
-import LoginPage from '../LoginPage';
+import LoginPage from '../auth/LoginPage';
 import AdminDashboard from './AdminDashboard';
 import { Loader, ShieldX } from 'lucide-react';
 
