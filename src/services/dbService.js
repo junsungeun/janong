@@ -21,9 +21,14 @@ export const TABLES = {
 const toSnake = (s) => s.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
 const toCamel = (s) => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
 
+// 빈 문자열 → null 변환 (UUID/참조 컬럼에 '' 전송 방지)
+const emptyToNull = (v) => (v === '' ? null : v);
+
 const snakify = (obj) => {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
-  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [toSnake(k), v]));
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [toSnake(k), emptyToNull(v)])
+  );
 };
 
 const camelify = (obj) => {
