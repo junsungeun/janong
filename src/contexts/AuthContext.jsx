@@ -72,6 +72,15 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   };
 
+  const signUp = async (email, password, name = '') => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     if (mountedRef.current) {
@@ -83,7 +92,7 @@ export function AuthProvider({ children }) {
   const isAdmin = profile?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut, isAdmin }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

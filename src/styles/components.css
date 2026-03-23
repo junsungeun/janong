@@ -77,6 +77,30 @@
   margin-top: var(--space-6);
   line-height: var(--leading-normal);
 }
+.login-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  text-decoration: underline;
+  padding: 0;
+}
+.login-success {
+  text-align: center;
+  padding: var(--space-8) 0;
+  color: var(--color-primary);
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.login-success-sub {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: var(--space-2);
+}
 
 /* ─── 홈 탭 ─── */
 .home-tab {
