@@ -20,6 +20,13 @@ async function loadProfile(userId) {
   return null;
 }
 
+async function upsertProfile(userId, fields) {
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({ id: userId, ...fields }, { onConflict: 'id' });
+  if (error) console.warn('[profiles] upsert failed:', error.message);
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -30,7 +37,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     mountedRef.current = true;
 
-    // 초기 세션 로드
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mountedRef.current) return;
       const u = session?.user ?? null;
@@ -45,10 +51,8 @@ export function AuthProvider({ children }) {
       }
     });
 
-    // 이후 세션 변경 감지 (로그인/로그아웃)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!mountedRef.current) return;
-      // 초기 로드 전이면 무시 (getSession이 처리)
       if (!initializedRef.current) return;
 
       const u = session?.user ?? null;
@@ -72,13 +76,18 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   };
 
-  const signUp = async (email, password, name = '') => {
-    const { error } = await supabase.auth.signUp({
+  const signUp = async (email, password, name = '', groupName = '') => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { name } },
     });
     if (error) throw error;
+
+    // 프로필에 조 저장
+    if (data?.user?.id) {
+      await upsertProfile(data.user.id, { name, group_name: groupName || null });
+    }
   };
 
   const signOut = async () => {

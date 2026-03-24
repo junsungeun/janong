@@ -33,8 +33,8 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
     leafCount: editLog?.leafCount ?? '',
     stemMm: editLog?.stemMm ?? '',
   });
-  const [temperature, setTemperature] = useState(editLog?.temperature ?? '');
-  const [humidity, setHumidity] = useState(editLog?.humidity ?? '');
+  const [temperature, setTemperature] = useState(editLog?.houseTemp ?? editLog?.temperature ?? '');
+  const [humidity, setHumidity] = useState(editLog?.houseHumidity ?? editLog?.humidity ?? '');
   const [memo, setMemo] = useState(editLog?.memo || '');
   const [weather, setWeather] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -71,8 +71,12 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
         cropId,
         stage: stage || null,
         date: editLog?.date || today,
-        temperature: temperature !== '' ? Number(temperature) : null,
-        humidity: humidity !== '' ? Number(humidity) : null,
+        // 하우스 내부 (수동)
+        houseTemp: temperature !== '' ? Number(temperature) : null,
+        houseHumidity: humidity !== '' ? Number(humidity) : null,
+        // 실외 (자동)
+        outdoorTemp: weather?.temp ?? null,
+        outdoorHumidity: weather?.rh ?? null,
         heightCm: growth.heightCm || null,
         leafCount: growth.leafCount || null,
         stemMm: growth.stemMm || null,
@@ -204,7 +208,7 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
 
       {/* Data section */}
       <div className="record-form-section">
-        <p className="record-form-section-label">환경</p>
+        <p className="record-form-section-label">하우스 환경 <span className="text-caption text-muted">(수동)</span></p>
         <div className="growth-input-row">
           <div className="growth-input-field">
             <label className="growth-input-label">온도</label>
@@ -232,7 +236,16 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
         <Textarea placeholder="오늘의 관찰 내용..." rows={3} value={memo} onChange={(e) => setMemo(e.target.value)} />
       </Field>
 
-      {weather && !isEdit && <div className="record-weather-notice"><span className="text-caption text-muted">날씨 자동: {weather.temp}&deg;C / 습도 {weather.rh}% / 강수 {weather.rain}mm</span></div>}
+      {weather && !isEdit && (
+        <div className="record-weather-auto">
+          <p className="record-form-section-label">실외 날씨 <span className="text-caption text-muted">(자동)</span></p>
+          <div className="record-weather-auto-grid">
+            <span>{weather.temp}&deg;C</span>
+            <span>습도 {weather.rh}%</span>
+            <span>강수 {weather.rain}mm</span>
+          </div>
+        </div>
+      )}
       {error && <p className="record-form-error">{error}</p>}
 
       <button

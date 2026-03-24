@@ -7,7 +7,8 @@ import Modal from '../ui/Modal';
 import Spinner from '../ui/Spinner';
 import { Field, Input } from '../ui/Input';
 
-const EMPTY = { name: '', variety: '', plantingDate: '', section: '' };
+const CATEGORIES = ['채소', '과일', '허브', '곡물', '화훼', '기타'];
+const EMPTY = { name: '', variety: '', plantingDate: '', section: '', category: '' };
 
 export default function CropManager() {
   const { items: crops, loading, reload } = useList(TABLES.CROP);
@@ -23,7 +24,7 @@ export default function CropManager() {
   const openEdit = (c) => {
     setForm({
       name: c.name || '', variety: c.variety || '',
-      plantingDate: c.plantingDate || '', section: c.section || '',
+      plantingDate: c.plantingDate || '', section: c.section || '', category: c.category || '',
     });
     setEditId(c.id);
     setShowForm(true);
@@ -119,6 +120,12 @@ export default function CropManager() {
               </Field>
               <Field label="파종일">
                 <Input name="plantingDate" type="date" value={form.plantingDate} onChange={handleChange} />
+              </Field>
+              <Field label="카테고리">
+                <select className="input" name="category" value={form.category} onChange={handleChange}>
+                  <option value="">선택 안 함</option>
+                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
               </Field>
               <Field label="구획 위치">
                 <Input name="section" value={form.section} onChange={handleChange} placeholder="예: A-1" />

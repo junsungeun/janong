@@ -8,6 +8,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [groupName, setGroupName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [signUpDone, setSignUpDone] = useState(false);
@@ -20,7 +21,7 @@ export default function LoginPage() {
       if (mode === 'login') {
         await signIn(email, password);
       } else {
-        await signUp(email, password, name);
+        await signUp(email, password, name, groupName);
         setSignUpDone(true);
       }
     } catch (err) {
@@ -73,21 +74,38 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="login-form">
           {mode === 'signup' && (
-            <div className="login-field">
-              <label className="label" htmlFor="login-name">이름</label>
-              <div className="login-field-icon">
-                <User size={16} className="login-field-icon-svg" />
-                <input
-                  id="login-name"
-                  className="input"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="이름을 입력하세요"
-                  autoComplete="name"
-                />
+            <>
+              <div className="login-field">
+                <label className="label" htmlFor="login-name">이름</label>
+                <div className="login-field-icon">
+                  <User size={16} className="login-field-icon-svg" />
+                  <input
+                    id="login-name"
+                    className="input"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="이름을 입력하세요"
+                    autoComplete="name"
+                  />
+                </div>
               </div>
-            </div>
+              <div className="login-field">
+                <label className="label" htmlFor="login-group">조 (팀)</label>
+                <div className="login-field-icon">
+                  <User size={16} className="login-field-icon-svg" />
+                  <input
+                    id="login-group"
+                    className="input"
+                    type="text"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    placeholder="예: 1조, A팀"
+                    autoComplete="organization"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           <div className="login-field">

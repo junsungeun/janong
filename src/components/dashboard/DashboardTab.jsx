@@ -1,44 +1,86 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { db, TABLES, photoStorage } from '../../services/dbService';
-import EmptyState from '../ui/EmptyState';
+import { BarChart2, Sprout, FileText, Users, Download } from 'lucide-react';
+import { db, TABLES } from '../../services/dbService';
 import Spinner from '../ui/Spinner';
-import MiniCalendar from '../ui/MiniCalendar';
-import PhotoTimelapse from './PhotoTimelapse';
-import GrowthChart from './GrowthChart';
 import ExportButton from '../record/ExportButton';
-
-function SeedlingIcon({ size = 48 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="1.5">
-      <path d="M7 20h10" strokeLinecap="round" />
-      <path d="M12 20v-8" strokeLinecap="round" />
-      <path d="M12 12C12 8 16 6 16 2c-3 0-4 4-4 4" />
-      <path d="M12 12C12 8 8 6 8 2c3 0 4 4 4 4" />
-    </svg>
-  );
-}
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function DashboardTab() {
+  const { profile } = useAuth();
   const [crops, setCrops] = useState([]);
-  const [allLogs, setAllLogs] = useState([]);
+  const [logs, setLogs] = useState([]);
+  const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCropId, setSelectedCropId] = useState(null);
+  const [filterGroup, setFilterGroup] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const [c, l] = await Promise.all([
+      const [c, l, p] = await Promise.all([
         db.getAllList(TABLES.CROP),
         db.getAllList(TABLES.DAILY_LOG),
+        db.getAllList(TABLES.PROFILE),
       ]);
       setCrops(c);
-      setAllLogs(l);
+      setLogs(l);
+      setProfiles(p);
       setLoading(false);
     };
     load();
   }, []);
 
-  const activeCropId = selectedCropId || (crops.length > 0 ? crops[0].id : null);
+  // 조 목록
+  const groups = useMemo(() => {
+    const set = new Set(profiles.map((p) => p.groupName).filter(Boolean));
+    return [...set].sort();
+  }, [profiles]);
+
+  // 카테고리 목록
+  const categories = useMemo(() => {
+    const set = new Set(crops.map((c) => c.category).filter(Boolean));
+    return [...set].sort();
+  }, [crops]);
+
+  // 조별 유저 ID 매핑
+  const groupUserIds = useMemo(() => {
+    if (filterGroup === 'all') return null;
+    return new Set(profiles.filter((p) => p.groupName === filterGroup).map((p) => p.id));
+  }, [profiles, filterGroup]);
+
+  // 필터링
+  const filteredCrops = useMemo(() => {
+    let result = crops;
+    if (groupUserIds) result = result.filter((c) => groupUserIds.has(c.userId));
+    if (filterCategory !== 'all') result = result.filter((c) => c.category === filterCategory);
+    return result;
+  }, [crops, groupUserIds, filterCategory]);
+
+  const filteredCropIds = useMemo(() => new Set(filteredCrops.map((c) => c.id)), [filteredCrops]);
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter((l) => filteredCropIds.has(l.cropId));
+  }, [logs, filteredCropIds]);
+
+  // 통계
+  const stats = useMemo(() => {
+    const now = new Date();
+    const weekAgo = new Date(now - 7 * 86400000).toISOString().slice(0, 10);
+    const thisWeekLogs = filteredLogs.filter((l) => l.date >= weekAgo);
+    const memberCount = groupUserIds ? groupUserIds.size : new Set(profiles.map((p) => p.id)).size;
+
+    return {
+      totalCrops: filteredCrops.length,
+      totalLogs: filteredLogs.length,
+      weekLogs: thisWeekLogs.length,
+      members: memberCount,
+    };
+  }, [filteredCrops, filteredLogs, groupUserIds, profiles]);
+
+  // 최근 기록
+  const recentLogs = useMemo(() => {
+    return filteredLogs.slice(0, 5);
+  }, [filteredLogs]);
 
   const cropMap = useMemo(() => {
     const m = {};
@@ -46,95 +88,127 @@ export default function DashboardTab() {
     return m;
   }, [crops]);
 
-  const filteredLogs = useMemo(() => {
-    if (!activeCropId) return [];
-    return allLogs.filter((l) => l.cropId === activeCropId);
-  }, [allLogs, activeCropId]);
-
-  const logDates = useMemo(() => {
-    return [...new Set(filteredLogs.map((l) => l.date).filter(Boolean))];
-  }, [filteredLogs]);
-
   const logsForExport = useMemo(() => {
-    const target = selectedCropId ? filteredLogs : allLogs;
-    return target.map((l) => ({ ...l, cropName: cropMap[l.cropId] || '' }));
-  }, [selectedCropId, filteredLogs, allLogs, cropMap]);
+    return filteredLogs.map((l) => ({ ...l, cropName: cropMap[l.cropId] || '' }));
+  }, [filteredLogs, cropMap]);
 
   if (loading) return <Spinner />;
 
-  if (crops.length === 0) {
-    return (
-      <div className="dashboard-tab">
-        <div className="page-header">
-          <h2 className="page-title">전체 현황</h2>
-          <p className="page-subtitle">팀 전체 작물 데이터</p>
-        </div>
-        <EmptyState
-          icon={SeedlingIcon}
-          title="등록된 작물이 없습니다"
-          description="작물을 등록하면 전체 현황을 볼 수 있습니다."
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="dashboard-tab">
-      <div className="page-header">
-        <div className="dash-header-row">
-          <div>
-            <h2 className="page-title">전체 현황</h2>
-            <p className="page-subtitle">팀 전체 작물 데이터 · {allLogs.length}건</p>
+      {/* Header */}
+      <div className="dash-header">
+        <div>
+          <h2 className="page-title">대시보드</h2>
+          <p className="page-subtitle">
+            {filterGroup !== 'all' ? `${filterGroup}` : '전체'} 현황
+          </p>
+        </div>
+        <ExportButton
+          logs={logsForExport}
+          cropName={filterGroup !== 'all' ? filterGroup : '전체'}
+        />
+      </div>
+
+      {/* Filters */}
+      <div className="dash-filters">
+        {groups.length > 0 && (
+          <div className="dash-filter-row">
+            <span className="dash-filter-label">조</span>
+            <div className="dash-crop-chips">
+              <button className={`dash-crop-chip ${filterGroup === 'all' ? 'active' : ''}`} onClick={() => setFilterGroup('all')}>전체</button>
+              {groups.map((g) => (
+                <button key={g} className={`dash-crop-chip ${filterGroup === g ? 'active' : ''}`} onClick={() => setFilterGroup(g)}>{g}</button>
+              ))}
+            </div>
           </div>
-          <ExportButton
-            logs={logsForExport}
-            cropName={selectedCropId ? cropMap[selectedCropId] || '' : '전체'}
-          />
+        )}
+        {categories.length > 0 && (
+          <div className="dash-filter-row">
+            <span className="dash-filter-label">분류</span>
+            <div className="dash-crop-chips">
+              <button className={`dash-crop-chip ${filterCategory === 'all' ? 'active' : ''}`} onClick={() => setFilterCategory('all')}>전체</button>
+              {categories.map((c) => (
+                <button key={c} className={`dash-crop-chip ${filterCategory === c ? 'active' : ''}`} onClick={() => setFilterCategory(c)}>{c}</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Summary Cards */}
+      <div className="dash-stats-grid">
+        <div className="dash-stat-card">
+          <div className="dash-stat-icon" style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}>
+            <Sprout size={20} />
+          </div>
+          <div className="dash-stat-info">
+            <span className="dash-stat-num">{stats.totalCrops}</span>
+            <span className="dash-stat-label">작물</span>
+          </div>
+        </div>
+        <div className="dash-stat-card">
+          <div className="dash-stat-icon" style={{ background: 'var(--color-blue-light)', color: 'var(--color-blue)' }}>
+            <FileText size={20} />
+          </div>
+          <div className="dash-stat-info">
+            <span className="dash-stat-num">{stats.totalLogs}</span>
+            <span className="dash-stat-label">총 기록</span>
+          </div>
+        </div>
+        <div className="dash-stat-card">
+          <div className="dash-stat-icon" style={{ background: 'var(--color-yellow-light)', color: '#986C00' }}>
+            <BarChart2 size={20} />
+          </div>
+          <div className="dash-stat-info">
+            <span className="dash-stat-num">{stats.weekLogs}</span>
+            <span className="dash-stat-label">이번 주</span>
+          </div>
+        </div>
+        <div className="dash-stat-card">
+          <div className="dash-stat-icon" style={{ background: '#F3E8FF', color: '#7C3AED' }}>
+            <Users size={20} />
+          </div>
+          <div className="dash-stat-info">
+            <span className="dash-stat-num">{stats.members}</span>
+            <span className="dash-stat-label">참여자</span>
+          </div>
         </div>
       </div>
 
-      <div className="dash-crop-chips">
-        <button
-          className={`dash-crop-chip ${!selectedCropId ? 'active' : ''}`}
-          onClick={() => setSelectedCropId(null)}
-        >
-          전체
-        </button>
-        {crops.map((crop) => (
-          <button
-            key={crop.id}
-            className={`dash-crop-chip ${activeCropId === crop.id && selectedCropId ? 'active' : ''}`}
-            onClick={() => setSelectedCropId(crop.id)}
-          >
-            {crop.name}
-          </button>
-        ))}
-      </div>
-
-      {filteredLogs.length === 0 && selectedCropId ? (
-        <EmptyState
-          title="기록이 없습니다"
-          description="이 작물에 대한 기록을 추가해 보세요."
-        />
-      ) : (
-        <div className="dash-content">
-          <div className="dash-section">
-            <h3 className="dash-section-header">사진 타임랩스</h3>
-            <PhotoTimelapse logs={filteredLogs} getPhotoUrl={photoStorage.getUrl} />
+      {/* Crop list summary */}
+      {filteredCrops.length > 0 && (
+        <div className="dash-section">
+          <h3 className="dash-section-header">작물 현황</h3>
+          <div className="dash-crop-list">
+            {filteredCrops.map((crop) => {
+              const count = logs.filter((l) => l.cropId === crop.id).length;
+              return (
+                <div key={crop.id} className="dash-crop-row">
+                  <div className="dash-crop-row-info">
+                    <span className="dash-crop-row-name">{crop.name}</span>
+                    {crop.category && <span className="dash-crop-row-cat">{crop.category}</span>}
+                  </div>
+                  <span className="dash-crop-row-count">{count}건</span>
+                </div>
+              );
+            })}
           </div>
+        </div>
+      )}
 
-          <div className="dash-divider" />
-
-          <div className="dash-section">
-            <h3 className="dash-section-header">생육 데이터</h3>
-            <GrowthChart logs={filteredLogs} />
-          </div>
-
-          <div className="dash-divider" />
-
-          <div className="dash-section">
-            <h3 className="dash-section-header">기록 달력</h3>
-            <MiniCalendar logDates={logDates} />
+      {/* Recent logs */}
+      {recentLogs.length > 0 && (
+        <div className="dash-section">
+          <h3 className="dash-section-header">최근 기록</h3>
+          <div className="dash-recent-list">
+            {recentLogs.map((log) => (
+              <div key={log.id} className="dash-recent-item">
+                <span className="dash-recent-date">{log.date}</span>
+                <span className="dash-recent-crop">{cropMap[log.cropId] || '-'}</span>
+                {log.memo && <span className="dash-recent-memo">{log.memo.slice(0, 30)}</span>}
+              </div>
+            ))}
           </div>
         </div>
       )}

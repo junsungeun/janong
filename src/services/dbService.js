@@ -5,6 +5,8 @@ export const TABLES = {
   CROP: 'crops',
   DAILY_LOG: 'daily_logs',
   CROP_PHOTO: 'crop_photos',
+  CROP_TASK: 'crop_tasks',
+  PROFILE: 'profiles',
 };
 
 // ── snake_case ↔ camelCase ──

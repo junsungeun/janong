@@ -35,7 +35,10 @@ export default function SettingsTab() {
           </div>
           <div className="settings-account-name">
             <span className="settings-account-email">{user?.email || '-'}</span>
-            <Badge variant={roleBadge.variant}>{roleBadge.label}</Badge>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <Badge variant={roleBadge.variant}>{roleBadge.label}</Badge>
+              {profile?.group_name && <Badge variant="good">{profile.group_name}</Badge>}
+            </div>
           </div>
         </div>
       </Card>
