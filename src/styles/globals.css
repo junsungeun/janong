@@ -182,6 +182,25 @@ body {
   color: var(--text-muted);
 }
 
+.app-header-settings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.app-header-settings:hover {
+  color: var(--text);
+  background: var(--bg-subtle);
+}
+
 .app-content {
   flex: 1;
   padding: var(--space-5);

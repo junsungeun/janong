@@ -28,7 +28,7 @@ function AppMain() {
 
   return (
     <div className="app-layout">
-      <Header />
+      <Header onSettingsClick={() => setActiveTab('settings')} />
       <main className="app-content">
         {renderTab()}
       </main>
