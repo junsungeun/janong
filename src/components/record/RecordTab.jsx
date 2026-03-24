@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { BookOpen } from 'lucide-react';
+import { toast } from '../ui/Toast';
 import { useList } from '../../hooks/useList';
 import { useAuth } from '../../contexts/AuthContext';
 import { db, TABLES } from '../../services/dbService';
@@ -52,7 +53,7 @@ export default function RecordTab({ initialCropFilter }) {
       setView('list');
       reload();
     } catch (err) {
-      console.error('삭제 실패:', err);
+      toast.error(err.message || '삭제에 실패했습니다.');
     }
   };
 

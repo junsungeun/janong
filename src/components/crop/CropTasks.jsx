@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Check, RotateCcw, Trash2 } from 'lucide-react';
 import { db, TABLES } from '../../services/dbService';
 import { useList } from '../../hooks/useList';
+import { toast } from '../ui/Toast';
 
 export default function CropTasks({ cropId }) {
   const { items: tasks, loading, reload } = useList(TABLES.CROP_TASK, { cropId });
@@ -18,7 +19,7 @@ export default function CropTasks({ cropId }) {
       await db.add(TABLES.CROP_TASK, { cropId, title: newTitle.trim(), status: 'todo' });
       setNewTitle('');
       reload();
-    } catch (err) { console.error(err); }
+    } catch (err) { toast.error(err.message || '추가에 실패했습니다.'); }
     setAdding(false);
   };
 
@@ -27,13 +28,17 @@ export default function CropTasks({ cropId }) {
     const updates = { status: newStatus };
     if (newStatus === 'done') updates.completedAt = new Date().toISOString();
     else updates.completedAt = null;
-    await db.update(TABLES.CROP_TASK, task.id, updates);
-    reload();
+    try {
+      await db.update(TABLES.CROP_TASK, task.id, updates);
+      reload();
+    } catch (err) { toast.error(err.message || '수정에 실패했습니다.'); }
   };
 
   const handleDelete = async (id) => {
-    await db.delete(TABLES.CROP_TASK, id);
-    reload();
+    try {
+      await db.delete(TABLES.CROP_TASK, id);
+      reload();
+    } catch (err) { toast.error(err.message || '삭제에 실패했습니다.'); }
   };
 
   return (

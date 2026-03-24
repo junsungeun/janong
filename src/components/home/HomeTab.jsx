@@ -14,6 +14,7 @@ import CropDetailPage from '../crop/CropDetailPage';
 import ReminderBanner from './ReminderBanner';
 import { Plus, Sprout } from 'lucide-react';
 import { Field, Input } from '../ui/Input';
+import { toast } from '../ui/Toast';
 
 export default function HomeTab({ onNavigate }) {
   const { user } = useAuth();
@@ -81,7 +82,7 @@ export default function HomeTab({ onNavigate }) {
       });
       setEditCrop(null);
       reloadCrops();
-    } catch (err) { console.error(err); }
+    } catch (err) { toast.error(err.message || '수정에 실패했습니다.'); }
   };
 
   const handleDeleteCrop = async () => {
@@ -90,7 +91,8 @@ export default function HomeTab({ onNavigate }) {
       await db.delete(TABLES.CROP, deleteCrop.id);
       setDeleteCrop(null);
       reloadCrops();
-    } catch (err) { console.error(err); }
+      toast.success('작물이 삭제되었습니다.');
+    } catch (err) { toast.error(err.message || '삭제에 실패했습니다.'); }
   };
 
   if (detailCrop) {

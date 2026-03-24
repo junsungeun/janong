@@ -37,7 +37,7 @@ export default function SettingsTab() {
             <span className="settings-account-email">{user?.email || '-'}</span>
             <div style={{ display: 'flex', gap: '6px' }}>
               <Badge variant={roleBadge.variant}>{roleBadge.label}</Badge>
-              {profile?.group_name && <Badge variant="good">{profile.group_name}</Badge>}
+              {(profile?.groupName || profile?.group_name) && <Badge variant="good">{profile.groupName || profile.group_name}</Badge>}
             </div>
           </div>
         </div>
