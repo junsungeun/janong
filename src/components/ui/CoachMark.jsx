@@ -69,20 +69,31 @@ export default function CoachMark({ onComplete }) {
   const isLast = step === STEPS.length - 1;
 
   const PAD = 6;
+  const TOOLTIP_H = 160; // 툴팁 예상 높이
+  const TOOLTIP_W = 280;
+  const MARGIN = 12;
   const hlTop = rect.top - PAD;
   const hlLeft = rect.left - PAD;
   const hlW = rect.width + PAD * 2;
   const hlH = rect.height + PAD * 2;
 
-  // 툴팁 위치
-  const tooltipStyle = { width: 280 };
-  const tooltipLeft = Math.max(16, Math.min(rect.left, window.innerWidth - 296));
-  if (current.position === 'bottom') {
-    tooltipStyle.top = hlTop + hlH + 12;
+  const tooltipLeft = Math.max(16, Math.min(hlLeft, window.innerWidth - TOOLTIP_W - 16));
+
+  // 아래 공간 부족하면 위로
+  const spaceBelow = window.innerHeight - (hlTop + hlH + MARGIN);
+  const spaceAbove = hlTop - MARGIN;
+  const tooltipStyle = { width: TOOLTIP_W };
+
+  if (current.position === 'bottom' && spaceBelow >= TOOLTIP_H) {
+    tooltipStyle.top = hlTop + hlH + MARGIN;
+    tooltipStyle.left = tooltipLeft;
+  } else if (spaceAbove >= TOOLTIP_H) {
+    tooltipStyle.top = hlTop - MARGIN - TOOLTIP_H;
     tooltipStyle.left = tooltipLeft;
   } else {
-    tooltipStyle.bottom = window.innerHeight - hlTop + 12;
-    tooltipStyle.left = tooltipLeft;
+    // 공간 없으면 화면 중앙
+    tooltipStyle.top = Math.max(16, (window.innerHeight - TOOLTIP_H) / 2);
+    tooltipStyle.left = (window.innerWidth - TOOLTIP_W) / 2;
   }
 
   return (

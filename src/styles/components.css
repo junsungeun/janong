@@ -4688,7 +4688,7 @@
   position: fixed;
   border: 2px solid var(--color-primary);
   border-radius: 12px;
-  /* 주변 어둠 + 안쪽 강조 글로우 */
+  z-index: 10000;
   box-shadow:
     0 0 0 9999px rgba(0, 0, 0, 0.6),
     0 0 0 4px rgba(var(--color-primary-rgb), 0.25);
@@ -4698,16 +4698,12 @@
 
 .coach-tooltip {
   position: fixed;
-}
-
-.coach-tooltip {
-  position: fixed;
   width: 280px;
   padding: var(--space-5);
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  z-index: 10000;
+  z-index: 10001;
   animation: fadeSlideUp 0.3s ease;
 }
 
