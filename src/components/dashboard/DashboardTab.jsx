@@ -4,6 +4,10 @@ import { db, TABLES } from '../../services/dbService';
 import Spinner from '../ui/Spinner';
 import ExportButton from '../record/ExportButton';
 import CompareView from '../analysis/CompareView';
+import PeriodCompare from '../analysis/PeriodCompare';
+import WeeklyReport from '../analysis/WeeklyReport';
+import PhotoCompare from '../analysis/PhotoCompare';
+import TimelineView from '../record/TimelineView';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function DashboardTab() {
@@ -14,7 +18,7 @@ export default function DashboardTab() {
   const [loading, setLoading] = useState(true);
   const [filterGroup, setFilterGroup] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [activeView, setActiveView] = useState('overview'); // overview | compare
+  const [activeView, setActiveView] = useState('overview');
 
   useEffect(() => {
     const load = async () => {
@@ -113,13 +117,31 @@ export default function DashboardTab() {
       </div>
 
       {/* View tabs */}
-      <div className="sub-tab-bar">
-        <button className={`sub-tab-btn ${activeView === 'overview' ? 'active' : ''}`} onClick={() => setActiveView('overview')}>현황</button>
-        <button className={`sub-tab-btn ${activeView === 'compare' ? 'active' : ''}`} onClick={() => setActiveView('compare')}>비교 분석</button>
+      <div className="dash-view-tabs">
+        {[
+          { key: 'overview', label: '현황' },
+          { key: 'timeline', label: '타임라인' },
+          { key: 'compare', label: '비교' },
+          { key: 'period', label: '기간별' },
+          { key: 'photos', label: '사진' },
+          { key: 'report', label: '리포트' },
+        ].map((v) => (
+          <button key={v.key} className={`dash-view-tab ${activeView === v.key ? 'active' : ''}`} onClick={() => setActiveView(v.key)}>
+            {v.label}
+          </button>
+        ))}
       </div>
 
       {activeView === 'compare' ? (
         <CompareView crops={filteredCrops} logs={filteredLogs} cropMap={cropMap} />
+      ) : activeView === 'period' ? (
+        <PeriodCompare logs={filteredLogs} />
+      ) : activeView === 'timeline' ? (
+        <TimelineView logs={filteredLogs} cropMap={cropMap} />
+      ) : activeView === 'photos' ? (
+        <PhotoCompare logs={filteredLogs} crops={filteredCrops} cropMap={cropMap} />
+      ) : activeView === 'report' ? (
+        <WeeklyReport logs={filteredLogs} crops={filteredCrops} cropMap={cropMap} />
       ) : (
       <>
       {/* Filters */}
