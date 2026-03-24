@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Info } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { CheckCircle, XCircle, Info, X } from 'lucide-react';
 
 export const toast = {
   success: (msg) => window.dispatchEvent(new CustomEvent('janong-toast', { detail: { msg, type: 'success' } })),
@@ -7,18 +7,24 @@ export const toast = {
   info:    (msg) => window.dispatchEvent(new CustomEvent('janong-toast', { detail: { msg, type: 'info' } })),
 };
 
-const STYLES = {
-  success: { bg: 'var(--color-primary)', icon: <CheckCircle size={15} strokeWidth={2} /> },
-  error:   { bg: 'var(--color-danger)',  icon: <XCircle     size={15} strokeWidth={2} /> },
-  info:    { bg: 'var(--color-earth)',   icon: <Info        size={15} strokeWidth={2} /> },
+const ICONS = {
+  success: <CheckCircle size={15} strokeWidth={2} />,
+  error:   <XCircle size={15} strokeWidth={2} />,
+  info:    <Info size={15} strokeWidth={2} />,
 };
 
 export function ToastContainer() {
   const [toasts, setToasts] = useState([]);
 
+  const dismiss = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
   useEffect(() => {
     const handler = (e) => {
-      const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+      const id = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`;
       setToasts(prev => [...prev, { id, ...e.detail }]);
       setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 2800);
     };
@@ -29,29 +35,20 @@ export function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <>
-      <div style={{
-        position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
-        display: 'flex', flexDirection: 'column', gap: '8px',
-        zIndex: 9999, width: 'min(320px, calc(100vw - 40px))',
-        pointerEvents: 'none',
-      }}>
-        {toasts.map(t => {
-          const s = STYLES[t.type] || STYLES.info;
-          return (
-            <div key={t.id} style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '12px 16px', background: s.bg, color: '#fff',
-              borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-              fontSize: '13px', fontWeight: 500, fontFamily: 'var(--font-sans)',
-              animation: 'toastIn 0.2s ease',
-            }}>
-              {s.icon}
-              {t.msg}
-            </div>
-          );
-        })}
-      </div>
-    </>
+    <div className="toast-container">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast toast--${t.type || 'info'}`}>
+          <span className="toast-icon">{ICONS[t.type] || ICONS.info}</span>
+          <span className="toast-msg">{t.msg}</span>
+          <button
+            className="toast-dismiss"
+            onClick={() => dismiss(t.id)}
+            aria-label="닫기"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      ))}
+    </div>
   );
 }

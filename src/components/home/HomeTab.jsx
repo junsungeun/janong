@@ -1,15 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useList } from '../../hooks/useList';
 import { TABLES } from '../../services/dbService';
 import { getCurrentSolarTerm, formatDate } from '../../utils/solarTerms';
-import { getTodayVerse } from '../../data/bibleVerses';
 import Button from '../ui/Button';
 import Spinner from '../ui/Spinner';
 import WeatherCard from './WeatherCard';
 import CropCard from './CropCard';
 import MiniCalendar from '../ui/MiniCalendar';
 import CropManager from '../settings/CropManager';
-import { Plus } from 'lucide-react';
+import { Plus, Sprout } from 'lucide-react';
 
 export default function HomeTab({ onNavigate }) {
   const { items: crops, loading: cropsLoading, reload: reloadCrops } = useList(TABLES.CROP);
@@ -18,9 +17,12 @@ export default function HomeTab({ onNavigate }) {
 
   const dateInfo = formatDate();
   const solarTerm = getCurrentSolarTerm();
-  const verse = getTodayVerse();
 
-  // Compute per-crop stats from logs
+  const closeCropManager = useCallback(() => {
+    setShowCropManager(false);
+    reloadCrops();
+  }, [reloadCrops]);
+
   const cropStats = useMemo(() => {
     const map = {};
     (logs || []).forEach((log) => {
@@ -34,7 +36,6 @@ export default function HomeTab({ onNavigate }) {
     return map;
   }, [logs]);
 
-  // Collect unique log dates for mini calendar
   const logDates = useMemo(() => {
     return [...new Set((logs || []).map((l) => l.date).filter(Boolean))];
   }, [logs]);
@@ -51,21 +52,11 @@ export default function HomeTab({ onNavigate }) {
         )}
       </div>
 
-      {/* Bible verse */}
-      {verse && (
-        <div className="home-verse-card">
-          <p className="home-verse">
-            {verse.text}
-            <span className="home-verse-ref">{verse.ref}</span>
-          </p>
-        </div>
-      )}
-
       {/* Weather */}
       <WeatherCard />
 
       {/* Crop List */}
-      <div className="home-section">
+      <div className="home-section home-section--crops">
         <div className="section-header">
           <span className="section-title">내 작물</span>
           <Button variant="ghost" size="sm" icon={<Plus size={14} />} onClick={() => setShowCropManager(true)}>
@@ -77,11 +68,20 @@ export default function HomeTab({ onNavigate }) {
           <Spinner />
         ) : crops.length === 0 ? (
           <div className="home-empty-crops">
-            <span className="home-empty-crops-icon" aria-hidden="true">&#127807;</span>
+            <div className="home-empty-crops-icon" aria-hidden="true">
+              <Sprout size={40} />
+            </div>
             <p className="home-empty-crops-title">아직 등록된 작물이 없어요</p>
             <p className="home-empty-crops-desc">
               작물을 등록하고 매일의 성장을<br />기록해보세요.
             </p>
+            <button
+              className="btn-primary home-empty-crops-cta"
+              onClick={() => setShowCropManager(true)}
+            >
+              <Plus size={16} />
+              작물 등록하기
+            </button>
           </div>
         ) : (
           <div className="home-crop-list">
@@ -101,7 +101,7 @@ export default function HomeTab({ onNavigate }) {
       </div>
 
       {/* Mini Calendar */}
-      <div className="home-section">
+      <div className="home-section home-section--calendar">
         <div className="section-header">
           <span className="section-title">기록 달력</span>
         </div>
@@ -120,11 +120,16 @@ export default function HomeTab({ onNavigate }) {
 
       {/* Crop Manager Modal */}
       {showCropManager && (
-        <div className="modal-overlay" onClick={() => { setShowCropManager(false); reloadCrops(); }}>
-          <div className="modal-content card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={closeCropManager}>
+          <div
+            className="modal-content card"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
             <CropManager />
-            <div className="form-actions" style={{ marginTop: '16px' }}>
-              <Button variant="secondary" onClick={() => { setShowCropManager(false); reloadCrops(); }}>닫기</Button>
+            <div className="form-actions home-crop-manager-close">
+              <Button variant="secondary" onClick={closeCropManager}>닫기</Button>
             </div>
           </div>
         </div>

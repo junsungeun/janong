@@ -6,6 +6,7 @@ import LoginPage from './components/auth/LoginPage';
 import HomeTab from './components/home/HomeTab';
 import RecordTab from './components/record/RecordTab';
 import DashboardTab from './components/dashboard/DashboardTab';
+import NoticesTab from './components/notices/NoticesTab';
 import SettingsTab from './components/settings/SettingsTab';
 import { ToastContainer } from './components/ui/Toast';
 import './styles/globals.css';
@@ -19,6 +20,7 @@ function AppMain() {
       case 'home':       return <HomeTab onNavigate={setActiveTab} />;
       case 'record':     return <RecordTab />;
       case 'dashboard':  return <DashboardTab />;
+      case 'notices':    return <NoticesTab />;
       case 'settings':   return <SettingsTab />;
       default:           return null;
     }

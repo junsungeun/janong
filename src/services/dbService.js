@@ -1,4 +1,4 @@
-// JANONG v2 — Supabase DB 서비스
+// SeedLog — Supabase DB 서비스
 import { supabase } from '../lib/supabase';
 
 export const TABLES = {

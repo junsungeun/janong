@@ -49,6 +49,7 @@ export default function MiniCalendar({ logDates = [], onDateClick }) {
 
   return (
     <Card className="mini-cal">
+      <div className="mini-cal-month-label">{year}년 {month + 1}월</div>
       <div className="mini-cal-header">
         <button className="mini-cal-nav" onClick={goPrev} aria-label="이전 달">&lsaquo;</button>
         <div className="mini-cal-title">
@@ -65,11 +66,13 @@ export default function MiniCalendar({ logDates = [], onDateClick }) {
             key={c.key}
             className={[
               'mini-cal-cell',
+              c.day ? 'mini-cal-cell--day' : '',
               c.isToday ? 'mini-cal-today' : '',
               c.hasLog ? 'mini-cal-logged' : '',
             ].filter(Boolean).join(' ')}
             onClick={() => c.day && onDateClick?.(c.dateStr)}
             role={c.day && onDateClick ? 'button' : undefined}
+            tabIndex={c.day && onDateClick ? 0 : undefined}
           >
             {c.day && (
               <>

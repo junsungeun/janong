@@ -28,11 +28,15 @@ export function Textarea({ className = '', ...props }) {
   );
 }
 
-export function Select({ options = [], className = '', placeholder, ...props }) {
+export function Select({ options = [], className = '', placeholder, value, ...props }) {
   return (
-    <select className={`input select ${className}`.trim()} {...props}>
+    <select
+      className={`input select${!value && placeholder ? ' select--placeholder' : ''} ${className}`.trim()}
+      value={value}
+      {...props}
+    >
       {placeholder && (
-        <option value="" disabled>
+        <option value="" disabled hidden>
           {placeholder}
         </option>
       )}

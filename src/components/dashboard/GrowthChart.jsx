@@ -51,24 +51,29 @@ export default function GrowthChart({ logs = [] }) {
 
   const polyline = points.map((p, i) => `${getX(i)},${getY(p.value)}`).join(' ');
 
-  // Y-axis grid ticks (4 lines)
   const yTicks = [];
   for (let i = 0; i <= 3; i++) {
     const val = minVal + ((maxVal - minVal) / 3) * i;
     yTicks.push({ val: Math.round(val * 10) / 10, y: getY(val) });
   }
 
+  const showLabel = (i) => {
+    if (points.length <= 7) return true;
+    if (i === 0 || i === points.length - 1) return true;
+    return i % 2 === 0;
+  };
+
   return (
     <div className="growth-chart">
       <span className="section-title">성장 차트</span>
 
-      {/* Pill-style metric toggle */}
-      <div className="growth-chart-toggles">
+      <div className="growth-chart-toggles" role="group" aria-label="측정 항목 선택">
         {METRICS.map((m) => (
           <button
             key={m.key}
             className={`growth-chart-toggle ${metric === m.key ? 'active' : ''}`}
             onClick={() => { setMetric(m.key); setHoverIdx(null); }}
+            aria-pressed={metric === m.key}
           >
             {m.label}
           </button>
@@ -76,105 +81,65 @@ export default function GrowthChart({ logs = [] }) {
       </div>
 
       {points.length === 0 ? (
-        <p className="growth-chart-empty">데이터가 없습니다</p>
+        <div className="growth-chart-empty">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5">
+            <path d="M3 3v18h18" strokeLinecap="round" />
+            <path d="M7 16l4-4 4 4 5-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <p>데이터가 아직 없습니다</p>
+        </div>
       ) : (
         <svg
           viewBox={`0 0 ${VIEW_W} ${CHART_H}`}
           className="growth-chart-svg"
           preserveAspectRatio="xMidYMid meet"
           onMouseLeave={() => setHoverIdx(null)}
+          role="img"
+          aria-label={`${current.label} 성장 차트 - ${points.length}개 데이터`}
         >
-          {/* Grid lines */}
           {yTicks.map((t, i) => (
             <g key={i}>
               <line
                 x1={PAD.left} y1={t.y}
                 x2={VIEW_W - PAD.right} y2={t.y}
-                stroke="var(--border)" strokeDasharray="4,3"
-                strokeWidth="0.5"
+                stroke="var(--border)" strokeDasharray="4,3" strokeWidth="0.5"
               />
-              <text
-                x={PAD.left - 6} y={t.y + 3.5}
-                textAnchor="end"
-                className="growth-chart-axis-label"
-              >
+              <text x={PAD.left - 6} y={t.y + 3.5} textAnchor="end" className="growth-chart-axis-label">
                 {t.val}
               </text>
             </g>
           ))}
 
-          {/* Area fill under line */}
           {points.length > 1 && (
             <polygon
               points={`${getX(0)},${getY(minVal)} ${polyline} ${getX(points.length - 1)},${getY(minVal)}`}
-              fill={current.color}
-              fillOpacity="0.06"
+              fill={current.color} fillOpacity="0.06"
             />
           )}
 
-          {/* Line */}
           <polyline
-            points={polyline}
-            fill="none"
-            stroke={current.color}
-            strokeWidth="2.5"
-            strokeLinejoin="round"
-            strokeLinecap="round"
+            points={polyline} fill="none" stroke={current.color}
+            strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"
           />
 
-          {/* Data points + hover labels */}
           {points.map((p, i) => (
-            <g
-              key={i}
-              onMouseEnter={() => setHoverIdx(i)}
-              onTouchStart={() => setHoverIdx(i)}
-            >
-              {/* Invisible hit area for hover */}
-              <rect
-                x={getX(i) - 12} y={PAD.top - 4}
-                width="24" height={innerH + 8}
-                fill="transparent"
-              />
-
-              {/* Data point circle */}
+            <g key={i} onMouseEnter={() => setHoverIdx(i)} onTouchStart={() => setHoverIdx(i)}>
+              <rect x={getX(i) - 12} y={PAD.top - 4} width="24" height={innerH + 8} fill="transparent" />
               <circle
                 cx={getX(i)} cy={getY(p.value)}
                 r={hoverIdx === i ? 5 : 3.5}
-                fill="var(--bg-card)"
-                stroke={current.color}
-                strokeWidth="2"
+                fill="var(--bg-card)" stroke={current.color} strokeWidth="2"
               />
-
-              {/* Value label on hover */}
               {hoverIdx === i && (
                 <g>
-                  <rect
-                    x={getX(i) - 22} y={getY(p.value) - 26}
-                    width="44" height="18"
-                    rx="4"
-                    fill="var(--bg-dark)"
-                  />
-                  <text
-                    x={getX(i)} y={getY(p.value) - 14}
-                    textAnchor="middle"
-                    fill="#fff"
-                    fontSize="10"
-                    fontWeight="600"
-                    fontFamily="var(--font-sans)"
-                  >
+                  <rect x={getX(i) - 22} y={getY(p.value) - 26} width="44" height="18" rx="4" fill="var(--bg-dark)" />
+                  <text x={getX(i)} y={getY(p.value) - 14} textAnchor="middle" fill="#fff" fontSize="10" fontWeight="600" fontFamily="var(--font-sans)">
                     {p.value}{current.unit}
                   </text>
                 </g>
               )}
-
-              {/* X-axis date labels */}
-              {(i === 0 || i === points.length - 1 || points.length <= 7 || i % 2 === 0) && (
-                <text
-                  x={getX(i)}
-                  y={CHART_H - 8}
-                  textAnchor="middle"
-                  className="growth-chart-axis-label"
-                >
+              {showLabel(i) && (
+                <text x={getX(i)} y={CHART_H - 8} textAnchor="middle" className="growth-chart-axis-label">
                   {p.date?.slice(5)}
                 </text>
               )}

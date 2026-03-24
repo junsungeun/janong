@@ -2658,3 +2658,907 @@
     padding: var(--space-2) var(--space-4);
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   23. UX 개선 — Dashboard + Settings v3
+══════════════════════════════════════════════════════════════ */
+
+/* ─── Dashboard section headers ─── */
+.dash-section-header {
+  font-family: var(--font-serif);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  margin-bottom: var(--space-2);
+}
+
+/* ─── PhotoTimelapse empty state ─── */
+.timelapse-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-4);
+  text-align: center;
+}
+
+.timelapse-empty-text {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* ─── PhotoTimelapse play button prominent ─── */
+.timelapse-play-btn--active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+/* ─── Lightbox navigation arrows ─── */
+.timelapse-lb-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.15s;
+  padding: 0;
+}
+
+.timelapse-lb-arrow:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.timelapse-lb-arrow--left {
+  left: var(--space-4);
+}
+
+.timelapse-lb-arrow--right {
+  right: var(--space-4);
+}
+
+/* ─── GrowthChart empty state ─── */
+.growth-chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-4);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ─── GrowthChart toggle pills ─── */
+.growth-chart-toggles {
+  display: flex;
+  gap: var(--space-1);
+  padding: 3px;
+  background: var(--bg-subtle);
+  border-radius: 100px;
+  width: fit-content;
+}
+
+.growth-chart-toggle {
+  padding: 7px 16px;
+  border-radius: 100px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.growth-chart-toggle:hover {
+  color: var(--text);
+}
+
+.growth-chart-toggle.active {
+  background: var(--bg-card);
+  color: var(--color-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* ─── StatusHistory empty state ─── */
+.status-history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-4);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ─── StatusHistory dot colors ─── */
+.status-dot--green {
+  background: #2ecc71;
+  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.15);
+}
+
+.status-dot--orange {
+  background: #f39c12;
+  box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.15);
+}
+
+.status-dot--red {
+  background: #e74c3c;
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.15);
+}
+
+/* ─── Settings separator ─── */
+.settings-separator {
+  height: 1px;
+  background: var(--border-light);
+  margin: var(--space-2) 0;
+}
+
+/* ─── CropManager empty state enhanced ─── */
+.crop-manager-empty-title {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   24. Record Tab v3 UX Fixes
+   ══════════════════════════════════════════════════════════════ */
+
+/* Title row with count badge */
+.record-tab-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.record-tab-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 100px;
+  background: var(--color-primary);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Empty state with icon */
+.record-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-10) var(--space-5);
+  text-align: center;
+}
+
+.record-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  margin-bottom: var(--space-4);
+}
+
+.record-empty-title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: var(--space-2);
+}
+
+.record-empty-desc {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-5);
+  line-height: var(--leading-loose);
+}
+
+.record-empty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 28px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 100px;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  box-shadow: 0 2px 8px rgba(59, 94, 58, 0.25);
+  min-height: 44px;
+}
+
+.record-empty-btn:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.record-empty-btn:active {
+  transform: translateY(0);
+}
+
+/* Chevron icon in RecordItem */
+.record-item-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-left: var(--space-2);
+}
+
+/* Photo remove button - always visible on mobile */
+.record-photo-remove-visible {
+  opacity: 1;
+}
+
+/* AI loading card inside photo overlay */
+.record-ai-loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--bg-card);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.record-ai-loading-text {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+/* Mini viewfinder in grid */
+.record-photo-viewfinder-mini {
+  aspect-ratio: 1;
+  padding: var(--space-3);
+  gap: var(--space-1);
+}
+
+/* Full-width terra save button */
+.record-save-btn-full {
+  width: 100%;
+  padding: 16px;
+  background: var(--color-terra);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  box-shadow: 0 2px 8px rgba(196, 133, 90, 0.3);
+  min-height: 52px;
+  text-align: center;
+}
+
+.record-save-btn-full:hover {
+  background: var(--color-terra-dark);
+}
+
+.record-save-btn-full:active {
+  transform: scale(0.98);
+}
+
+.record-save-btn-full:disabled {
+  background: var(--border);
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* GrowthInput with unit labels */
+.growth-input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.growth-input-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.growth-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.growth-input-wrap input {
+  flex: 1;
+  min-width: 0;
+}
+
+.growth-input-unit {
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-earth);
+  min-width: 24px;
+  text-align: center;
+}
+
+/* RecordDetail back button */
+.record-detail-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px 8px 8px;
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-primary);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+  min-height: 36px;
+}
+
+.record-detail-back-btn:hover {
+  background: var(--color-primary-light);
+}
+
+/* Gallery dots */
+.record-detail-gallery-wrap {
+  position: relative;
+}
+
+.record-detail-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--space-2) 0;
+}
+
+.record-detail-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.record-detail-dot.active {
+  background: var(--color-primary);
+  transform: scale(1.3);
+}
+
+/* Env data icons */
+.record-detail-env-icon {
+  color: var(--color-primary);
+  margin-bottom: 2px;
+}
+
+/* Pest crop selector */
+.pest-crop-selector {
+  margin-bottom: var(--space-3);
+}
+
+/* Pest solution text */
+.pest-solution-text {
+  flex: 1;
+  line-height: var(--leading-loose);
+}
+
+/* Export button with icon and count */
+.export-btn-icon {
+  flex-shrink: 0;
+}
+
+.export-btn-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 100px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  margin-left: 2px;
+}
+
+/* Responsive: stack growth inputs vertically on very small screens */
+@media (max-width: 340px) {
+  .growth-input-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   24. UX 폴리시 패치
+══════════════════════════════════════════════════════════════ */
+
+
+/* ─── BottomNav: active pill + bold, no stroke jank ─── */
+.tab-item.active .tab-item-label {
+  font-weight: 700;
+}
+
+
+/* ─── LoginPage: loading cursor + password hint + error animation ─── */
+.login-page--loading {
+  cursor: wait;
+}
+
+.login-page--loading .login-btn {
+  cursor: wait;
+}
+
+.login-tagline {
+  font-family: var(--font-serif);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+  letter-spacing: 0.04em;
+}
+
+.login-sprout {
+  font-size: 24px;
+  vertical-align: middle;
+  margin-left: var(--space-1);
+}
+
+.login-field-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-field-icon-svg {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.login-field-icon .input {
+  padding-left: 38px;
+  width: 100%;
+}
+
+.login-password-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+  padding-left: var(--space-1);
+  opacity: 0.7;
+  line-height: var(--leading-normal);
+}
+
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-6px); }
+  30% { transform: translateX(5px); }
+  45% { transform: translateX(-4px); }
+  60% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+}
+
+.login-error {
+  animation: shakeError 0.4s ease-out, fadeSlideDown 0.25s ease-out;
+}
+
+
+/* ─── HomeTab: empty state + section spacing ─── */
+.home-section--crops {
+  margin-top: var(--space-2);
+}
+
+.home-section--calendar {
+  margin-top: var(--space-2);
+}
+
+.home-empty-crops {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-12) var(--space-6);
+  gap: var(--space-2);
+}
+
+.home-empty-crops-icon {
+  color: var(--color-primary);
+  opacity: 0.2;
+  margin-bottom: var(--space-3);
+}
+
+.home-empty-crops-title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.home-empty-crops-desc {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: var(--leading-loose);
+}
+
+.home-empty-crops-cta {
+  margin-top: var(--space-5);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 24px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border-radius: 100px;
+}
+
+.home-crop-manager-close {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-light);
+}
+
+
+/* ─── CropCard: chevron + visual hierarchy ─── */
+.crop-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.crop-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.crop-card-name {
+  font-size: 18px;
+}
+
+.crop-card-meta {
+  font-size: 12px;
+  margin-top: var(--space-2);
+}
+
+.crop-card-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.crop-card-days {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  text-align: right;
+}
+
+.crop-card-days-num {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.crop-card-days-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.crop-card-chevron {
+  color: var(--text-muted);
+  opacity: 0.4;
+  flex-shrink: 0;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.crop-card:hover .crop-card-chevron {
+  opacity: 0.7;
+  transform: translateX(2px);
+}
+
+
+/* ─── MiniCalendar: tap feedback ─── */
+.mini-cal-month-label {
+  display: none;
+}
+
+.mini-cal-cell--day {
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.mini-cal-cell--day:active {
+  transform: scale(0.9);
+  background: var(--bg-subtle);
+}
+
+.mini-cal-today.mini-cal-cell--day:active {
+  background: var(--color-primary-dark);
+  transform: scale(0.9);
+}
+
+
+/* ─── Modal: exit animation + loading state ─── */
+@keyframes modalFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes modalScaleOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.95); }
+}
+
+.modal-overlay--exit {
+  animation: modalFadeOut 0.18s ease-in forwards;
+}
+
+.modal-content--exit {
+  animation: modalScaleOut 0.18s ease-in forwards;
+}
+
+.modal-btn--loading {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+
+/* ─── EmptyState: bigger icon + action button ─── */
+.empty-state-icon {
+  font-size: 56px;
+}
+
+.empty-state-action {
+  margin-top: var(--space-5);
+  padding: 10px 24px;
+  font-size: var(--text-sm);
+  border-radius: 100px;
+}
+
+
+/* ─── Toast: CSS classes, dismiss button, above bottom nav ─── */
+.toast--success {
+  background: var(--color-primary);
+}
+
+.toast--error {
+  background: var(--color-danger);
+}
+
+.toast--info {
+  background: var(--color-earth);
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.toast-msg {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-dismiss {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  min-width: 24px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s;
+}
+
+.toast-dismiss:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+
+/* ─── Input: textarea min-height + select placeholder ─── */
+.textarea {
+  min-height: 80px;
+}
+
+.select--placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   24. 사업공고 (Notices) Tab
+══════════════════════════════════════════════════════════════ */
+
+.notices-tab {
+  padding: var(--space-4);
+  padding-bottom: calc(80px + var(--space-4));
+}
+
+.notices-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.notices-refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color 0.15s;
+}
+
+.notices-refresh-btn:hover {
+  color: var(--text);
+}
+
+.notices-refresh-btn .spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.notices-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-4);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.notices-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-4);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.notices-empty-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.notices-empty-desc {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.notices-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.notice-card {
+  display: block;
+  padding: var(--space-4);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.notice-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.notice-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.notice-card-org {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.notice-card-link-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.notice-card-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.5;
+  margin-bottom: var(--space-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notice-card-period {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.notice-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.notice-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--bg-subtle);
+  border-radius: 100px;
+  color: var(--text-muted);
+}

@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { photoStorage } from '../../services/dbService';
 
-const statusVariant = {
-  '좋음': 'good',
-  '보통': 'info',
-  '주의': 'warning',
-};
+function formatShortDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}.${d.getDate()}`;
+}
 
 export default function RecordItem({ log, cropName, onView, onDelete }) {
   const [expanded, setExpanded] = useState(false);
@@ -18,12 +19,8 @@ export default function RecordItem({ log, cropName, onView, onDelete }) {
     : null;
 
   return (
-    <Card
-      className="record-item"
-      onClick={() => setExpanded(!expanded)}
-    >
+    <Card className="record-item" onClick={() => setExpanded(!expanded)}>
       <div className="record-item-header">
-        {/* Thumbnail or placeholder */}
         {thumbUrl ? (
           <div className="record-item-thumb">
             <img src={thumbUrl} alt="" loading="lazy" />
@@ -38,19 +35,11 @@ export default function RecordItem({ log, cropName, onView, onDelete }) {
           </div>
         )}
 
-        {/* Info section */}
         <div className="record-item-info">
           <div className="record-item-top">
-            <span className="record-item-date">{log.date}</span>
-            {log.aiStatus && (
-              <Badge variant={statusVariant[log.aiStatus] || 'info'}>
-                {log.aiStatus}
-              </Badge>
-            )}
+            <span className="record-item-date">{formatShortDate(log.date)}</span>
           </div>
           <span className="record-item-crop">{cropName || '작물 미지정'}</span>
-
-          {/* Temperature/humidity badges */}
           <div className="record-item-badges">
             {log.temperature != null && (
               <Badge variant="info">{log.temperature}&deg;C</Badge>
@@ -60,30 +49,22 @@ export default function RecordItem({ log, cropName, onView, onDelete }) {
             )}
           </div>
         </div>
+
+        <div className="record-item-chevron">
+          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </div>
       </div>
 
-      {/* Expandable detail with smooth animation */}
       <div className={`record-item-expand ${expanded ? 'open' : ''}`}>
         <div className="record-item-expand-inner">
-          {log.aiAnalysis && (
-            <p className="record-item-analysis">{log.aiAnalysis}</p>
-          )}
           {log.memo && (
             <p className="record-item-memo">{log.memo}</p>
           )}
           <div className="record-item-actions">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onView?.(log); }}
-            >
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onView?.(log); }}>
               상세보기
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onDelete?.(log); }}
-            >
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onDelete?.(log); }}>
               삭제
             </Button>
           </div>

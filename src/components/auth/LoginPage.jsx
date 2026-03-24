@@ -4,7 +4,7 @@ import { Mail, Lock, User } from 'lucide-react';
 
 export default function LoginPage() {
   const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState('login'); // login | signup
+  const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -42,10 +42,10 @@ export default function LoginPage() {
         <div className="login-card">
           <div className="login-brand">
             <div className="login-logo">
-              JANONG
+              SeedLog
               <span className="login-sprout" aria-hidden="true">&#127793;</span>
             </div>
-            <div className="login-subtitle">Farm R&amp;D Platform</div>
+            <div className="login-subtitle">농사 기록 플랫폼</div>
           </div>
           <div className="login-success">
             <p>회원가입이 완료되었습니다.</p>
@@ -60,14 +60,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-page">
+    <div className={`login-page${loading ? ' login-page--loading' : ''}`}>
       <div className="login-card">
         <div className="login-brand">
           <div className="login-logo">
-            JANONG
+            SeedLog
             <span className="login-sprout" aria-hidden="true">&#127793;</span>
           </div>
-          <div className="login-subtitle">Farm R&amp;D Platform</div>
+          <div className="login-subtitle">농사 기록 플랫폼</div>
           <div className="login-tagline">내 땅을 아는 농사</div>
         </div>
 
@@ -100,7 +100,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@janong.kr"
+                placeholder="example@seedlog.kr"
                 autoComplete="email"
                 required
               />
@@ -117,15 +117,18 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === 'signup' ? '6자 이상 입력하세요' : '비밀번호를 입력하세요'}
+                placeholder={mode === 'signup' ? '영문/숫자 조합 6자 이상' : '비밀번호를 입력하세요'}
                 autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                 required
                 minLength={mode === 'signup' ? 6 : undefined}
               />
             </div>
+            {mode === 'signup' && (
+              <p className="login-password-hint">영문, 숫자를 포함해 6자 이상 입력해주세요</p>
+            )}
           </div>
 
-          {error && <div className="login-error">{error}</div>}
+          {error && <div className="login-error" role="alert">{error}</div>}
 
           <button type="submit" className="btn-primary login-btn" disabled={loading}>
             {loading ? (mode === 'login' ? '로그인 중...' : '가입 중...') : (mode === 'login' ? '로그인' : '회원가입')}

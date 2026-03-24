@@ -1,4 +1,5 @@
 import React from 'react';
+import { Download } from 'lucide-react';
 import Button from '../ui/Button';
 import { exportCsv } from '../../utils/exportCsv';
 
@@ -11,15 +12,15 @@ export default function ExportButton({ logs = [], cropName = '전체' }) {
       작물: log.cropName || '',
       온도: log.temperature ?? '',
       습도: log.humidity ?? '',
-      AI상태: log.aiStatus || '',
-      키cm: log.heightCm ?? '',
-      잎수: log.leafCount ?? '',
-      줄기mm: log.stemMm ?? '',
+      '키(cm)': log.heightCm ?? '',
+      '잎 수': log.leafCount ?? '',
+      '줄기(mm)': log.stemMm ?? '',
+      날씨: log.weather || '',
       메모: log.memo || '',
     }));
 
     const today = new Date().toISOString().slice(0, 10);
-    const filename = `자농_기록_${cropName}_${today}.csv`;
+    const filename = `SeedLog_기록_${cropName}_${today}.csv`;
     exportCsv(rows, filename);
   };
 
@@ -31,7 +32,11 @@ export default function ExportButton({ logs = [], cropName = '전체' }) {
       disabled={logs.length === 0}
       className="export-btn"
     >
-      엑셀 내보내기
+      <Download size={14} className="export-btn-icon" />
+      <span>내보내기</span>
+      {logs.length > 0 && (
+        <span className="export-btn-count">{logs.length}</span>
+      )}
     </Button>
   );
 }

@@ -1,55 +1,57 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, Thermometer, Droplets, Cloud, Ruler, Leaf, Circle } from 'lucide-react';
 import Card from '../ui/Card';
-import Badge from '../ui/Badge';
 import Button from '../ui/Button';
+import Modal from '../ui/Modal';
 import { photoStorage } from '../../services/dbService';
 
-const statusVariant = {
-  '좋음': 'good',
-  '보통': 'info',
-  '주의': 'warning',
-};
-
 export default function RecordDetail({ log, cropName, onEdit, onDelete, onClose }) {
-  if (!log) return null;
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [activePhoto, setActivePhoto] = useState(0);
+  const galleryRef = useRef(null);
 
+  if (!log) return null;
   const photos = (log.photos || []).map((p) => photoStorage.getUrl(p));
+
+  useEffect(() => {
+    const el = galleryRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      const idx = Math.round(el.scrollLeft / el.offsetWidth);
+      setActivePhoto(idx);
+    };
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [photos.length]);
 
   return (
     <div className="record-detail page-slide-in">
-      {/* Top navigation */}
       <div className="record-detail-top">
-        <Button variant="ghost" onClick={onClose}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5m7-7l-7 7 7 7"/>
-          </svg>
-          목록
-        </Button>
+        <button className="record-detail-back-btn" onClick={onClose}>
+          <ArrowLeft size={18} />
+          <span>목록</span>
+        </button>
       </div>
 
-      {/* Photo gallery with snap scroll */}
       {photos.length > 0 && (
-        <>
-          <div className="record-detail-gallery">
+        <div className="record-detail-gallery-wrap">
+          <div className="record-detail-gallery" ref={galleryRef}>
             {photos.map((url, i) => (
               <div key={i} className="record-detail-gallery-item">
-                <img
-                  src={url}
-                  alt={`사진 ${i + 1}`}
-                  className="record-detail-photo"
-                />
+                <img src={url} alt={`사진 ${i + 1}`} className="record-detail-photo" />
               </div>
             ))}
           </div>
           {photos.length > 1 && (
-            <p className="record-detail-photo-count">
-              {photos.length}장의 사진
-            </p>
+            <div className="record-detail-dots">
+              {photos.map((_, i) => (
+                <span key={i} className={`record-detail-dot ${i === activePhoto ? 'active' : ''}`} />
+              ))}
+            </div>
           )}
-        </>
+        </div>
       )}
 
-      {/* Basic info card */}
       <Card className="record-detail-card">
         <div className="record-detail-row">
           <span className="record-detail-label">날짜</span>
@@ -59,39 +61,29 @@ export default function RecordDetail({ log, cropName, onEdit, onDelete, onClose 
           <span className="record-detail-label">작물</span>
           <span className="record-detail-value">{cropName || '-'}</span>
         </div>
-        {log.aiStatus && (
-          <div className="record-detail-row">
-            <span className="record-detail-label">AI 상태</span>
-            <Badge variant={statusVariant[log.aiStatus] || 'info'}>
-              {log.aiStatus}
-            </Badge>
-          </div>
-        )}
       </Card>
 
-      {/* Environment data */}
       {(log.temperature != null || log.humidity != null || log.weather) && (
         <Card className="record-detail-card">
           <p className="record-detail-section-title">환경 데이터</p>
           <div className="record-detail-env-grid">
             {log.temperature != null && (
               <div className="record-detail-env-item">
-                <span className="record-detail-env-val">
-                  {log.temperature}&deg;C
-                </span>
+                <Thermometer size={16} className="record-detail-env-icon" />
+                <span className="record-detail-env-val">{log.temperature}&deg;C</span>
                 <span className="record-detail-env-label">온도</span>
               </div>
             )}
             {log.humidity != null && (
               <div className="record-detail-env-item">
-                <span className="record-detail-env-val">
-                  {log.humidity}%
-                </span>
+                <Droplets size={16} className="record-detail-env-icon" />
+                <span className="record-detail-env-val">{log.humidity}%</span>
                 <span className="record-detail-env-label">습도</span>
               </div>
             )}
             {log.weather && (
               <div className="record-detail-env-item">
+                <Cloud size={16} className="record-detail-env-icon" />
                 <span className="record-detail-env-val">{log.weather}</span>
                 <span className="record-detail-env-label">날씨</span>
               </div>
@@ -100,25 +92,27 @@ export default function RecordDetail({ log, cropName, onEdit, onDelete, onClose 
         </Card>
       )}
 
-      {/* Growth data */}
       {(log.heightCm || log.leafCount || log.stemMm) && (
         <Card className="record-detail-card">
           <p className="record-detail-section-title">생장 데이터</p>
           <div className="record-detail-env-grid">
             {log.heightCm != null && (
               <div className="record-detail-env-item">
+                <Ruler size={16} className="record-detail-env-icon" />
                 <span className="record-detail-env-val">{log.heightCm} cm</span>
                 <span className="record-detail-env-label">키</span>
               </div>
             )}
             {log.leafCount != null && (
               <div className="record-detail-env-item">
+                <Leaf size={16} className="record-detail-env-icon" />
                 <span className="record-detail-env-val">{log.leafCount}</span>
                 <span className="record-detail-env-label">잎 수</span>
               </div>
             )}
             {log.stemMm != null && (
               <div className="record-detail-env-item">
+                <Circle size={16} className="record-detail-env-icon" />
                 <span className="record-detail-env-val">{log.stemMm} mm</span>
                 <span className="record-detail-env-label">줄기</span>
               </div>
@@ -127,15 +121,6 @@ export default function RecordDetail({ log, cropName, onEdit, onDelete, onClose 
         </Card>
       )}
 
-      {/* AI Analysis highlight card */}
-      {log.aiAnalysis && (
-        <Card variant="highlight" className="record-detail-card">
-          <p className="record-detail-section-title">AI 분석</p>
-          <p className="record-detail-text">{log.aiAnalysis}</p>
-        </Card>
-      )}
-
-      {/* Memo */}
       {log.memo && (
         <Card className="record-detail-card">
           <p className="record-detail-section-title">메모</p>
@@ -143,21 +128,20 @@ export default function RecordDetail({ log, cropName, onEdit, onDelete, onClose 
         </Card>
       )}
 
-      {/* Bottom action buttons */}
       <div className="record-detail-bottom">
-        <Button
-          variant="secondary"
-          onClick={() => onEdit?.(log)}
-        >
-          수정
-        </Button>
-        <Button
-          variant="danger"
-          onClick={() => onDelete?.(log)}
-        >
-          삭제
-        </Button>
+        <Button variant="secondary" onClick={() => onEdit?.(log)}>수정</Button>
+        <Button variant="danger" onClick={() => setConfirmDelete(true)}>삭제</Button>
       </div>
+
+      {confirmDelete && (
+        <Modal
+          message="이 기록을 정말 삭제하시겠습니까? 삭제된 기록은 복구할 수 없습니다."
+          confirmLabel="삭제"
+          danger
+          onConfirm={() => { setConfirmDelete(false); onDelete?.(log); }}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   );
 }

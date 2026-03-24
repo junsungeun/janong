@@ -1,9 +1,10 @@
-import { Home, BookOpen, BarChart2, Settings } from 'lucide-react';
+import { Home, BookOpen, BarChart2, Megaphone, Settings } from 'lucide-react';
 
 const tabs = [
   { key: 'home', label: '홈', Icon: Home },
   { key: 'record', label: '기록', Icon: BookOpen },
   { key: 'dashboard', label: '대시보드', Icon: BarChart2 },
+  { key: 'notices', label: '공고', Icon: Megaphone },
   { key: 'settings', label: '설정', Icon: Settings },
 ];
 
@@ -20,7 +21,7 @@ export default function BottomNav({ activeTab, onTabChange }) {
           aria-selected={activeTab === key}
         >
           <span className="tab-item-inner">
-            <Icon size={21} strokeWidth={activeTab === key ? 2.2 : 1.7} />
+            <Icon size={20} strokeWidth={1.8} />
             <span className="tab-item-label">{label}</span>
           </span>
         </button>

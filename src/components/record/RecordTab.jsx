@@ -1,14 +1,12 @@
 import React, { useState, useMemo } from 'react';
+import { BookOpen } from 'lucide-react';
 import { useList } from '../../hooks/useList';
 import { db, TABLES } from '../../services/dbService';
-import Button from '../ui/Button';
-import EmptyState from '../ui/EmptyState';
 import Spinner from '../ui/Spinner';
 import Modal from '../ui/Modal';
 import RecordItem from './RecordItem';
 import RecordForm from './RecordForm';
 import RecordDetail from './RecordDetail';
-import PestDiagnosis from './PestDiagnosis';
 import ExportButton from './ExportButton';
 
 export default function RecordTab() {
@@ -17,6 +15,7 @@ export default function RecordTab() {
 
   const [view, setView] = useState('list');
   const [selectedLog, setSelectedLog] = useState(null);
+  const [editLog, setEditLog] = useState(null);
   const [filterCrop, setFilterCrop] = useState('all');
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -35,29 +34,12 @@ export default function RecordTab() {
     return filteredLogs.map((l) => ({ ...l, cropName: cropMap[l.cropId] || '' }));
   }, [filteredLogs, cropMap]);
 
-  const handleSaveForm = () => { setView('list'); reload(); };
+  const handleSaveForm = () => { setView('list'); setEditLog(null); reload(); };
 
-  const handleSavePest = async (logData) => {
-    try {
-      const photos = logData.photos || [];
-      const paths = [];
-      for (const f of photos) {
-        if (f instanceof File) {
-          const { photoStorage } = await import('../../services/dbService');
-          const p = await photoStorage.upload(logData.cropId, f);
-          paths.push(p);
-        }
-      }
-      await db.add(TABLES.DAILY_LOG, {
-        ...logData,
-        photos: paths,
-        date: new Date().toISOString().slice(0, 10),
-      });
-      setView('list');
-      reload();
-    } catch (err) {
-      console.error('병해충 일지 저장 실패:', err);
-    }
+  const handleEdit = (log) => {
+    setEditLog(log);
+    setSelectedLog(null);
+    setView('form');
   };
 
   const handleDelete = async () => {
@@ -80,28 +62,18 @@ export default function RecordTab() {
     return (
       <RecordForm
         crops={crops}
+        editLog={editLog}
         onSave={handleSaveForm}
-        onCancel={() => setView('list')}
+        onCancel={() => { setView(editLog ? 'detail' : 'list'); setEditLog(null); }}
       />
     );
   }
-
-  if (view === 'pest') {
-    return (
-      <PestDiagnosis
-        crops={crops}
-        onSave={handleSavePest}
-        onClose={() => setView('list')}
-      />
-    );
-  }
-
   if (view === 'detail' && selectedLog) {
     return (
       <RecordDetail
         log={selectedLog}
         cropName={cropMap[selectedLog.cropId]}
-        onEdit={() => {}}
+        onEdit={handleEdit}
         onDelete={(log) => setDeleteTarget(log)}
         onClose={() => { setSelectedLog(null); setView('list'); }}
       />
@@ -110,21 +82,21 @@ export default function RecordTab() {
 
   return (
     <div className="record-tab">
-      {/* Header with CTA */}
       <div className="record-tab-header">
         <div className="page-header">
-          <h2 className="page-title">재배 기록</h2>
+          <div className="record-tab-title-row">
+            <h2 className="page-title">재배 기록</h2>
+            {logs.length > 0 && (
+              <span className="record-tab-count-badge">{logs.length}</span>
+            )}
+          </div>
           <p className="page-subtitle">일일 재배 상태를 기록하세요</p>
         </div>
-        <button
-          className="record-tab-cta"
-          onClick={() => setView('form')}
-        >
+        <button className="record-tab-cta" onClick={() => { setEditLog(null); setView('form'); }}>
           + 새 기록
         </button>
       </div>
 
-      {/* Pill-style crop filter chips */}
       <div className="record-filter-chips">
         <button
           className={`record-chip ${filterCrop === 'all' ? 'active' : ''}`}
@@ -143,14 +115,19 @@ export default function RecordTab() {
         ))}
       </div>
 
-      {/* Log list */}
       {loading ? (
         <Spinner />
       ) : filteredLogs.length === 0 ? (
-        <EmptyState
-          title="기록이 없습니다"
-          description="새 기록을 추가하여 재배 일지를 시작하세요."
-        />
+        <div className="record-empty-state">
+          <div className="record-empty-icon">
+            <BookOpen size={40} strokeWidth={1.5} />
+          </div>
+          <p className="record-empty-title">기록이 없습니다</p>
+          <p className="record-empty-desc">새 기록을 추가하여 재배 일지를 시작하세요.</p>
+          <button className="record-empty-btn" onClick={() => { setEditLog(null); setView('form'); }}>
+            첫 기록 남기기
+          </button>
+        </div>
       ) : (
         <div className="record-list">
           {filteredLogs.map((log) => (
@@ -166,23 +143,13 @@ export default function RecordTab() {
       )}
 
       {/* Bottom action bar */}
-      {filteredLogs.length > 0 && (
-        <div className="record-bottom-bar">
-          <ExportButton
-            logs={logsForExport}
-            cropName={filterCrop === 'all' ? '전체' : cropMap[filterCrop] || ''}
-          />
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setView('pest')}
-          >
-            병해충 진단
-          </Button>
-        </div>
-      )}
+      <div className="record-bottom-bar">
+        <ExportButton
+          logs={logsForExport}
+          cropName={filterCrop === 'all' ? '전체' : cropMap[filterCrop] || ''}
+        />
+      </div>
 
-      {/* Delete confirmation modal */}
       {deleteTarget && (
         <Modal
           message="이 기록을 삭제하시겠습니까?"

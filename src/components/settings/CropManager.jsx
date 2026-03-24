@@ -4,6 +4,7 @@ import { useList } from '../../hooks/useList';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
 import Modal from '../ui/Modal';
+import Spinner from '../ui/Spinner';
 import { Field, Input } from '../ui/Input';
 
 const EMPTY = { name: '', variety: '', plantingDate: '', section: '' };
@@ -20,8 +21,12 @@ export default function CropManager() {
 
   const openCreate = () => { setForm(EMPTY); setEditId(null); setShowForm(true); };
   const openEdit = (c) => {
-    setForm({ name: c.name || '', variety: c.variety || '', plantingDate: c.plantingDate || '', section: c.section || '' });
-    setEditId(c.id); setShowForm(true);
+    setForm({
+      name: c.name || '', variety: c.variety || '',
+      plantingDate: c.plantingDate || '', section: c.section || '',
+    });
+    setEditId(c.id);
+    setShowForm(true);
   };
 
   const handleSubmit = async (e) => {
@@ -37,9 +42,14 @@ export default function CropManager() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    try { await db.delete(TABLES.CROP, deleteTarget); setDeleteTarget(null); await reload(); }
-    catch (err) { console.error(err); }
+    try {
+      await db.delete(TABLES.CROP, deleteTarget.id);
+      setDeleteTarget(null);
+      await reload();
+    } catch (err) { console.error(err); }
   };
+
+  const deleteCropName = deleteTarget?.name || '이 작물';
 
   return (
     <div className="crop-manager">
@@ -49,11 +59,17 @@ export default function CropManager() {
       </div>
 
       {loading ? (
-        <p className="text-muted text-sm">불러오는 중...</p>
+        <Spinner />
       ) : crops.length === 0 ? (
         <div className="crop-manager-empty">
-          <p className="text-muted text-sm">등록된 작물이 없습니다.</p>
-          <p className="text-caption text-muted">작물을 등록하여 재배 기록을 시작하세요.</p>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5">
+            <path d="M12 22V12" strokeLinecap="round" />
+            <path d="M12 12C12 8 16 5 16 2c-3 0-4 4-4 4" />
+            <path d="M12 12C12 8 8 5 8 2c3 0 4 4 4 4" />
+            <path d="M4 22h16" strokeLinecap="round" />
+          </svg>
+          <p className="crop-manager-empty-title">등록된 작물이 없습니다</p>
+          <Button variant="primary" size="sm" onClick={openCreate}>작물 등록</Button>
         </div>
       ) : (
         <div className="crop-manager-list">
@@ -65,11 +81,17 @@ export default function CropManager() {
                   {crop.variety && <span className="crop-manager-variety">{crop.variety}</span>}
                 </div>
                 <div className="crop-manager-actions">
-                  <button className="crop-manager-action-btn" onClick={() => openEdit(crop)} title="수정">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  <button className="crop-manager-action-btn" onClick={() => openEdit(crop)} title="수정" aria-label={`${crop.name} 수정`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
                   </button>
-                  <button className="crop-manager-action-btn crop-manager-delete" onClick={() => setDeleteTarget(crop.id)} title="삭제">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                  <button className="crop-manager-action-btn crop-manager-delete" onClick={() => setDeleteTarget(crop)} title="삭제" aria-label={`${crop.name} 삭제`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -87,15 +109,25 @@ export default function CropManager() {
       {showForm && (
         <div className="modal-overlay" onClick={() => setShowForm(false)}>
           <div className="modal-content card crop-form-modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="crop-form-title">{editId ? '작물 수정' : '새 작물 등록'}</h3>
+            <h3 className="crop-form-title">{editId ? '작물 정보 수정' : '새 작물 등록'}</h3>
             <form className="crop-form" onSubmit={handleSubmit}>
-              <Field label="작물명" required><Input name="name" value={form.name} onChange={handleChange} placeholder="예: 토마토" required /></Field>
-              <Field label="품종"><Input name="variety" value={form.variety} onChange={handleChange} placeholder="예: 대추방울토마토" /></Field>
-              <Field label="파종일"><Input name="plantingDate" type="date" value={form.plantingDate} onChange={handleChange} /></Field>
-              <Field label="구획"><Input name="section" value={form.section} onChange={handleChange} placeholder="예: A-1" /></Field>
+              <Field label="작물명 *">
+                <Input name="name" value={form.name} onChange={handleChange} placeholder="예: 토마토" required />
+              </Field>
+              <Field label="품종">
+                <Input name="variety" value={form.variety} onChange={handleChange} placeholder="예: 대추방울토마토" />
+              </Field>
+              <Field label="파종일">
+                <Input name="plantingDate" type="date" value={form.plantingDate} onChange={handleChange} />
+              </Field>
+              <Field label="구획 위치">
+                <Input name="section" value={form.section} onChange={handleChange} placeholder="예: A-1" />
+              </Field>
               <div className="crop-form-actions">
                 <Button variant="secondary" type="button" onClick={() => setShowForm(false)}>취소</Button>
-                <Button variant="primary" type="submit" disabled={saving}>{saving ? '저장 중...' : editId ? '수정' : '등록'}</Button>
+                <Button variant="primary" type="submit" disabled={saving}>
+                  {saving ? '저장 중...' : editId ? '수정' : '등록'}
+                </Button>
               </div>
             </form>
           </div>
@@ -103,7 +135,13 @@ export default function CropManager() {
       )}
 
       {deleteTarget && (
-        <Modal message="이 작물을 삭제하시겠습니까? 관련 기록은 유지됩니다." confirmLabel="삭제" danger onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
+        <Modal
+          message={`"${deleteCropName}"을(를) 삭제하시겠습니까? 관련 기록은 유지됩니다.`}
+          confirmLabel="삭제"
+          danger
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   );
