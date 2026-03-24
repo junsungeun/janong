@@ -10,6 +10,7 @@ import CropCard from './CropCard';
 import MiniCalendar from '../ui/MiniCalendar';
 import CropManager from '../settings/CropManager';
 import CropDetailPage from '../crop/CropDetailPage';
+import ReminderBanner from './ReminderBanner';
 import { Plus, Sprout } from 'lucide-react';
 import { Field, Input } from '../ui/Input';
 
@@ -110,6 +111,8 @@ export default function HomeTab({ onNavigate }) {
           <span className="home-solar-term">{solarTerm}</span>
         )}
       </div>
+
+      <ReminderBanner logs={logs} tasks={[]} onNavigate={onNavigate} />
 
       <WeatherCard />
 

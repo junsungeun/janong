@@ -5,6 +5,7 @@ import { TABLES } from '../../services/dbService';
 import { GROWTH_STAGES } from '../../constants';
 import Badge from '../ui/Badge';
 import CropTasks from './CropTasks';
+import CropQRCode from './CropQRCode';
 import RecordItem from '../record/RecordItem';
 
 export default function CropDetailPage({ crop, onClose, onViewLog, onDeleteLog }) {
@@ -41,23 +42,21 @@ export default function CropDetailPage({ crop, onClose, onViewLog, onDeleteLog }
 
       {/* Tabs */}
       <div className="underline-tab-bar">
-        <button
-          className={`underline-tab-btn ${activeTab === 'tasks' ? 'active' : ''}`}
-          onClick={() => setActiveTab('tasks')}
-        >
+        <button className={`underline-tab-btn ${activeTab === 'tasks' ? 'active' : ''}`} onClick={() => setActiveTab('tasks')}>
           세부 계획
         </button>
-        <button
-          className={`underline-tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
-          onClick={() => setActiveTab('logs')}
-        >
+        <button className={`underline-tab-btn ${activeTab === 'logs' ? 'active' : ''}`} onClick={() => setActiveTab('logs')}>
           기록 {logs.length > 0 && <span style={{ marginLeft: 4 }}>{logs.length}</span>}
+        </button>
+        <button className={`underline-tab-btn ${activeTab === 'qr' ? 'active' : ''}`} onClick={() => setActiveTab('qr')}>
+          QR
         </button>
       </div>
 
-      {/* Content */}
       {activeTab === 'tasks' ? (
         <CropTasks cropId={crop.id} />
+      ) : activeTab === 'qr' ? (
+        <CropQRCode crop={crop} />
       ) : (
         <div className="crop-detail-logs">
           {logs.length === 0 ? (

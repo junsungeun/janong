@@ -8,6 +8,7 @@ import PeriodCompare from '../analysis/PeriodCompare';
 import WeeklyReport from '../analysis/WeeklyReport';
 import PhotoCompare from '../analysis/PhotoCompare';
 import TimelineView from '../record/TimelineView';
+import ShareReport from '../analysis/ShareReport';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function DashboardTab() {
@@ -141,7 +142,12 @@ export default function DashboardTab() {
       ) : activeView === 'photos' ? (
         <PhotoCompare logs={filteredLogs} crops={filteredCrops} cropMap={cropMap} />
       ) : activeView === 'report' ? (
-        <WeeklyReport logs={filteredLogs} crops={filteredCrops} cropMap={cropMap} />
+        <>
+          <WeeklyReport logs={filteredLogs} crops={filteredCrops} cropMap={cropMap} />
+          <div style={{ marginTop: 24 }}>
+            <ShareReport logs={filteredLogs} crops={filteredCrops} cropMap={cropMap} groupName={filterGroup !== 'all' ? filterGroup : ''} />
+          </div>
+        </>
       ) : (
       <>
       {/* Filters */}
