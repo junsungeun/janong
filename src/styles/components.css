@@ -507,60 +507,54 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 1;
   position: relative;
+  padding: 6px 0;
+}
+
+.cal-cell-num {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
-  margin: 2px auto;
-  max-width: 40px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1;
+  transition: background 0.15s;
 }
 
 .cal-cell--day {
   cursor: pointer;
-  transition: background 0.15s;
 }
 
-.cal-cell--day:hover {
+.cal-cell--day:hover .cal-cell-num {
   background: var(--bg-subtle);
-}
-
-.cal-cell-num {
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1;
 }
 
 .cal-cell.cal-sun .cal-cell-num { color: var(--color-danger); }
 .cal-cell.cal-sat .cal-cell-num { color: var(--color-info); }
 
 /* Today */
-.cal-today {
-  background: var(--color-primary);
-}
-
 .cal-today .cal-cell-num {
+  background: var(--color-primary);
   color: #fff !important;
   font-weight: 600;
 }
 
-.cal-today:hover {
+.cal-today:hover .cal-cell-num {
   background: var(--color-primary-dark);
 }
 
 /* Selected */
-.cal-selected {
-  background: var(--color-primary-light) !important;
-}
-
 .cal-selected .cal-cell-num {
+  background: var(--color-primary-light) !important;
   color: var(--color-primary) !important;
   font-weight: 600;
 }
 
-.cal-today.cal-selected {
-  background: var(--color-primary) !important;
-}
-
 .cal-today.cal-selected .cal-cell-num {
+  background: var(--color-primary) !important;
   color: #fff !important;
 }
 
@@ -572,7 +566,7 @@
   border-radius: 50%;
   background: var(--color-primary);
   position: absolute;
-  bottom: 4px;
+  bottom: 2px;
 }
 
 .cal-today .cal-indicator {
@@ -2607,8 +2601,10 @@
   }
 
   /* 달력 */
-  .cal-cell {
-    max-width: 34px;
+  .cal-cell-num {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
   }
 
   /* 기록 */
