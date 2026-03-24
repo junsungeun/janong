@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { BookOpen } from 'lucide-react';
 import { useList } from '../../hooks/useList';
+import { useAuth } from '../../contexts/AuthContext';
 import { db, TABLES } from '../../services/dbService';
 import Spinner from '../ui/Spinner';
 import Modal from '../ui/Modal';
@@ -9,8 +10,9 @@ import RecordForm from './RecordForm';
 import RecordDetail from './RecordDetail';
 
 export default function RecordTab({ initialCropFilter }) {
-  const { items: crops, loading: cropsLoading } = useList(TABLES.CROP);
-  const { items: logs, loading: logsLoading, reload } = useList(TABLES.DAILY_LOG);
+  const { user } = useAuth();
+  const { items: crops, loading: cropsLoading } = useList(TABLES.CROP, { userId: user?.id });
+  const { items: logs, loading: logsLoading, reload } = useList(TABLES.DAILY_LOG, { userId: user?.id });
 
   const [view, setView] = useState('list');
   const [selectedLog, setSelectedLog] = useState(null);
