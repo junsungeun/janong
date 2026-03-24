@@ -153,7 +153,11 @@ export default function HomeTab({ onNavigate }) {
           <span className="section-title">기록 달력</span>
         </div>
         {logsLoading ? <Spinner /> : (
-          <MiniCalendar logDates={logDates} onDateClick={(date) => setSelectedDate(date)} />
+          <MiniCalendar
+            logDates={logDates}
+            selectedDate={selectedDate}
+            onDateClick={(date) => setSelectedDate(selectedDate === date ? null : date)}
+          />
         )}
       </div>
 

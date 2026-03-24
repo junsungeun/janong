@@ -3303,24 +3303,46 @@
 }
 
 
-/* ─── MiniCalendar: tap feedback ─── */
-.mini-cal-month-label {
-  display: none;
-}
-
+/* ─── MiniCalendar: interaction styles ─── */
 .mini-cal-cell--day {
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.15s;
 }
 
-.mini-cal-cell--day:active {
-  transform: scale(0.9);
+.mini-cal-cell--day:hover {
   background: var(--bg-subtle);
 }
 
-.mini-cal-today.mini-cal-cell--day:active {
+.mini-cal-today.mini-cal-cell--day:hover {
   background: var(--color-primary-dark);
-  transform: scale(0.9);
+}
+
+.mini-cal-selected {
+  background: var(--color-primary-light) !important;
+  color: var(--color-primary) !important;
+  font-weight: 600;
+}
+
+.mini-cal-selected .mini-cal-dot {
+  background: var(--color-primary);
+}
+
+.mini-cal-toggle {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  text-align: center;
+  transition: color 0.15s;
+}
+
+.mini-cal-toggle:hover {
+  color: var(--color-primary);
 }
 
 
@@ -3695,13 +3717,3 @@
   color: var(--text-muted);
 }
 
-/* Calendar cell clickable style */
-.mini-cal-cell--day {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.mini-cal-cell--day:hover {
-  background: var(--bg-subtle);
-  border-radius: var(--radius);
-}
