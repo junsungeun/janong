@@ -188,8 +188,8 @@ export default function HomeTab({ onNavigate }) {
                 <div key={log.id} className="home-date-log-item" onClick={() => onNavigate?.('record', { cropId: log.cropId })}>
                   <div className="home-date-log-top">
                     <span className="home-date-log-crop">{cropMap[log.cropId] || '작물 미지정'}</span>
-                    {log.temperature != null && <span className="home-date-log-env">{log.temperature}&deg;C</span>}
-                    {log.humidity != null && <span className="home-date-log-env">{log.humidity}%</span>}
+                    {(log.houseTemp ?? log.temperature) != null && <span className="home-date-log-env">{(log.houseTemp ?? log.temperature)}&deg;C</span>}
+                    {(log.houseHumidity ?? log.humidity) != null && <span className="home-date-log-env">{(log.houseHumidity ?? log.humidity)}%</span>}
                   </div>
                   {log.memo && <p className="home-date-log-memo">{log.memo}</p>}
                   <div className="home-date-log-data">

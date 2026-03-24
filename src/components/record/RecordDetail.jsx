@@ -72,21 +72,21 @@ export default function RecordDetail({ log, cropName, onEdit, onDelete, onClose 
         )}
       </Card>
 
-      {(log.temperature != null || log.humidity != null || log.weather) && (
+      {((log.houseTemp ?? log.temperature) != null || (log.houseHumidity ?? log.humidity) != null || log.weather) && (
         <Card className="record-detail-card">
           <p className="record-detail-section-title">환경 데이터</p>
           <div className="record-detail-env-grid">
-            {log.temperature != null && (
+            {(log.houseTemp ?? log.temperature) != null && (
               <div className="record-detail-env-item">
                 <Thermometer size={16} className="record-detail-env-icon" />
-                <span className="record-detail-env-val">{log.temperature}&deg;C</span>
+                <span className="record-detail-env-val">{(log.houseTemp ?? log.temperature)}&deg;C</span>
                 <span className="record-detail-env-label">온도</span>
               </div>
             )}
-            {log.humidity != null && (
+            {(log.houseHumidity ?? log.humidity) != null && (
               <div className="record-detail-env-item">
                 <Droplets size={16} className="record-detail-env-icon" />
-                <span className="record-detail-env-val">{log.humidity}%</span>
+                <span className="record-detail-env-val">{(log.houseHumidity ?? log.humidity)}%</span>
                 <span className="record-detail-env-label">습도</span>
               </div>
             )}

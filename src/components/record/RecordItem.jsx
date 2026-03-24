@@ -43,11 +43,11 @@ export default function RecordItem({ log, cropName, onView, onDelete }) {
           </div>
           <span className="record-item-crop">{cropName || '작물 미지정'}</span>
           <div className="record-item-badges">
-            {log.temperature != null && (
-              <Badge variant="info">{log.temperature}&deg;C</Badge>
+            {(log.houseTemp ?? log.temperature) != null && (
+              <Badge variant="info">{(log.houseTemp ?? log.temperature)}&deg;C</Badge>
             )}
-            {log.humidity != null && (
-              <Badge variant="info">{log.humidity}%</Badge>
+            {(log.houseHumidity ?? log.humidity) != null && (
+              <Badge variant="info">{(log.houseHumidity ?? log.humidity)}%</Badge>
             )}
           </div>
         </div>

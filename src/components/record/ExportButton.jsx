@@ -10,8 +10,11 @@ export default function ExportButton({ logs = [], cropName = '전체' }) {
     const rows = logs.map((log) => ({
       날짜: log.date || '',
       작물: log.cropName || '',
-      온도: log.temperature ?? '',
-      습도: log.humidity ?? '',
+      재배단계: log.stage || '',
+      '하우스온도': log.houseTemp ?? log.temperature ?? '',
+      '하우스습도': log.houseHumidity ?? log.humidity ?? '',
+      '실외온도': log.outdoorTemp ?? '',
+      '실외습도': log.outdoorHumidity ?? '',
       '키(cm)': log.heightCm ?? '',
       '잎 수': log.leafCount ?? '',
       '줄기(mm)': log.stemMm ?? '',
