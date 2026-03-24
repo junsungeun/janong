@@ -1,7 +1,6 @@
 /* ══════════════════════════════════════════════════════════════
-   자농 (JANONG) — 컴포넌트 스타일 v2
-   "흙냄새 나는 디지털" — 프리미엄 자연 감성
-   globals.css 토큰 기반 · 360px 반응형 포함
+   SeedLog — 컴포넌트 스타일 v3
+   Design Guide & Master 기반
 ══════════════════════════════════════════════════════════════ */
 
 
@@ -75,7 +74,7 @@
   width: 100%;
   max-width: 380px;
   background: var(--bg-card);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: var(--space-12) var(--space-8) var(--space-10);
   box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.06),
@@ -93,11 +92,7 @@
   right: var(--space-8);
   height: 3px;
   border-radius: 0 0 3px 3px;
-  background: linear-gradient(
-    90deg,
-    var(--color-primary) 0%,
-    var(--color-earth) 100%
-  );
+  background: var(--color-primary);
 }
 
 .login-brand {
@@ -106,7 +101,7 @@
 }
 
 .login-logo {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 34px;
   font-weight: 600;
   color: var(--color-primary);
@@ -115,7 +110,7 @@
 }
 
 .login-subtitle {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: var(--text-caption);
   color: var(--text-muted);
   margin-top: var(--space-3);
@@ -216,8 +211,8 @@
   text-align: center;
   padding: var(--space-10) 0;
   color: var(--color-primary);
-  font-family: var(--font-serif);
-  font-size: var(--text-sub);
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
   font-weight: 600;
   animation: fadeSlideUp 0.3s ease-out;
 }
@@ -250,60 +245,21 @@
 }
 
 .home-date {
-  font-family: var(--font-serif);
-  font-size: var(--text-sub);
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.02em;
 }
 
 .home-solar-term {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: var(--text-sm);
   color: var(--color-primary);
   font-weight: 400;
   padding: 2px var(--space-3);
   background: var(--color-primary-light);
   border-radius: 100px;
-}
-
-/* 오늘의 말씀 — 자연 감성 컨테이너 */
-.home-verse {
-  font-family: var(--font-serif);
-  font-size: var(--text-caption);
-  font-style: italic;
-  color: var(--text-muted);
-  line-height: var(--leading-loose);
-  padding: var(--space-4) var(--space-5);
-  background: linear-gradient(
-    135deg,
-    var(--color-earth-light) 0%,
-    rgba(245, 236, 215, 0.4) 100%
-  );
-  border-radius: 8px;
-  border-left: 3px solid var(--color-earth);
-  position: relative;
-}
-
-.home-verse::before {
-  content: '\201C';
-  position: absolute;
-  top: var(--space-2);
-  left: var(--space-3);
-  font-family: var(--font-serif);
-  font-size: 28px;
-  color: var(--color-earth);
-  opacity: 0.2;
-  font-style: normal;
-  line-height: 1;
-}
-
-.home-verse-ref {
-  font-style: normal;
-  font-size: 11px;
-  opacity: 0.6;
-  display: block;
-  margin-top: var(--space-1);
 }
 
 .home-section {
@@ -330,10 +286,10 @@
   font-size: 15px;
   font-weight: 600;
   border-radius: 8px;
-  background: var(--color-terra);
+  background: var(--color-primary);
   color: #fff;
   border: none;
-  box-shadow: 0 2px 10px rgba(196, 133, 90, 0.25);
+  box-shadow: 0 2px 10px rgba(var(--color-primary-rgb), 0.2);
   transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
   display: inline-flex;
   align-items: center;
@@ -343,8 +299,8 @@
 }
 
 .home-record-btn:hover {
-  background: var(--color-terra-dark);
-  box-shadow: 0 4px 14px rgba(196, 133, 90, 0.3);
+  background: var(--color-primary-dark);
+  box-shadow: 0 4px 14px rgba(var(--color-primary-rgb), 0.25);
 }
 
 .home-record-btn:active {
@@ -376,7 +332,7 @@
 }
 
 .weather-temp {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 44px;
   font-weight: 600;
   line-height: 1;
@@ -413,7 +369,7 @@
 .weather-value {
   color: var(--text);
   font-weight: 500;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
 }
 
 
@@ -452,7 +408,7 @@
 }
 
 .crop-card-name {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
@@ -471,7 +427,7 @@
 .crop-card-stat strong {
   color: var(--text);
   font-weight: 600;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
 }
 
 .crop-card-last {
@@ -501,7 +457,7 @@
 }
 
 .cal-month {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--text);
@@ -789,7 +745,7 @@
 .timelapse-thumb-date {
   font-size: 10px;
   color: var(--text-muted);
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   letter-spacing: 0.02em;
 }
 
@@ -820,7 +776,7 @@
 
 .timelapse-lightbox-date {
   color: rgba(255, 255, 255, 0.85);
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: var(--text-sm);
   letter-spacing: 0.03em;
 }
@@ -875,7 +831,7 @@
 }
 
 .growth-chart-axis-label {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 9px;
   fill: var(--text-muted);
 }
@@ -955,7 +911,7 @@
 }
 
 .status-timeline-date {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: var(--text-caption);
   color: var(--text-muted);
 }
@@ -1008,7 +964,7 @@
   font-size: var(--text-sm);
   color: var(--text);
   font-weight: 500;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
 }
 
 .settings-logout-wrap {
@@ -1058,7 +1014,7 @@
 }
 
 .crop-manager-name {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
@@ -1096,7 +1052,7 @@
 
 /* 작물 추가/편집 폼 */
 .crop-form-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 18px;
   font-weight: 600;
   color: var(--text);
@@ -1147,7 +1103,7 @@
 }
 
 .btn-danger:hover {
-  background: #A5281E;
+  background: #CC4444;
 }
 
 .btn-danger:active {
@@ -1202,7 +1158,7 @@
 /* select 확장 */
 .field select.input {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237A7A6A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238E95A3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right var(--space-4) center;
   padding-right: var(--space-10);
@@ -1268,7 +1224,7 @@
    ────────────────────────────────────── */
 
 .empty-state-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
@@ -1461,7 +1417,7 @@
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text);
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
 }
 
 .record-item-crop {
@@ -1478,9 +1434,9 @@
 
 .record-item-env {
   font-size: var(--text-caption);
-  color: var(--color-earth);
+  color: var(--color-primary);
   font-weight: 500;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
 }
 
 /* 펼친 상세 */
@@ -1706,7 +1662,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  background: var(--color-earth-light);
+  background: var(--color-primary-light);
   border-radius: 8px;
   font-size: var(--text-caption);
   color: var(--text-muted);
@@ -1820,11 +1776,11 @@
   font-size: var(--text-sm);
   color: var(--text);
   font-weight: 500;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
 }
 
 .record-detail-section-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
@@ -1857,10 +1813,10 @@
 }
 
 .record-detail-env-val {
-  font-size: var(--text-sub);
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--color-primary);
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
 }
 
 .record-detail-env-label {
@@ -2142,7 +2098,7 @@
   align-items: center;
   gap: 6px;
   padding: 10px 20px;
-  background: var(--color-terra);
+  background: var(--color-primary);
   color: #fff;
   border: none;
   border-radius: 100px;
@@ -2151,11 +2107,11 @@
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, transform 0.15s;
-  box-shadow: 0 2px 8px rgba(196, 133, 90, 0.3);
+  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.25);
   min-height: 40px;
 }
 .record-tab-cta:hover {
-  background: var(--color-terra-dark);
+  background: var(--color-primary-dark);
   transform: translateY(-1px);
 }
 
@@ -2271,7 +2227,7 @@
 }
 
 .record-form-section-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
@@ -2542,7 +2498,7 @@
   padding: 14px;
   background: transparent;
   color: var(--color-danger);
-  border: 1px solid rgba(192, 57, 43, 0.2);
+  border: 1px solid rgba(255, 85, 85, 0.2);
   border-radius: 8px;
   font-family: var(--font-sans);
   font-size: var(--text-sm);
@@ -2733,7 +2689,7 @@
 
 /* ─── Dashboard section headers ─── */
 .dash-section-header {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-muted);
@@ -2932,7 +2888,7 @@
 }
 
 .record-empty-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
@@ -2960,7 +2916,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, transform 0.15s;
-  box-shadow: 0 2px 8px rgba(59, 94, 58, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.2);
   min-height: 44px;
 }
 
@@ -3019,7 +2975,7 @@
 .record-save-btn-full {
   width: 100%;
   padding: 16px;
-  background: var(--color-terra);
+  background: var(--color-primary);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -3028,13 +2984,13 @@
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, transform 0.15s;
-  box-shadow: 0 2px 8px rgba(196, 133, 90, 0.3);
+  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.25);
   min-height: 52px;
   text-align: center;
 }
 
 .record-save-btn-full:hover {
-  background: var(--color-terra-dark);
+  background: var(--color-primary-dark);
 }
 
 .record-save-btn-full:active {
@@ -3078,7 +3034,7 @@
   font-family: var(--font-sans);
   font-size: var(--text-caption);
   font-weight: 600;
-  color: var(--color-earth);
+  color: var(--color-primary);
   min-width: 24px;
   text-align: center;
 }
@@ -3197,7 +3153,7 @@
 }
 
 .login-tagline {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: var(--text-sm);
   color: var(--text-muted);
   margin-top: var(--space-2);
@@ -3277,7 +3233,7 @@
 }
 
 .home-empty-crops-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
@@ -3344,7 +3300,7 @@
 }
 
 .crop-card-days-num {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 22px;
   font-weight: 700;
   color: var(--color-primary);
@@ -3419,7 +3375,7 @@
 }
 
 .toast--info {
-  background: var(--color-earth);
+  background: var(--color-primary);
 }
 
 .toast-icon {
