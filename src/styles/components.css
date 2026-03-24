@@ -3890,8 +3890,8 @@
 }
 
 .stage-progress-item.active .stage-progress-dot {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  background: var(--color-primary-100);
+  border-color: var(--color-primary-300);
   transform: scale(1.1);
 }
 
