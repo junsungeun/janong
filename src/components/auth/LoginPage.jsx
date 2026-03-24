@@ -89,19 +89,20 @@ export default function LoginPage() {
                 </div>
               </div>
               <div className="login-field">
-                <label className="label" htmlFor="login-group">조 (팀)</label>
-                <div className="login-field-icon">
-                  <User size={16} className="login-field-icon-svg" />
-                  <input
-                    id="login-group"
-                    className="input"
-                    type="text"
-                    value={groupName}
-                    onChange={(e) => setGroupName(e.target.value)}
-                    placeholder="예: 1조, A팀"
-                    autoComplete="organization"
-                  />
-                </div>
+                <label className="label" htmlFor="login-group">조</label>
+                <select
+                  id="login-group"
+                  className="input"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  required
+                >
+                  <option value="">조를 선택하세요</option>
+                  <option value="1조">1조</option>
+                  <option value="2조">2조</option>
+                  <option value="3조">3조</option>
+                  <option value="4조">4조</option>
+                </select>
               </div>
             </>
           )}

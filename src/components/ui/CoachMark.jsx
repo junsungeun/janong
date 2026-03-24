@@ -48,13 +48,19 @@ export default function CoachMark({ onComplete }) {
     if (el) {
       const r = el.getBoundingClientRect();
       setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+    } else {
+      setRect(null);
     }
   }, [step]);
 
   useEffect(() => {
-    updateRect();
+    // 약간의 딜레이: DOM 렌더 완료 후 측정
+    const id = requestAnimationFrame(updateRect);
     window.addEventListener('resize', updateRect);
-    return () => window.removeEventListener('resize', updateRect);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener('resize', updateRect);
+    };
   }, [updateRect]);
 
   const current = STEPS[step];
@@ -62,41 +68,32 @@ export default function CoachMark({ onComplete }) {
 
   const isLast = step === STEPS.length - 1;
 
-  // Tooltip position
-  const tooltipStyle = {};
+  const PAD = 6;
+  const hlTop = rect.top - PAD;
+  const hlLeft = rect.left - PAD;
+  const hlW = rect.width + PAD * 2;
+  const hlH = rect.height + PAD * 2;
+
+  // 툴팁 위치
+  const tooltipStyle = { width: 280 };
+  const tooltipLeft = Math.max(16, Math.min(rect.left, window.innerWidth - 296));
   if (current.position === 'bottom') {
-    tooltipStyle.top = rect.top + rect.height + 12;
-    tooltipStyle.left = Math.max(16, Math.min(rect.left, window.innerWidth - 300));
+    tooltipStyle.top = hlTop + hlH + 12;
+    tooltipStyle.left = tooltipLeft;
   } else {
-    tooltipStyle.top = rect.top - 12;
-    tooltipStyle.left = Math.max(16, Math.min(rect.left, window.innerWidth - 300));
-    tooltipStyle.transform = 'translateY(-100%)';
+    tooltipStyle.bottom = window.innerHeight - hlTop + 12;
+    tooltipStyle.left = tooltipLeft;
   }
 
   return (
     <div className="coach-overlay">
-      {/* Dark overlay with hole */}
-      <svg className="coach-svg" viewBox={`0 0 ${window.innerWidth} ${window.innerHeight}`}>
-        <defs>
-          <mask id="coach-mask">
-            <rect width="100%" height="100%" fill="white" />
-            <rect
-              x={rect.left - 4} y={rect.top - 4}
-              width={rect.width + 8} height={rect.height + 8}
-              rx="12" fill="black"
-            />
-          </mask>
-        </defs>
-        <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#coach-mask)" />
-      </svg>
+      {/* box-shadow로 주변 어둡게 + highlight 테두리 */}
+      <div
+        className="coach-highlight"
+        style={{ top: hlTop, left: hlLeft, width: hlW, height: hlH }}
+      />
 
-      {/* Highlight border */}
-      <div className="coach-highlight" style={{
-        top: rect.top - 4, left: rect.left - 4,
-        width: rect.width + 8, height: rect.height + 8,
-      }} />
-
-      {/* Tooltip */}
+      {/* 툴팁 */}
       <div className="coach-tooltip" style={tooltipStyle}>
         <div className="coach-step-indicator">
           {STEPS.map((_, i) => (

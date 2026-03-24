@@ -86,7 +86,7 @@ export function AuthProvider({ children }) {
 
     // 프로필에 조 저장
     if (data?.user?.id) {
-      await upsertProfile(data.user.id, { name, group_name: groupName || null });
+      await upsertProfile(data.user.id, { name, email, group_name: groupName || null });
     }
   };
 

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { db, TABLES } from '../../services/dbService';
 import { useList } from '../../hooks/useList';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from '../ui/Toast';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
 import Modal from '../ui/Modal';
@@ -11,7 +13,8 @@ const CATEGORIES = ['채소', '과일', '허브', '곡물', '화훼', '기타'];
 const EMPTY = { name: '', variety: '', plantingDate: '', section: '', category: '' };
 
 export default function CropManager() {
-  const { items: crops, loading, reload } = useList(TABLES.CROP);
+  const { user } = useAuth();
+  const { items: crops, loading, reload } = useList(TABLES.CROP, { userId: user?.id });
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -38,7 +41,11 @@ export default function CropManager() {
       if (editId) await db.update(TABLES.CROP, editId, form);
       else await db.add(TABLES.CROP, form);
       setShowForm(false); setForm(EMPTY); setEditId(null); await reload();
-    } catch (err) { console.error(err); } finally { setSaving(false); }
+      toast.success(editId ? '작물 정보가 수정되었습니다.' : '작물이 등록되었습니다.');
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || '저장에 실패했습니다.');
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
@@ -47,7 +54,11 @@ export default function CropManager() {
       await db.delete(TABLES.CROP, deleteTarget.id);
       setDeleteTarget(null);
       await reload();
-    } catch (err) { console.error(err); }
+      toast.success('작물이 삭제되었습니다.');
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || '삭제에 실패했습니다.');
+    }
   };
 
   const deleteCropName = deleteTarget?.name || '이 작물';

@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { useList } from '../../hooks/useList';
 import { db, TABLES } from '../../services/dbService';
+import { useAuth } from '../../contexts/AuthContext';
 import { getCurrentSolarTerm, formatDate } from '../../utils/solarTerms';
 import Button from '../ui/Button';
 import Spinner from '../ui/Spinner';
@@ -15,8 +16,9 @@ import { Plus, Sprout } from 'lucide-react';
 import { Field, Input } from '../ui/Input';
 
 export default function HomeTab({ onNavigate }) {
-  const { items: crops, loading: cropsLoading, reload: reloadCrops } = useList(TABLES.CROP);
-  const { items: logs, loading: logsLoading } = useList(TABLES.DAILY_LOG);
+  const { user } = useAuth();
+  const { items: crops, loading: cropsLoading, reload: reloadCrops } = useList(TABLES.CROP, { userId: user?.id });
+  const { items: logs, loading: logsLoading } = useList(TABLES.DAILY_LOG, { userId: user?.id });
   const [showCropManager, setShowCropManager] = useState(false);
   const [editCrop, setEditCrop] = useState(null);
   const [deleteCrop, setDeleteCrop] = useState(null);

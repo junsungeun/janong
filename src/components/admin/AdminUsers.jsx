@@ -15,8 +15,12 @@ export default function AdminUsers() {
 
   const load = async () => {
     setLoading(true);
-    const p = await db.getAllList(TABLES.PROFILE);
-    setProfiles(p);
+    const { data, error } = await supabase.from('admin_profiles').select('*').order('created_at', { ascending: false });
+    if (!error) setProfiles((data || []).map(p => ({
+      ...p,
+      groupName: p.group_name,
+      createdAt: p.created_at,
+    })));
     setLoading(false);
   };
 
@@ -24,7 +28,7 @@ export default function AdminUsers() {
 
   const filtered = profiles.filter((p) => {
     const q = search.toLowerCase();
-    return !q || (p.name || '').toLowerCase().includes(q) || (p.groupName || p.group_name || '').toLowerCase().includes(q);
+    return !q || (p.name || '').toLowerCase().includes(q) || (p.groupName || p.group_name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q);
   });
 
   const openCreate = () => { setForm({ email: '', password: '', name: '', groupName: '' }); setError(''); setModal({ type: 'create' }); };
@@ -83,11 +87,12 @@ export default function AdminUsers() {
       {loading ? <p className="admin-loading">로딩 중...</p> : (
         <div className="admin-table-wrap">
           <table className="admin-table">
-            <thead><tr><th>이름</th><th>조</th><th>역할</th><th>가입일</th><th>관리</th></tr></thead>
+            <thead><tr><th>이름</th><th>이메일</th><th>조</th><th>역할</th><th>가입일</th><th>관리</th></tr></thead>
             <tbody>
               {filtered.map((p) => (
                 <tr key={p.id}>
                   <td><strong>{p.name || '-'}</strong></td>
+                  <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.email || '-'}</td>
                   <td>{p.groupName || p.group_name || '-'}</td>
                   <td><span className={`admin-role-badge ${p.role === 'admin' ? 'admin' : ''}`}>{p.role === 'admin' ? '관리자' : '일반'}</span></td>
                   <td>{p.createdAt ? new Date(p.createdAt).toLocaleDateString('ko-KR') : '-'}</td>

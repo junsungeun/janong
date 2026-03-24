@@ -4684,24 +4684,24 @@
   pointer-events: auto;
 }
 
-.coach-svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
 .coach-highlight {
-  position: absolute;
+  position: fixed;
   border: 2px solid var(--color-primary);
   border-radius: 12px;
-  box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb), 0.2);
+  /* 주변 어둠 + 안쪽 강조 글로우 */
+  box-shadow:
+    0 0 0 9999px rgba(0, 0, 0, 0.6),
+    0 0 0 4px rgba(var(--color-primary-rgb), 0.25);
   pointer-events: none;
-  transition: all 0.3s ease;
+  transition: top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease;
 }
 
 .coach-tooltip {
-  position: absolute;
+  position: fixed;
+}
+
+.coach-tooltip {
+  position: fixed;
   width: 280px;
   padding: var(--space-5);
   background: var(--bg-card);
