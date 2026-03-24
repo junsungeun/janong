@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import Card from './Card';
 
-const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+const DAY_NAMES = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
 
 function pad(n) {
   return String(n).padStart(2, '0');
@@ -10,7 +10,7 @@ function pad(n) {
 function getWeekRows(year, month) {
   const firstDay = new Date(year, month, 1);
   const lastDate = new Date(year, month + 1, 0).getDate();
-  const startOffset = (firstDay.getDay() + 6) % 7;
+  const startOffset = firstDay.getDay(); // 일요일 = 0
 
   const cells = [];
   for (let i = 0; i < startOffset; i++) cells.push(null);
@@ -35,7 +35,6 @@ export default function MiniCalendar({ logDates = [], selectedDate, onDateClick 
 
   const rows = useMemo(() => getWeekRows(year, month), [year, month]);
 
-  // Find the row index containing today (or selected date)
   const activeWeekIdx = useMemo(() => {
     const targetDay = selectedDate
       ? (() => { const [y, m] = selectedDate.split('-').map(Number); return y === year && m - 1 === month ? Number(selectedDate.split('-')[2]) : null; })()
@@ -62,24 +61,39 @@ export default function MiniCalendar({ logDates = [], selectedDate, onDateClick 
 
   const makeDateStr = (day) => `${year}-${pad(month + 1)}-${pad(day)}`;
 
+  // Selected date label
+  const selectedLabel = useMemo(() => {
+    const target = selectedDate || todayStr;
+    const d = new Date(target);
+    const mm = pad(d.getMonth() + 1);
+    const dd = pad(d.getDate());
+    const dayName = DAY_NAMES[d.getDay()];
+    const isToday = target === todayStr;
+    return `${mm}.${dd} ${dayName}${isToday ? ' TODAY' : ''}`;
+  }, [selectedDate, todayStr]);
+
   return (
-    <Card className="mini-cal">
-      <div className="mini-cal-header">
-        <button className="mini-cal-nav" onClick={goPrev} aria-label="이전 달">&lsaquo;</button>
-        <div className="mini-cal-title">
-          {year}년 {month + 1}월
-        </div>
-        <button className="mini-cal-nav" onClick={goNext} aria-label="다음 달">&rsaquo;</button>
+    <div className="cal">
+      {/* Month header */}
+      <div className="cal-header">
+        <button className="cal-nav" onClick={goPrev}>&lsaquo;</button>
+        <span className="cal-month" onClick={() => setExpanded(!expanded)}>
+          {year}. {pad(month + 1)}
+        </span>
+        <button className="cal-nav" onClick={goNext}>&rsaquo;</button>
       </div>
 
-      <div className="mini-cal-grid">
-        {DAY_LABELS.map((label) => (
-          <div key={label} className="mini-cal-label">{label}</div>
+      {/* Day labels */}
+      <div className="cal-grid">
+        {DAY_LABELS.map((label, i) => (
+          <div key={label} className={`cal-day-label ${i === 0 ? 'cal-sun' : i === 6 ? 'cal-sat' : ''}`}>{label}</div>
         ))}
+
+        {/* Date cells */}
         {visibleRows.map((row, ri) => (
           <React.Fragment key={ri}>
             {row.map((day, ci) => {
-              if (!day) return <div key={`e-${ri}-${ci}`} className="mini-cal-cell" />;
+              if (!day) return <div key={`e-${ri}-${ci}`} className="cal-cell" />;
               const dateStr = makeDateStr(day);
               const isToday = dateStr === todayStr;
               const hasLog = logSet.has(dateStr);
@@ -88,15 +102,16 @@ export default function MiniCalendar({ logDates = [], selectedDate, onDateClick 
                 <div
                   key={dateStr}
                   className={[
-                    'mini-cal-cell mini-cal-cell--day',
-                    isToday ? 'mini-cal-today' : '',
-                    hasLog ? 'mini-cal-logged' : '',
-                    isSelected ? 'mini-cal-selected' : '',
+                    'cal-cell cal-cell--day',
+                    isToday ? 'cal-today' : '',
+                    hasLog ? 'cal-has-log' : '',
+                    isSelected ? 'cal-selected' : '',
+                    ci === 0 ? 'cal-sun' : ci === 6 ? 'cal-sat' : '',
                   ].filter(Boolean).join(' ')}
                   onClick={() => onDateClick?.(dateStr)}
                 >
-                  <span>{day}</span>
-                  {hasLog && <span className="mini-cal-dot" />}
+                  <span className="cal-cell-num">{day}</span>
+                  {hasLog && <span className="cal-indicator" />}
                 </div>
               );
             })}
@@ -104,9 +119,13 @@ export default function MiniCalendar({ logDates = [], selectedDate, onDateClick 
         ))}
       </div>
 
-      <button className="mini-cal-toggle" onClick={() => setExpanded(!expanded)}>
-        {expanded ? '주간 보기' : '월간 보기'}
-      </button>
-    </Card>
+      {/* Selected date label */}
+      <div className="cal-date-label">
+        <span className="cal-date-text">{selectedLabel}</span>
+        <button className="cal-expand-btn" onClick={() => setExpanded(!expanded)}>
+          {expanded ? '접기' : '펼치기'}
+        </button>
+      </div>
+    </div>
   );
 }
