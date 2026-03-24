@@ -14,11 +14,21 @@ import './styles/components.css';
 
 function AppMain() {
   const [activeTab, setActiveTab] = useState('home');
+  const [recordFilterCropId, setRecordFilterCropId] = useState(null);
+
+  const handleNavigate = (tab, data) => {
+    if (tab === 'record' && data?.cropId) {
+      setRecordFilterCropId(data.cropId);
+    } else {
+      setRecordFilterCropId(null);
+    }
+    setActiveTab(tab);
+  };
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'home':       return <HomeTab onNavigate={setActiveTab} />;
-      case 'record':     return <RecordTab />;
+      case 'home':       return <HomeTab onNavigate={handleNavigate} />;
+      case 'record':     return <RecordTab initialCropFilter={recordFilterCropId} />;
       case 'dashboard':  return <DashboardTab />;
       case 'notices':    return <NoticesTab />;
       case 'settings':   return <SettingsTab />;

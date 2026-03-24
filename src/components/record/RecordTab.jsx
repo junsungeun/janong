@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { BookOpen } from 'lucide-react';
 import { useList } from '../../hooks/useList';
 import { db, TABLES } from '../../services/dbService';
@@ -9,14 +9,18 @@ import RecordForm from './RecordForm';
 import RecordDetail from './RecordDetail';
 import ExportButton from './ExportButton';
 
-export default function RecordTab() {
+export default function RecordTab({ initialCropFilter }) {
   const { items: crops, loading: cropsLoading } = useList(TABLES.CROP);
   const { items: logs, loading: logsLoading, reload } = useList(TABLES.DAILY_LOG);
 
   const [view, setView] = useState('list');
   const [selectedLog, setSelectedLog] = useState(null);
   const [editLog, setEditLog] = useState(null);
-  const [filterCrop, setFilterCrop] = useState('all');
+  const [filterCrop, setFilterCrop] = useState(initialCropFilter || 'all');
+
+  useEffect(() => {
+    if (initialCropFilter) setFilterCrop(initialCropFilter);
+  }, [initialCropFilter]);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const cropMap = useMemo(() => {

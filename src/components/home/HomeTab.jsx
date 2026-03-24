@@ -1,19 +1,24 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { useList } from '../../hooks/useList';
-import { TABLES } from '../../services/dbService';
+import { db, TABLES } from '../../services/dbService';
 import { getCurrentSolarTerm, formatDate } from '../../utils/solarTerms';
 import Button from '../ui/Button';
 import Spinner from '../ui/Spinner';
+import Modal from '../ui/Modal';
 import WeatherCard from './WeatherCard';
 import CropCard from './CropCard';
 import MiniCalendar from '../ui/MiniCalendar';
 import CropManager from '../settings/CropManager';
 import { Plus, Sprout } from 'lucide-react';
+import { Field, Input } from '../ui/Input';
 
 export default function HomeTab({ onNavigate }) {
   const { items: crops, loading: cropsLoading, reload: reloadCrops } = useList(TABLES.CROP);
   const { items: logs, loading: logsLoading } = useList(TABLES.DAILY_LOG);
   const [showCropManager, setShowCropManager] = useState(false);
+  const [editCrop, setEditCrop] = useState(null);
+  const [deleteCrop, setDeleteCrop] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const dateInfo = formatDate();
   const solarTerm = getCurrentSolarTerm();
@@ -40,9 +45,51 @@ export default function HomeTab({ onNavigate }) {
     return [...new Set((logs || []).map((l) => l.date).filter(Boolean))];
   }, [logs]);
 
+  const cropMap = useMemo(() => {
+    const m = {};
+    crops.forEach((c) => { m[c.id] = c.name; });
+    return m;
+  }, [crops]);
+
+  const dateLogs = useMemo(() => {
+    if (!selectedDate) return [];
+    return (logs || []).filter((l) => l.date === selectedDate);
+  }, [logs, selectedDate]);
+
+  const handleCropClick = (crop) => {
+    onNavigate?.('record', { cropId: crop.id });
+  };
+
+  const handleEditCrop = (crop) => {
+    setEditCrop({ ...crop });
+  };
+
+  const handleEditSave = async (e) => {
+    e.preventDefault();
+    if (!editCrop?.name?.trim()) return;
+    try {
+      await db.update(TABLES.CROP, editCrop.id, {
+        name: editCrop.name,
+        variety: editCrop.variety,
+        plantingDate: editCrop.plantingDate,
+        section: editCrop.section,
+      });
+      setEditCrop(null);
+      reloadCrops();
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDeleteCrop = async () => {
+    if (!deleteCrop) return;
+    try {
+      await db.delete(TABLES.CROP, deleteCrop.id);
+      setDeleteCrop(null);
+      reloadCrops();
+    } catch (err) { console.error(err); }
+  };
+
   return (
     <div className="home-tab">
-      {/* Date + Solar Term */}
       <div className="home-date-section">
         <h1 className="home-date">
           {dateInfo.month}월 {dateInfo.day}일 {dateInfo.weekday}요일
@@ -52,10 +99,8 @@ export default function HomeTab({ onNavigate }) {
         )}
       </div>
 
-      {/* Weather */}
       <WeatherCard />
 
-      {/* Crop List */}
       <div className="home-section home-section--crops">
         <div className="section-header">
           <span className="section-title">내 작물</span>
@@ -93,6 +138,9 @@ export default function HomeTab({ onNavigate }) {
                   crop={crop}
                   logCount={stats.count || 0}
                   lastLog={stats.lastDate}
+                  onClick={() => handleCropClick(crop)}
+                  onEdit={handleEditCrop}
+                  onDelete={setDeleteCrop}
                 />
               );
             })}
@@ -100,15 +148,46 @@ export default function HomeTab({ onNavigate }) {
         )}
       </div>
 
-      {/* Mini Calendar */}
       <div className="home-section home-section--calendar">
         <div className="section-header">
           <span className="section-title">기록 달력</span>
         </div>
-        {logsLoading ? <Spinner /> : <MiniCalendar logDates={logDates} />}
+        {logsLoading ? <Spinner /> : (
+          <MiniCalendar logDates={logDates} onDateClick={(date) => setSelectedDate(date)} />
+        )}
       </div>
 
-      {/* Quick Record Button */}
+      {/* Date logs panel */}
+      {selectedDate && (
+        <div className="home-section home-section--date-logs">
+          <div className="section-header">
+            <span className="section-title">{selectedDate} 기록</span>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedDate(null)}>닫기</Button>
+          </div>
+          {dateLogs.length === 0 ? (
+            <p className="home-date-logs-empty">이 날짜에 기록이 없습니다.</p>
+          ) : (
+            <div className="home-date-logs-list">
+              {dateLogs.map((log) => (
+                <div key={log.id} className="home-date-log-item" onClick={() => onNavigate?.('record', { cropId: log.cropId })}>
+                  <div className="home-date-log-top">
+                    <span className="home-date-log-crop">{cropMap[log.cropId] || '작물 미지정'}</span>
+                    {log.temperature != null && <span className="home-date-log-env">{log.temperature}&deg;C</span>}
+                    {log.humidity != null && <span className="home-date-log-env">{log.humidity}%</span>}
+                  </div>
+                  {log.memo && <p className="home-date-log-memo">{log.memo}</p>}
+                  <div className="home-date-log-data">
+                    {log.heightCm != null && <span>키 {log.heightCm}cm</span>}
+                    {log.leafCount != null && <span>잎 {log.leafCount}장</span>}
+                    {log.stemMm != null && <span>줄기 {log.stemMm}mm</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="home-record-btn-wrap">
         <button
           className="btn-terra home-record-btn"
@@ -121,18 +200,51 @@ export default function HomeTab({ onNavigate }) {
       {/* Crop Manager Modal */}
       {showCropManager && (
         <div className="modal-overlay" onClick={closeCropManager}>
-          <div
-            className="modal-content card"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-content card" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <CropManager />
             <div className="form-actions home-crop-manager-close">
               <Button variant="secondary" onClick={closeCropManager}>닫기</Button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Crop Modal */}
+      {editCrop && (
+        <div className="modal-overlay" onClick={() => setEditCrop(null)}>
+          <div className="modal-content card crop-form-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="crop-form-title">작물 정보 수정</h3>
+            <form className="crop-form" onSubmit={handleEditSave}>
+              <Field label="작물명 *">
+                <Input name="name" value={editCrop.name || ''} onChange={(e) => setEditCrop({ ...editCrop, name: e.target.value })} required />
+              </Field>
+              <Field label="품종">
+                <Input name="variety" value={editCrop.variety || ''} onChange={(e) => setEditCrop({ ...editCrop, variety: e.target.value })} />
+              </Field>
+              <Field label="파종일">
+                <Input name="plantingDate" type="date" value={editCrop.plantingDate || ''} onChange={(e) => setEditCrop({ ...editCrop, plantingDate: e.target.value })} />
+              </Field>
+              <Field label="구획 위치">
+                <Input name="section" value={editCrop.section || ''} onChange={(e) => setEditCrop({ ...editCrop, section: e.target.value })} />
+              </Field>
+              <div className="crop-form-actions">
+                <Button variant="secondary" type="button" onClick={() => setEditCrop(null)}>취소</Button>
+                <Button variant="primary" type="submit">수정</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Crop Confirm */}
+      {deleteCrop && (
+        <Modal
+          message={`"${deleteCrop.name}"을(를) 삭제하시겠습니까? 관련 기록은 유지됩니다.`}
+          confirmLabel="삭제"
+          danger
+          onConfirm={handleDeleteCrop}
+          onCancel={() => setDeleteCrop(null)}
+        />
       )}
     </div>
   );
