@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { BarChart2, Sprout, FileText, Users, Download } from 'lucide-react';
+import { BarChart2, Sprout, FileText, Users } from 'lucide-react';
 import { db, TABLES } from '../../services/dbService';
 import Spinner from '../ui/Spinner';
 import ExportButton from '../record/ExportButton';
+import CompareView from '../analysis/CompareView';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function DashboardTab() {
@@ -13,6 +14,7 @@ export default function DashboardTab() {
   const [loading, setLoading] = useState(true);
   const [filterGroup, setFilterGroup] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [activeView, setActiveView] = useState('overview'); // overview | compare
 
   useEffect(() => {
     const load = async () => {
@@ -110,6 +112,16 @@ export default function DashboardTab() {
         />
       </div>
 
+      {/* View tabs */}
+      <div className="sub-tab-bar">
+        <button className={`sub-tab-btn ${activeView === 'overview' ? 'active' : ''}`} onClick={() => setActiveView('overview')}>현황</button>
+        <button className={`sub-tab-btn ${activeView === 'compare' ? 'active' : ''}`} onClick={() => setActiveView('compare')}>비교 분석</button>
+      </div>
+
+      {activeView === 'compare' ? (
+        <CompareView crops={filteredCrops} logs={filteredLogs} cropMap={cropMap} />
+      ) : (
+      <>
       {/* Filters */}
       <div className="dash-filters">
         {groups.length > 0 && (
@@ -211,6 +223,8 @@ export default function DashboardTab() {
             ))}
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

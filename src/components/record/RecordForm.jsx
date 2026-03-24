@@ -232,9 +232,17 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
         <GrowthInput values={growth} onChange={setGrowth} />
       </div>
 
-      <Field label="메모">
+      <div className="record-form-section">
+        <p className="record-form-section-label">메모</p>
+        <div className="memo-template-chips">
+          {['잎 색상 양호', '물줌', '비료 시비', '병해 발견', '수확함', '곁순 제거', '지주 설치'].map((t) => (
+            <button key={t} type="button" className="memo-template-chip" onClick={() => setMemo((m) => m ? `${m}, ${t}` : t)}>
+              {t}
+            </button>
+          ))}
+        </div>
         <Textarea placeholder="오늘의 관찰 내용..." rows={3} value={memo} onChange={(e) => setMemo(e.target.value)} />
-      </Field>
+      </div>
 
       {weather && !isEdit && (
         <div className="record-weather-auto">
