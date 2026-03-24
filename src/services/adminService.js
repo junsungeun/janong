@@ -1,4 +1,4 @@
-// JANONG — 어드민 서비스
+// SeedLog — 어드민 서비스
 // Edge Function을 통해 유저 생성/삭제/비밀번호 리셋
 
 import { supabase } from '../lib/supabase';

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db, TABLES } from '../../services/dbService';
-import { Download, Search } from 'lucide-react';
+import { Download, Search, Trash2, Eye } from 'lucide-react';
 import { exportCsv } from '../../utils/exportCsv';
 
 export default function AdminData() {
@@ -10,23 +10,25 @@ export default function AdminData() {
   const [loading, setLoading] = useState(true);
   const [filterCrop, setFilterCrop] = useState('all');
   const [filterGroup, setFilterGroup] = useState('all');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [detailTarget, setDetailTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      const [l, c, p] = await Promise.all([
-        db.getAllList(TABLES.DAILY_LOG),
-        db.getAllList(TABLES.CROP),
-        db.getAllList(TABLES.PROFILE),
-      ]);
-      setLogs(l); setCrops(c); setProfiles(p);
-      setLoading(false);
-    };
-    load();
-  }, []);
+  const load = async () => {
+    setLoading(true);
+    const [l, c, p] = await Promise.all([
+      db.getAllList(TABLES.DAILY_LOG),
+      db.getAllList(TABLES.CROP),
+      db.getAllList(TABLES.PROFILE),
+    ]);
+    setLogs(l); setCrops(c); setProfiles(p);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
 
   const cropMap = useMemo(() => Object.fromEntries(crops.map((c) => [c.id, c])), [crops]);
   const profileMap = useMemo(() => Object.fromEntries(profiles.map((p) => [p.id, p])), [profiles]);
-
   const groups = useMemo(() => [...new Set(profiles.map((p) => p.groupName || p.group_name).filter(Boolean))], [profiles]);
 
   const filtered = useMemo(() => {
@@ -60,7 +62,18 @@ export default function AdminData() {
         메모: l.memo || '',
       };
     });
-    exportCsv(rows, `SeedLog_전체데이터_${new Date().toISOString().slice(0, 10)}.csv`);
+    exportCsv(rows, `SeedLog_데이터_${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await db.delete(TABLES.DAILY_LOG, deleteTarget.id);
+      setDeleteTarget(null);
+      load();
+    } catch (e) { console.error(e); }
+    setDeleting(false);
   };
 
   return (
@@ -68,8 +81,7 @@ export default function AdminData() {
       <div className="admin-page-header">
         <h1 className="admin-page-title">데이터 관리</h1>
         <button className="btn-primary" onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px' }}>
-          <Download size={16} />
-          전체 내보내기 ({filtered.length}건)
+          <Download size={16} /> 내보내기 ({filtered.length}건)
         </button>
       </div>
 
@@ -82,26 +94,15 @@ export default function AdminData() {
           <option value="all">전체 작물</option>
           {crops.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        <span className="admin-page-count">{filtered.length}건</span>
       </div>
 
-      {loading ? (
-        <p className="admin-loading">로딩 중...</p>
-      ) : (
+      {loading ? <p className="admin-loading">로딩 중...</p> : (
         <div className="admin-table-wrap">
           <table className="admin-table">
-            <thead>
-              <tr>
-                <th>날짜</th>
-                <th>작물</th>
-                <th>단계</th>
-                <th>온도</th>
-                <th>키</th>
-                <th>잎</th>
-                <th>메모</th>
-              </tr>
-            </thead>
+            <thead><tr><th>날짜</th><th>작물</th><th>단계</th><th>온도</th><th>키</th><th>잎</th><th>메모</th><th>관리</th></tr></thead>
             <tbody>
-              {filtered.slice(0, 100).map((l) => (
+              {filtered.slice(0, 200).map((l) => (
                 <tr key={l.id}>
                   <td>{l.date}</td>
                   <td>{cropMap[l.cropId]?.name || '-'}</td>
@@ -109,14 +110,56 @@ export default function AdminData() {
                   <td>{l.houseTemp ?? l.temperature ?? '-'}</td>
                   <td>{l.heightCm ?? '-'}</td>
                   <td>{l.leafCount ?? '-'}</td>
-                  <td>{(l.memo || '').slice(0, 30)}</td>
+                  <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(l.memo || '').slice(0, 40)}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button className="admin-action-btn" title="상세" onClick={() => setDetailTarget(l)}><Eye size={14} /></button>
+                      <button className="admin-action-btn admin-action-btn--danger" title="삭제" onClick={() => setDeleteTarget(l)}><Trash2 size={14} /></button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {filtered.length > 100 && (
-            <p className="admin-table-more">+{filtered.length - 100}건 더... (내보내기로 전체 확인)</p>
-          )}
+          {filtered.length > 200 && <p className="admin-table-more">+{filtered.length - 200}건 더 (내보내기로 전체 확인)</p>}
+        </div>
+      )}
+
+      {/* Detail modal */}
+      {detailTarget && (
+        <div className="admin-modal-overlay" onClick={() => setDetailTarget(null)}>
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="admin-modal-title">기록 상세</h3>
+            <div className="admin-detail-grid">
+              <div><span className="admin-detail-label">날짜</span><span>{detailTarget.date}</span></div>
+              <div><span className="admin-detail-label">작물</span><span>{cropMap[detailTarget.cropId]?.name || '-'}</span></div>
+              <div><span className="admin-detail-label">단계</span><span>{detailTarget.stage || '-'}</span></div>
+              <div><span className="admin-detail-label">하우스 온도</span><span>{detailTarget.houseTemp ?? detailTarget.temperature ?? '-'}</span></div>
+              <div><span className="admin-detail-label">하우스 습도</span><span>{detailTarget.houseHumidity ?? detailTarget.humidity ?? '-'}</span></div>
+              <div><span className="admin-detail-label">실외 온도</span><span>{detailTarget.outdoorTemp ?? '-'}</span></div>
+              <div><span className="admin-detail-label">키</span><span>{detailTarget.heightCm ?? '-'}cm</span></div>
+              <div><span className="admin-detail-label">잎 수</span><span>{detailTarget.leafCount ?? '-'}</span></div>
+              <div><span className="admin-detail-label">줄기</span><span>{detailTarget.stemMm ?? '-'}mm</span></div>
+            </div>
+            {detailTarget.memo && <p style={{ fontSize: 14, marginTop: 16, padding: 12, background: 'var(--bg)', borderRadius: 8 }}>{detailTarget.memo}</p>}
+            <div className="admin-modal-actions" style={{ marginTop: 20 }}>
+              <button className="btn-secondary" onClick={() => setDetailTarget(null)}>닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirm */}
+      {deleteTarget && (
+        <div className="admin-modal-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="admin-modal-title" style={{ color: 'var(--color-danger)' }}>기록 삭제</h3>
+            <p style={{ fontSize: 14, marginBottom: 20 }}>{deleteTarget.date} · {cropMap[deleteTarget.cropId]?.name || '-'}</p>
+            <div className="admin-modal-actions">
+              <button className="btn-secondary" onClick={() => setDeleteTarget(null)}>취소</button>
+              <button className="btn-primary" onClick={handleDelete} disabled={deleting} style={{ background: 'var(--color-danger)' }}>{deleting ? '삭제 중...' : '삭제'}</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
