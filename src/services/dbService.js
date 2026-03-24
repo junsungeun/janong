@@ -44,6 +44,13 @@ export const db = {
     return (data || []).map(camelify);
   },
 
+  // 전체 데이터 조회 (RLS 허용 시 모든 유저 데이터)
+  getAllList: async (table) => {
+    const { data, error } = await supabase.from(table).select('*').order('created_at', { ascending: false });
+    if (error) { console.warn(`[db.getAllList] ${table}:`, error.message); return []; }
+    return (data || []).map(camelify);
+  },
+
   getById: async (table, id) => {
     const { data, error } = await supabase.from(table).select('*').eq('id', id).single();
     if (error) throw error;

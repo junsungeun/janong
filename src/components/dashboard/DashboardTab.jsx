@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { useList } from '../../hooks/useList';
-import { TABLES, photoStorage } from '../../services/dbService';
+import React, { useState, useMemo, useEffect } from 'react';
+import { db, TABLES, photoStorage } from '../../services/dbService';
 import EmptyState from '../ui/EmptyState';
 import Spinner from '../ui/Spinner';
 import MiniCalendar from '../ui/MiniCalendar';
 import PhotoTimelapse from './PhotoTimelapse';
 import GrowthChart from './GrowthChart';
+import ExportButton from '../record/ExportButton';
 
 function SeedlingIcon({ size = 48 }) {
   return (
@@ -19,12 +19,32 @@ function SeedlingIcon({ size = 48 }) {
 }
 
 export default function DashboardTab() {
-  const { items: crops, loading: cropsLoading } = useList(TABLES.CROP);
-  const { items: allLogs, loading: logsLoading } = useList(TABLES.DAILY_LOG);
+  const [crops, setCrops] = useState([]);
+  const [allLogs, setAllLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCropId, setSelectedCropId] = useState(null);
 
-  const loading = cropsLoading || logsLoading;
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const [c, l] = await Promise.all([
+        db.getAllList(TABLES.CROP),
+        db.getAllList(TABLES.DAILY_LOG),
+      ]);
+      setCrops(c);
+      setAllLogs(l);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
   const activeCropId = selectedCropId || (crops.length > 0 ? crops[0].id : null);
+
+  const cropMap = useMemo(() => {
+    const m = {};
+    crops.forEach((c) => { m[c.id] = c.name; });
+    return m;
+  }, [crops]);
 
   const filteredLogs = useMemo(() => {
     if (!activeCropId) return [];
@@ -35,19 +55,24 @@ export default function DashboardTab() {
     return [...new Set(filteredLogs.map((l) => l.date).filter(Boolean))];
   }, [filteredLogs]);
 
+  const logsForExport = useMemo(() => {
+    const target = selectedCropId ? filteredLogs : allLogs;
+    return target.map((l) => ({ ...l, cropName: cropMap[l.cropId] || '' }));
+  }, [selectedCropId, filteredLogs, allLogs, cropMap]);
+
   if (loading) return <Spinner />;
 
   if (crops.length === 0) {
     return (
       <div className="dashboard-tab">
         <div className="page-header">
-          <h2 className="page-title">성장 추적</h2>
-          <p className="page-subtitle">작물별 생육 현황을 확인하세요</p>
+          <h2 className="page-title">전체 현황</h2>
+          <p className="page-subtitle">팀 전체 작물 데이터</p>
         </div>
         <EmptyState
           icon={SeedlingIcon}
-          title="작물을 먼저 등록해주세요"
-          description="설정 탭에서 작물을 등록하면 성장 추적을 시작할 수 있습니다."
+          title="등록된 작물이 없습니다"
+          description="작물을 등록하면 전체 현황을 볼 수 있습니다."
         />
       </div>
     );
@@ -56,15 +81,29 @@ export default function DashboardTab() {
   return (
     <div className="dashboard-tab">
       <div className="page-header">
-        <h2 className="page-title">성장 추적</h2>
-        <p className="page-subtitle">작물별 생육 현황을 확인하세요</p>
+        <div className="dash-header-row">
+          <div>
+            <h2 className="page-title">전체 현황</h2>
+            <p className="page-subtitle">팀 전체 작물 데이터 · {allLogs.length}건</p>
+          </div>
+          <ExportButton
+            logs={logsForExport}
+            cropName={selectedCropId ? cropMap[selectedCropId] || '' : '전체'}
+          />
+        </div>
       </div>
 
       <div className="dash-crop-chips">
+        <button
+          className={`dash-crop-chip ${!selectedCropId ? 'active' : ''}`}
+          onClick={() => setSelectedCropId(null)}
+        >
+          전체
+        </button>
         {crops.map((crop) => (
           <button
             key={crop.id}
-            className={`dash-crop-chip ${activeCropId === crop.id ? 'active' : ''}`}
+            className={`dash-crop-chip ${activeCropId === crop.id && selectedCropId ? 'active' : ''}`}
             onClick={() => setSelectedCropId(crop.id)}
           >
             {crop.name}
@@ -72,7 +111,7 @@ export default function DashboardTab() {
         ))}
       </div>
 
-      {filteredLogs.length === 0 ? (
+      {filteredLogs.length === 0 && selectedCropId ? (
         <EmptyState
           title="기록이 없습니다"
           description="이 작물에 대한 기록을 추가해 보세요."

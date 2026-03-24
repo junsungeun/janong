@@ -7,7 +7,6 @@ import Modal from '../ui/Modal';
 import RecordItem from './RecordItem';
 import RecordForm from './RecordForm';
 import RecordDetail from './RecordDetail';
-import ExportButton from './ExportButton';
 
 export default function RecordTab({ initialCropFilter }) {
   const { items: crops, loading: cropsLoading } = useList(TABLES.CROP);
@@ -33,10 +32,6 @@ export default function RecordTab({ initialCropFilter }) {
     if (filterCrop === 'all') return logs;
     return logs.filter((l) => l.cropId === filterCrop);
   }, [logs, filterCrop]);
-
-  const logsForExport = useMemo(() => {
-    return filteredLogs.map((l) => ({ ...l, cropName: cropMap[l.cropId] || '' }));
-  }, [filteredLogs, cropMap]);
 
   const handleSaveForm = () => { setView('list'); setEditLog(null); reload(); };
 
@@ -145,14 +140,6 @@ export default function RecordTab({ initialCropFilter }) {
           ))}
         </div>
       )}
-
-      {/* Bottom action bar */}
-      <div className="record-bottom-bar">
-        <ExportButton
-          logs={logsForExport}
-          cropName={filterCrop === 'all' ? '전체' : cropMap[filterCrop] || ''}
-        />
-      </div>
 
       {deleteTarget && (
         <Modal
