@@ -6,6 +6,7 @@ import { Field, Textarea, Select } from '../ui/Input';
 import GrowthInput from './GrowthInput';
 import { fetchCurrentWeather } from '../../services/kmaWeatherService';
 import { db, TABLES, photoStorage } from '../../services/dbService';
+import { GROWTH_STAGES } from '../../constants';
 
 const resizeImage = (file, maxW = 1200) =>
   new Promise((resolve) => {
@@ -21,13 +22,14 @@ const resizeImage = (file, maxW = 1200) =>
     img.src = URL.createObjectURL(file);
   });
 
-const STEPS = [{ n: 1, l: '작물' }, { n: 2, l: '사진' }, { n: 3, l: '환경' }, { n: 4, l: '생장' }];
+const STEPS = [{ n: 1, l: '기본' }, { n: 2, l: '사진' }, { n: 3, l: '데이터' }];
 
 export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
   const fileRef = useRef(null);
   const isEdit = !!editLog;
 
   const [cropId, setCropId] = useState(editLog?.cropId || '');
+  const [stage, setStage] = useState(editLog?.stage || '');
   const [photos, setPhotos] = useState([]);
   const [existingPhotos, setExistingPhotos] = useState(editLog?.photos || []);
   const [growth, setGrowth] = useState({
@@ -43,6 +45,7 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
   const [error, setError] = useState('');
   const today = new Date().toISOString().slice(0, 10);
   const step = !cropId ? 1 : (photos.length === 0 && existingPhotos.length === 0) ? 2 : 3;
+
 
   useEffect(() => { fetchCurrentWeather().then((w) => w && setWeather(w)); }, []);
 
@@ -70,6 +73,7 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
 
       const logData = {
         cropId,
+        stage: stage || null,
         date: editLog?.date || today,
         temperature: temperature !== '' ? Number(temperature) : null,
         humidity: humidity !== '' ? Number(humidity) : null,
@@ -114,6 +118,25 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
       <div className="record-form-section">
         <p className="record-form-section-title"><span className="record-form-section-num">1</span>작물 선택</p>
         <Select options={crops.map((c) => ({ value: c.id, label: c.name }))} placeholder="작물을 선택하세요" value={cropId} onChange={(e) => setCropId(e.target.value)} />
+
+        {cropId && (
+          <>
+            <p className="record-form-section-subtitle">현재 재배 단계</p>
+            <div className="stage-selector">
+              {GROWTH_STAGES.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  className={`stage-chip ${stage === s.value ? 'active' : ''}`}
+                  onClick={() => setStage(stage === s.value ? '' : s.value)}
+                >
+                  <span className="stage-chip-icon">{s.icon}</span>
+                  <span className="stage-chip-label">{s.label}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="record-form-section">
@@ -161,7 +184,7 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
       </div>
 
       <div className="record-form-section">
-        <p className="record-form-section-title"><span className="record-form-section-num">3</span>환경 데이터 <span className="text-caption text-muted">(선택)</span></p>
+        <p className="record-form-section-title"><span className="record-form-section-num">3</span>데이터 입력 <span className="text-caption text-muted">(선택)</span></p>
         <div className="growth-input-row">
           <div className="growth-input-field">
             <label className="growth-input-label">온도</label>
@@ -178,10 +201,7 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="record-form-section">
-        <p className="record-form-section-title"><span className="record-form-section-num">4</span>생장 데이터 <span className="text-caption text-muted">(선택)</span></p>
+        <p className="record-form-section-subtitle" style={{ marginTop: 'var(--space-4)' }}>생장 데이터</p>
         <GrowthInput values={growth} onChange={setGrowth} />
       </div>
 

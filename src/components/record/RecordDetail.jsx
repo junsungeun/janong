@@ -4,6 +4,7 @@ import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
 import { photoStorage } from '../../services/dbService';
+import { GROWTH_STAGES } from '../../constants';
 
 export default function RecordDetail({ log, cropName, onEdit, onDelete, onClose }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -61,6 +62,14 @@ export default function RecordDetail({ log, cropName, onEdit, onDelete, onClose 
           <span className="record-detail-label">작물</span>
           <span className="record-detail-value">{cropName || '-'}</span>
         </div>
+        {log.stage && (
+          <div className="record-detail-row">
+            <span className="record-detail-label">재배 단계</span>
+            <span className="record-detail-value">
+              {(() => { const s = GROWTH_STAGES.find(s => s.value === log.stage); return s ? `${s.icon} ${s.label}` : log.stage; })()}
+            </span>
+          </div>
+        )}
       </Card>
 
       {(log.temperature != null || log.humidity != null || log.weather) && (

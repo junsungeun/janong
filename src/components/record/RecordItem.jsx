@@ -4,6 +4,7 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { photoStorage } from '../../services/dbService';
+import { GROWTH_STAGES } from '../../constants';
 
 function formatShortDate(dateStr) {
   if (!dateStr) return '';
@@ -38,6 +39,7 @@ export default function RecordItem({ log, cropName, onView, onDelete }) {
         <div className="record-item-info">
           <div className="record-item-top">
             <span className="record-item-date">{formatShortDate(log.date)}</span>
+            {log.stage && (() => { const s = GROWTH_STAGES.find(s => s.value === log.stage); return s ? <Badge variant="good">{s.icon} {s.label}</Badge> : null; })()}
           </div>
           <span className="record-item-crop">{cropName || '작물 미지정'}</span>
           <div className="record-item-badges">
