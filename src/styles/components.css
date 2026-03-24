@@ -3753,3 +3753,185 @@
   color: var(--color-primary);
 }
 
+
+/* ── 작물 선택 그리드 (기록폼 첫 화면) ── */
+.crop-select-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+.crop-select-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-5) var(--space-4);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: auto;
+}
+
+.crop-select-chip:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.crop-select-name {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.crop-select-variety {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+
+/* ── 기록폼 헤더 (작물명 + 뒤로) ── */
+.record-form-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+  min-height: 36px;
+  min-width: 36px;
+  transition: background 0.15s;
+}
+
+.record-form-back:hover {
+  background: var(--bg);
+}
+
+.record-form-crop-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.record-form-crop-name {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.record-form-crop-variety {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.record-form-section-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+
+/* ── 재배 단계 프로그레스 바 ── */
+.stage-progress {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-2);
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
+  position: relative;
+}
+
+.stage-progress-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  border: none;
+  background: none;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  min-height: auto;
+  min-width: auto;
+}
+
+.stage-progress-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  font-size: 16px;
+  line-height: 1;
+  transition: all 0.2s;
+  position: relative;
+  z-index: 1;
+}
+
+.stage-progress-dot-inner {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.2s;
+}
+
+.stage-progress-item.active .stage-progress-dot {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.stage-progress-item.passed .stage-progress-dot {
+  border-color: var(--color-primary);
+}
+
+.stage-progress-item.passed .stage-progress-dot-inner {
+  background: var(--color-primary);
+}
+
+.stage-progress-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+.stage-progress-item.active .stage-progress-label {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.stage-progress-item.passed .stage-progress-label {
+  color: var(--text-secondary);
+}
+
+/* Progress connecting line */
+.stage-progress-line {
+  position: absolute;
+  top: 16px;
+  left: calc(50% + 18px);
+  right: calc(-50% + 18px);
+  height: 2px;
+  background: var(--border);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.stage-progress-line.filled {
+  background: var(--color-primary);
+}
+

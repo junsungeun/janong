@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera } from 'lucide-react';
-import Button from '../ui/Button';
-import Spinner from '../ui/Spinner';
-import { Field, Textarea, Select } from '../ui/Input';
+import { Camera, ChevronLeft } from 'lucide-react';
+import { Field, Textarea } from '../ui/Input';
 import GrowthInput from './GrowthInput';
 import { fetchCurrentWeather } from '../../services/kmaWeatherService';
 import { db, TABLES, photoStorage } from '../../services/dbService';
@@ -21,8 +19,6 @@ const resizeImage = (file, maxW = 1200) =>
     };
     img.src = URL.createObjectURL(file);
   });
-
-const STEPS = [{ n: 1, l: '기본' }, { n: 2, l: '사진' }, { n: 3, l: '데이터' }];
 
 export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
   const fileRef = useRef(null);
@@ -44,10 +40,10 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const today = new Date().toISOString().slice(0, 10);
-  const step = !cropId ? 1 : (photos.length === 0 && existingPhotos.length === 0) ? 2 : 3;
-
 
   useEffect(() => { fetchCurrentWeather().then((w) => w && setWeather(w)); }, []);
+
+  const selectedCrop = crops.find((c) => c.id === cropId);
 
   const handleAddPhoto = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -94,55 +90,79 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
     } catch (err) { setError(err.message || '저장 실패'); } finally { setSaving(false); }
   };
 
+  const activeStageIdx = GROWTH_STAGES.findIndex((s) => s.value === stage);
+
+  // Step 1: 작물 미선택 → 작물 선택 화면
+  if (!cropId) {
+    return (
+      <div className="record-form page-slide-in">
+        <div className="record-form-header">
+          <h2 className="section-title">{isEdit ? '기록 수정' : '새 기록'}</h2>
+          <button className="btn-ghost" onClick={onCancel}>취소</button>
+        </div>
+
+        <div className="record-form-section">
+          <p className="record-form-section-title">어떤 작물을 기록할까요?</p>
+          <div className="crop-select-grid">
+            {crops.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className="crop-select-chip"
+                onClick={() => setCropId(c.id)}
+              >
+                <span className="crop-select-name">{c.name}</span>
+                {c.variety && <span className="crop-select-variety">{c.variety}</span>}
+              </button>
+            ))}
+          </div>
+          {crops.length === 0 && (
+            <p className="text-sm text-muted" style={{ textAlign: 'center', padding: '20px 0' }}>
+              설정에서 작물을 먼저 등록해주세요.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: 작물 선택됨 → 기록 작성
   return (
     <div className="record-form page-slide-in">
+      {/* Header with crop name */}
       <div className="record-form-header">
-        <h2 className="section-title">{isEdit ? '기록 수정' : '새 기록'}</h2>
-        <Button variant="ghost" onClick={onCancel}>취소</Button>
+        <button className="record-form-back" onClick={() => isEdit ? onCancel() : setCropId('')}>
+          <ChevronLeft size={20} />
+        </button>
+        <div className="record-form-crop-info">
+          <h2 className="record-form-crop-name">{selectedCrop?.name || '작물'}</h2>
+          {selectedCrop?.variety && <span className="record-form-crop-variety">{selectedCrop.variety}</span>}
+        </div>
+        <button className="btn-ghost" onClick={onCancel}>취소</button>
       </div>
 
-      <div className="record-form-steps">
-        {STEPS.map((s, i) => (
-          <React.Fragment key={s.n}>
-            <div className="record-form-step">
-              <span className={`record-form-step-num ${step === s.n ? 'active' : step > s.n ? 'done' : ''}`}>
-                {step > s.n ? '\u2713' : s.n}
-              </span>
-              <span className={`record-form-step-label ${step === s.n ? 'active' : ''}`}>{s.l}</span>
-            </div>
-            {i < STEPS.length - 1 && <div className={`record-form-step-line ${step > s.n ? 'done' : ''}`} />}
-          </React.Fragment>
+      {/* Stage progress bar */}
+      <div className="stage-progress">
+        {GROWTH_STAGES.map((s, i) => (
+          <button
+            key={s.value}
+            type="button"
+            className={`stage-progress-item ${stage === s.value ? 'active' : ''} ${i <= activeStageIdx ? 'passed' : ''}`}
+            onClick={() => setStage(stage === s.value ? '' : s.value)}
+          >
+            <span className="stage-progress-dot">
+              {stage === s.value ? s.icon : <span className="stage-progress-dot-inner" />}
+            </span>
+            <span className="stage-progress-label">{s.label}</span>
+            {i < GROWTH_STAGES.length - 1 && <span className={`stage-progress-line ${i < activeStageIdx ? 'filled' : ''}`} />}
+          </button>
         ))}
       </div>
 
+      {/* Photo section */}
       <div className="record-form-section">
-        <p className="record-form-section-title"><span className="record-form-section-num">1</span>작물 선택</p>
-        <Select options={crops.map((c) => ({ value: c.id, label: c.name }))} placeholder="작물을 선택하세요" value={cropId} onChange={(e) => setCropId(e.target.value)} />
+        <p className="record-form-section-label">사진</p>
 
-        {cropId && (
-          <>
-            <p className="record-form-section-subtitle">현재 재배 단계</p>
-            <div className="stage-selector">
-              {GROWTH_STAGES.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  className={`stage-chip ${stage === s.value ? 'active' : ''}`}
-                  onClick={() => setStage(stage === s.value ? '' : s.value)}
-                >
-                  <span className="stage-chip-icon">{s.icon}</span>
-                  <span className="stage-chip-label">{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="record-form-section">
-        <p className="record-form-section-title"><span className="record-form-section-num">2</span>사진 촬영</p>
-
-        {/* Existing photos (edit mode) */}
         {existingPhotos.length > 0 && (
           <div className="record-photos-grid">
             {existingPhotos.map((path, i) => (
@@ -162,7 +182,6 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
               <Camera size={24} />
             </div>
             <span className="record-photo-viewfinder-text">사진 촬영 또는 선택</span>
-            <span className="record-photo-viewfinder-hint">작물 사진을 촬영해주세요</span>
           </div>
         ) : (
           <div className="record-photos-grid">
@@ -183,8 +202,9 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
         <input ref={fileRef} type="file" accept="image/*" capture="environment" multiple onChange={handleAddPhoto} hidden />
       </div>
 
+      {/* Data section */}
       <div className="record-form-section">
-        <p className="record-form-section-title"><span className="record-form-section-num">3</span>데이터 입력 <span className="text-caption text-muted">(선택)</span></p>
+        <p className="record-form-section-label">환경</p>
         <div className="growth-input-row">
           <div className="growth-input-field">
             <label className="growth-input-label">온도</label>
@@ -201,11 +221,14 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
             </div>
           </div>
         </div>
-        <p className="record-form-section-subtitle" style={{ marginTop: 'var(--space-4)' }}>생장 데이터</p>
+      </div>
+
+      <div className="record-form-section">
+        <p className="record-form-section-label">생장</p>
         <GrowthInput values={growth} onChange={setGrowth} />
       </div>
 
-      <Field label="메모 (선택)">
+      <Field label="메모">
         <Textarea placeholder="오늘의 관찰 내용..." rows={3} value={memo} onChange={(e) => setMemo(e.target.value)} />
       </Field>
 
