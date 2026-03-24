@@ -9,6 +9,7 @@ import WeatherCard from './WeatherCard';
 import CropCard from './CropCard';
 import MiniCalendar from '../ui/MiniCalendar';
 import CropManager from '../settings/CropManager';
+import CropDetailPage from '../crop/CropDetailPage';
 import { Plus, Sprout } from 'lucide-react';
 import { Field, Input } from '../ui/Input';
 
@@ -19,6 +20,7 @@ export default function HomeTab({ onNavigate }) {
   const [editCrop, setEditCrop] = useState(null);
   const [deleteCrop, setDeleteCrop] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [detailCrop, setDetailCrop] = useState(null);
 
   const dateInfo = formatDate();
   const solarTerm = getCurrentSolarTerm();
@@ -57,7 +59,7 @@ export default function HomeTab({ onNavigate }) {
   }, [logs, selectedDate]);
 
   const handleCropClick = (crop) => {
-    onNavigate?.('record', { cropId: crop.id });
+    setDetailCrop(crop);
   };
 
   const handleEditCrop = (crop) => {
@@ -87,6 +89,16 @@ export default function HomeTab({ onNavigate }) {
       reloadCrops();
     } catch (err) { console.error(err); }
   };
+
+  if (detailCrop) {
+    return (
+      <CropDetailPage
+        crop={detailCrop}
+        onClose={() => { setDetailCrop(null); reloadCrops(); }}
+        onViewLog={(log) => onNavigate?.('record', { cropId: log.cropId })}
+      />
+    );
+  }
 
   return (
     <div className="home-tab">
