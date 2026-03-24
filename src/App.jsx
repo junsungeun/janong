@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
@@ -11,6 +11,21 @@ import SettingsTab from './components/settings/SettingsTab';
 import { ToastContainer } from './components/ui/Toast';
 import './styles/globals.css';
 import './styles/components.css';
+
+function SplashScreen({ onDone }) {
+  useEffect(() => {
+    const timer = setTimeout(onDone, 1800);
+    return () => clearTimeout(timer);
+  }, [onDone]);
+
+  return (
+    <div className="splash">
+      <img src="/logo.png" alt="SeedLog" className="splash-logo" />
+      <h1 className="splash-title">SeedLog</h1>
+      <p className="splash-sub">농사 기록 플랫폼</p>
+    </div>
+  );
+}
 
 function AppMain() {
   const [activeTab, setActiveTab] = useState('home');
@@ -50,6 +65,11 @@ function AppMain() {
 
 export default function App() {
   const { user, loading } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <SplashScreen onDone={() => setShowSplash(false)} />;
+  }
 
   if (loading) {
     return (

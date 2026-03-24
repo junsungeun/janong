@@ -42,10 +42,8 @@ export default function LoginPage() {
       <div className="login-page">
         <div className="login-card">
           <div className="login-brand">
-            <div className="login-logo">
-              SeedLog
-              <span className="login-sprout" aria-hidden="true">&#127793;</span>
-            </div>
+            <img src="/logo.png" alt="SeedLog" className="login-logo-img" />
+            <div className="login-logo">SeedLog</div>
             <div className="login-subtitle">농사 기록 플랫폼</div>
           </div>
           <div className="login-success">
