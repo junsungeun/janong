@@ -4673,6 +4673,116 @@
 }
 
 
+/* ══════════════════════════════════════════════════════════════
+   코치마크 (온보딩 투어)
+══════════════════════════════════════════════════════════════ */
+
+.coach-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+.coach-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.coach-highlight {
+  position: absolute;
+  border: 2px solid var(--color-primary);
+  border-radius: 12px;
+  box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb), 0.2);
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.coach-tooltip {
+  position: absolute;
+  width: 280px;
+  padding: var(--space-5);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  z-index: 10000;
+  animation: fadeSlideUp 0.3s ease;
+}
+
+.coach-step-indicator {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--space-3);
+}
+
+.coach-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.coach-dot.active {
+  background: var(--color-primary);
+  width: 16px;
+  border-radius: 3px;
+}
+
+.coach-dot.done {
+  background: var(--color-primary-300);
+}
+
+.coach-title {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: var(--space-2);
+}
+
+.coach-desc {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: var(--space-4);
+}
+
+.coach-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.coach-skip {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  padding: 4px 8px;
+  min-height: auto;
+  min-width: auto;
+}
+
+.coach-next {
+  padding: 8px 20px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  min-height: auto;
+  transition: background 0.15s;
+}
+
+.coach-next:hover {
+  background: var(--color-primary-dark);
+}
+
+
 /* ── 작물 선택 그리드 (기록폼 첫 화면) ── */
 .crop-select-grid {
   display: grid;
