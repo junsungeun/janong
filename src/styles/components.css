@@ -669,7 +669,7 @@
 .dashboard-tab {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-3);
   animation: fadeSlideUp 0.3s ease-out;
 }
 
@@ -871,24 +871,20 @@
 }
 
 /* ══════════════════════════════════
-   1뎁스: 조 선택 — 최상위, 가장 크고 무거움
+   1뎁스: 조 선택 — 탭 바 형태, 가장 크고 무거움
    ══════════════════════════════════ */
 .dash-group-filter {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-2);
 }
 
 .dash-group-label {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  margin-bottom: 10px;
+  display: none;
 }
 
 .dash-group-chips {
   display: flex;
-  gap: var(--space-2);
+  gap: 0;
+  border-bottom: 3px solid var(--border-light);
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -897,37 +893,35 @@
 
 .dash-group-chip {
   flex-shrink: 0;
-  padding: 10px 20px;
-  border-radius: var(--radius-full);
-  border: 2px solid var(--border);
-  background: var(--bg-card);
+  padding: 12px 20px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -3px;
+  background: none;
   font-size: var(--text-base);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.18s;
   white-space: nowrap;
   touch-action: manipulation;
 }
 .dash-group-chip:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--text);
 }
 .dash-group-chip.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
   font-weight: 700;
-  box-shadow: 0 3px 10px rgba(var(--color-primary-rgb), 0.25);
 }
 
 /* ══════════════════════════════════
-   2뎁스: 뷰 탭 — 중간, 언더라인 스타일
+   2뎁스: 뷰 탭 — 더 얇고 가벼운 언더라인
    ══════════════════════════════════ */
 .dash-seg-wrap {
   display: flex;
   gap: 0;
-  border-bottom: 2px solid var(--border-light);
+  border-bottom: 1.5px solid var(--border-light);
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -937,11 +931,11 @@
 
 .dash-seg-btn {
   flex-shrink: 0;
-  padding: 9px 14px;
+  padding: 8px 12px;
   border: none;
   background: none;
   font-size: var(--text-sm);
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-muted);
   cursor: pointer;
   position: relative;
@@ -952,19 +946,18 @@
 .dash-seg-btn::after {
   content: '';
   position: absolute;
-  bottom: -2px;
+  bottom: -1.5px;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 1.5px;
   background: var(--color-primary);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.2s ease;
-  border-radius: 2px 2px 0 0;
 }
 .dash-seg-btn.active {
   color: var(--color-primary);
-  font-weight: 700;
+  font-weight: 600;
 }
 .dash-seg-btn.active::after {
   transform: scaleX(1);
