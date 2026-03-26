@@ -119,7 +119,6 @@ export default function DashboardTab() {
       <div className="dh-header">
         <div className="dh-header-text">
           <h2 className="dh-title">대시보드</h2>
-          <p className="dh-subtitle">{filterGroup !== 'all' ? `${filterGroup}조` : '전체'} 현황</p>
         </div>
         <ExportButton logs={logsForExport} cropName={filterGroup !== 'all' ? filterGroup : '전체'} />
       </div>
@@ -171,7 +170,6 @@ export default function DashboardTab() {
         {/* 3뎁스: 분류 필터 */}
         {categories.length > 0 && (
           <div className="dh-d3">
-            <span className="dh-d3-label">분류</span>
             <button className={`dh-d3-btn ${filterCategory === 'all' ? 'active' : ''}`} onClick={() => setFilterCategory('all')}>전체</button>
             {categories.map((c) => (
               <button key={c} className={`dh-d3-btn ${filterCategory === c ? 'active' : ''}`} onClick={() => setFilterCategory(c)}>{c}</button>
