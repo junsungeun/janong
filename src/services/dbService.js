@@ -27,9 +27,15 @@ const camelify = (obj) => {
   return Object.fromEntries(Object.entries(obj).map(([k, v]) => [toCamel(k), v]));
 };
 
-// ── 현재 유저 ID (로컬 세션 캐시) ──
+// ── 현재 유저 ID ──
 const getUserId = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const timeout = new Promise((_, rej) =>
+    setTimeout(() => rej(new Error('세션 조회 시간 초과')), 8000)
+  );
+  const { data: { session } } = await Promise.race([
+    supabase.auth.getSession(),
+    timeout,
+  ]);
   if (!session?.user?.id) throw new Error('로그인이 필요합니다');
   return session.user.id;
 };
