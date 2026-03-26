@@ -663,340 +663,94 @@
 
 
 /* ──────────────────────────────────────
-   6. 대시보드 탭
+   6. 대시보드
    ────────────────────────────────────── */
 
 .dashboard-tab {
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-top: var(--space-1);
   animation: fadeSlideUp 0.3s ease-out;
 }
 
-/* ── 대시보드 헤더 ── */
-.dash-header {
+/* ── 헤더 ── */
+.dh-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
 }
-
-.dash-title {
-  font-size: var(--text-xl);
+.dh-title {
+  font-size: var(--text-2xl);
   font-weight: 800;
   color: var(--text);
   line-height: 1.2;
 }
-
-.dash-subtitle {
+.dh-subtitle {
   font-size: var(--text-sm);
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 /* ══════════════════════════════════
-   1뎁스: 조 선택 — 라벨 + solid pill
+   1뎁스: 조 선택
+   크기 최대 / solid pill / 명확한 on-off
    ══════════════════════════════════ */
-.dash-group-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.dash-group-label {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--text-muted);
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.dash-group-pills {
+.dh-d1 {
   display: flex;
   gap: var(--space-2);
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  margin-bottom: var(--space-5);
 }
-.dash-group-pills::-webkit-scrollbar { display: none; }
+.dh-d1::-webkit-scrollbar { display: none; }
 
-.dash-group-pill {
+.dh-d1-btn {
   flex-shrink: 0;
-  padding: 8px 16px;
+  padding: 10px 22px;
   border-radius: var(--radius-full);
-  border: 1.5px solid var(--border);
+  border: 2px solid var(--border);
   background: var(--bg-card);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.18s;
-  white-space: nowrap;
-  touch-action: manipulation;
-}
-.dash-group-pill:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-.dash-group-pill.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-  font-weight: 700;
-}
-
-.dash-filters {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
-}
-
-.dash-filter-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.dash-filter-label {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text-muted);
-  flex-shrink: 0;
-  min-width: 24px;
-}
-
-.dash-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
-  margin-bottom: var(--space-6);
-}
-
-.dash-stat-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.dash-crop-list {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  border: 1px solid var(--border-light);
-  overflow: hidden;
-}
-
-.dash-crop-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-}
-
-.dash-crop-row + .dash-crop-row {
-  border-top: 1px solid var(--border-light);
-}
-
-.dash-crop-row-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.dash-crop-row-name {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text);
-}
-
-.dash-crop-row-cat {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  background: var(--bg);
-  padding: 1px 8px;
-  border-radius: var(--radius-full);
-}
-
-.dash-crop-row-count {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.dash-recent-list {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  border: 1px solid var(--border-light);
-  overflow: hidden;
-}
-
-.dash-recent-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-}
-
-.dash-recent-item + .dash-recent-item {
-  border-top: 1px solid var(--border-light);
-}
-
-.dash-recent-date {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  flex-shrink: 0;
-  min-width: 70px;
-}
-
-.dash-recent-crop {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text);
-}
-
-.dash-recent-memo {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ── 날씨 자동 기록 표시 ── */
-.record-weather-auto {
-  padding: var(--space-4);
-  background: var(--color-primary-light);
-  border-radius: var(--radius);
-}
-
-.record-weather-auto-grid {
-  display: flex;
-  gap: var(--space-4);
-  font-size: var(--text-sm);
-  color: var(--color-primary);
-  font-weight: 500;
-}
-
-.dash-crop-chips {
-  display: flex;
-  gap: var(--space-2);
-  overflow-x: auto;
-  padding-bottom: var(--space-2);
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.dash-crop-chips::-webkit-scrollbar { display: none; }
-
-.dash-crop-chip {
-  flex-shrink: 0;
-  padding: 5px 12px;
-  border-radius: 100px;
-  border: 1px solid var(--border-light);
-  background: var(--bg-card);
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.18s;
-  white-space: nowrap;
-  touch-action: manipulation;
-}
-
-.dash-crop-chip:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.dash-crop-chip.active {
-  background: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
-  font-weight: 600;
-}
-
-.dash-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
-
-.dash-calendar-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-/* ══════════════════════════════════
-   1뎁스: 조 선택 — 탭 바 형태, 가장 크고 무거움
-   ══════════════════════════════════ */
-.dash-group-filter {
-  margin-bottom: var(--space-2);
-}
-
-.dash-group-label {
-  display: none;
-}
-
-.dash-group-chips {
-  display: flex;
-  gap: 0;
-  border-bottom: 3px solid var(--border-light);
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-.dash-group-chips::-webkit-scrollbar { display: none; }
-
-.dash-group-chip {
-  flex-shrink: 0;
-  padding: 12px 20px;
-  border: none;
-  border-bottom: 3px solid transparent;
-  margin-bottom: -3px;
-  background: none;
   font-size: var(--text-base);
   font-weight: 600;
-  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.18s;
+  transition: all 0.15s;
   white-space: nowrap;
   touch-action: manipulation;
 }
-.dash-group-chip:hover {
-  color: var(--text);
-}
-.dash-group-chip.active {
+.dh-d1-btn:hover {
+  border-color: var(--color-primary);
   color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
+}
+.dh-d1-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
   font-weight: 700;
+  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
 }
 
 /* ══════════════════════════════════
-   2뎁스: 뷰 탭 — 더 얇고 가벼운 언더라인
+   2뎁스: 뷰 탭
+   크기 중간 / 언더라인 / 1뎁스보다 명확히 작고 얇음
    ══════════════════════════════════ */
-.dash-seg-wrap {
+.dh-d2 {
   display: flex;
   gap: 0;
-  border-bottom: 1.5px solid var(--border-light);
+  border-bottom: 2px solid var(--border-light);
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   margin-bottom: var(--space-5);
 }
-.dash-seg-wrap::-webkit-scrollbar { display: none; }
+.dh-d2::-webkit-scrollbar { display: none; }
 
-.dash-seg-btn {
+.dh-d2-btn {
   flex-shrink: 0;
-  padding: 8px 12px;
+  padding: 8px 14px;
   border: none;
   background: none;
   font-size: var(--text-sm);
@@ -1004,47 +758,80 @@
   color: var(--text-muted);
   cursor: pointer;
   position: relative;
-  transition: color 0.18s;
+  transition: color 0.15s;
   white-space: nowrap;
   touch-action: manipulation;
 }
-.dash-seg-btn::after {
+.dh-d2-btn::after {
   content: '';
   position: absolute;
-  bottom: -1.5px;
-  left: 0;
-  right: 0;
-  height: 1.5px;
+  bottom: -2px;
+  left: 0; right: 0;
+  height: 2px;
   background: var(--color-primary);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.2s ease;
 }
-.dash-seg-btn.active {
+.dh-d2-btn.active {
   color: var(--color-primary);
   font-weight: 600;
 }
-.dash-seg-btn.active::after {
+.dh-d2-btn.active::after {
   transform: scaleX(1);
 }
 
 /* ══════════════════════════════════
-   3뎁스: 분류 필터 — 가장 작고 가벼움
+   3뎁스: 분류 필터
+   크기 최소 / 텍스트 버튼 / 거의 안 보임
    ══════════════════════════════════ */
-.dash-cat-filter {
+.dh-d3 {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  flex-wrap: wrap;
   margin-bottom: var(--space-4);
 }
-.dash-cat-label {
-  font-size: var(--text-xs);
+.dh-d3-label {
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
+  margin-right: var(--space-1);
   flex-shrink: 0;
 }
+.dh-d3-btn {
+  padding: 3px 10px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.dh-d3-btn:hover {
+  color: var(--text);
+}
+.dh-d3-btn.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
 
-/* ══ 통계 카드 ══ */
+/* ── 통계 카드 그리드 ── */
+.dash-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+.dash-stat-info {
+  display: flex;
+  flex-direction: column;
+}
 .dash-stat-card {
   display: flex;
   align-items: center;
@@ -1063,23 +850,10 @@
   justify-content: center;
   flex-shrink: 0;
 }
-/* 아이콘 배경색 - 순서별 고정 */
-.dash-stats-grid .dash-stat-card:nth-child(1) .dash-stat-icon {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-}
-.dash-stats-grid .dash-stat-card:nth-child(2) .dash-stat-icon {
-  background: var(--color-blue-light);
-  color: var(--color-blue);
-}
-.dash-stats-grid .dash-stat-card:nth-child(3) .dash-stat-icon {
-  background: var(--color-yellow-light);
-  color: #986C00;
-}
-.dash-stats-grid .dash-stat-card:nth-child(4) .dash-stat-icon {
-  background: #F3E8FF;
-  color: #7C3AED;
-}
+.dash-stats-grid .dash-stat-card:nth-child(1) .dash-stat-icon { background: var(--color-primary-light); color: var(--color-primary); }
+.dash-stats-grid .dash-stat-card:nth-child(2) .dash-stat-icon { background: var(--color-blue-light); color: var(--color-blue); }
+.dash-stats-grid .dash-stat-card:nth-child(3) .dash-stat-icon { background: var(--color-yellow-light); color: #986C00; }
+.dash-stats-grid .dash-stat-card:nth-child(4) .dash-stat-icon { background: #F3E8FF; color: #7C3AED; }
 .dash-stat-num {
   font-size: 24px;
   font-weight: 700;
@@ -1094,19 +868,25 @@
   margin-top: 4px;
 }
 
-/* ══ 섹션 헤더 ══ */
+/* ── 섹션 ── */
+.dash-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
 .dash-section-title {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: 700;
   color: var(--text);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
-/* ══ 작물 현황 카드 그리드 ══ */
+/* ── 작물 카드 ── */
 .dash-crop-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 .dash-crop-card {
   background: var(--bg-card);
@@ -1115,7 +895,7 @@
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 .dash-crop-card-top {
   display: flex;
@@ -1150,11 +930,11 @@
   margin-left: 2px;
 }
 
-/* ══ 최근 기록 카드 ══ */
+/* ── 최근 기록 ── */
 .dash-recent-cards {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 .dash-recent-card {
   display: flex;
@@ -1169,7 +949,7 @@
 .dash-recent-card-left {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
   flex: 1;
 }
@@ -1184,7 +964,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
 }
 .dash-recent-card-date {
   font-size: var(--text-xs);
@@ -1192,6 +971,12 @@
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
+
+/* ── 기타 (하위 호환) ── */
+.dash-content { display: flex; flex-direction: column; gap: var(--space-6); }
+.dash-calendar-section { display: flex; flex-direction: column; gap: var(--space-3); }
+.record-weather-auto { padding: var(--space-4); background: var(--color-primary-light); border-radius: var(--radius); }
+.record-weather-auto-grid { display: flex; gap: var(--space-4); font-size: var(--text-sm); color: var(--color-primary); font-weight: 500; }
 
 
 /* ──────────────────────────────────────

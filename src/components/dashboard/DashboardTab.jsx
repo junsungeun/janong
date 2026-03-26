@@ -116,29 +116,26 @@ export default function DashboardTab() {
     <div className="dashboard-tab">
 
       {/* ── 헤더 ── */}
-      <div className="dash-header">
-        <div>
-          <h2 className="dash-title">대시보드</h2>
-          <p className="dash-subtitle">{filterGroup !== 'all' ? filterGroup : '전체'} 현황</p>
+      <div className="dh-header">
+        <div className="dh-header-text">
+          <h2 className="dh-title">대시보드</h2>
+          <p className="dh-subtitle">{filterGroup !== 'all' ? `${filterGroup}조` : '전체'} 현황</p>
         </div>
         <ExportButton logs={logsForExport} cropName={filterGroup !== 'all' ? filterGroup : '전체'} />
       </div>
 
-      {/* ── 조 선택 ── */}
+      {/* ── 1뎁스: 조 선택 ── */}
       {groups.length > 0 && (
-        <div className="dash-group-row">
-          <span className="dash-group-label">조 선택</span>
-          <div className="dash-group-pills">
-            <button className={`dash-group-pill ${filterGroup === 'all' ? 'active' : ''}`} onClick={() => setFilterGroup('all')}>전체</button>
-            {groups.map((g) => (
-              <button key={g} className={`dash-group-pill ${filterGroup === g ? 'active' : ''}`} onClick={() => setFilterGroup(g)}>{g}조</button>
-            ))}
-          </div>
+        <div className="dh-d1">
+          <button className={`dh-d1-btn ${filterGroup === 'all' ? 'active' : ''}`} onClick={() => setFilterGroup('all')}>전체</button>
+          {groups.map((g) => (
+            <button key={g} className={`dh-d1-btn ${filterGroup === g ? 'active' : ''}`} onClick={() => setFilterGroup(g)}>{g}조</button>
+          ))}
         </div>
       )}
 
-      {/* ── 뷰 탭 (세그먼트 컨트롤) ── */}
-      <div className="dash-seg-wrap">
+      {/* ── 2뎁스: 뷰 탭 ── */}
+      <div className="dh-d2">
         {[
           { key: 'overview', label: '현황' },
           { key: 'timeline', label: '타임라인' },
@@ -147,7 +144,7 @@ export default function DashboardTab() {
           { key: 'photos', label: '사진' },
           { key: 'report', label: '리포트' },
         ].map((v) => (
-          <button key={v.key} className={`dash-seg-btn ${activeView === v.key ? 'active' : ''}`} onClick={() => setActiveView(v.key)}>
+          <button key={v.key} className={`dh-d2-btn ${activeView === v.key ? 'active' : ''}`} onClick={() => setActiveView(v.key)}>
             {v.label}
           </button>
         ))}
@@ -171,16 +168,14 @@ export default function DashboardTab() {
         </>
       ) : (
       <>
-        {/* 분류 필터 */}
+        {/* 3뎁스: 분류 필터 */}
         {categories.length > 0 && (
-          <div className="dash-cat-filter">
-            <span className="dash-cat-label">분류</span>
-            <div className="dash-crop-chips">
-              <button className={`dash-crop-chip ${filterCategory === 'all' ? 'active' : ''}`} onClick={() => setFilterCategory('all')}>전체</button>
-              {categories.map((c) => (
-                <button key={c} className={`dash-crop-chip ${filterCategory === c ? 'active' : ''}`} onClick={() => setFilterCategory(c)}>{c}</button>
-              ))}
-            </div>
+          <div className="dh-d3">
+            <span className="dh-d3-label">분류</span>
+            <button className={`dh-d3-btn ${filterCategory === 'all' ? 'active' : ''}`} onClick={() => setFilterCategory('all')}>전체</button>
+            {categories.map((c) => (
+              <button key={c} className={`dh-d3-btn ${filterCategory === c ? 'active' : ''}`} onClick={() => setFilterCategory(c)}>{c}</button>
+            ))}
           </div>
         )}
 
