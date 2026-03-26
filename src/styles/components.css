@@ -669,18 +669,80 @@
 .dashboard-tab {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 0;
   animation: fadeSlideUp 0.3s ease-out;
 }
 
-/* 작물 선택 칩 */
-/* ── Dashboard v3 요약형 ── */
+/* ── 대시보드 헤더 (초록 배경, 조 탭 통합) ── */
 .dash-header {
+  background: var(--color-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5) 0;
+  margin-bottom: var(--space-4);
+}
+
+.dash-header-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+}
+
+.dash-title {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.dash-subtitle {
+  font-size: var(--text-sm);
+  color: rgba(255,255,255,0.7);
+  margin-top: 2px;
+}
+
+/* 헤더 안 내보내기 버튼 흰색 처리 */
+.dash-header .btn-secondary,
+.dash-header button {
+  border-color: rgba(255,255,255,0.5) !important;
+  color: #fff !important;
+  background: transparent !important;
+}
+
+/* 조 탭 — 헤더 하단 흰색 카드 */
+.dash-group-tabs {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-3);
+}
+.dash-group-tabs::-webkit-scrollbar { display: none; }
+
+.dash-group-tab {
+  flex-shrink: 0;
+  padding: 7px 16px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.8);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.dash-group-tab:hover {
+  background: rgba(255,255,255,0.3);
+  color: #fff;
+}
+.dash-group-tab.active {
+  background: #fff;
+  color: var(--color-primary);
+  font-weight: 700;
 }
 
 .dash-filters {

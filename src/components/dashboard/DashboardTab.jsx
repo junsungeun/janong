@@ -115,27 +115,24 @@ export default function DashboardTab() {
   return (
     <div className="dashboard-tab">
 
-      {/* ── 헤더 ── */}
-      <div className="dash-header">
-        <div>
-          <h2 className="page-title">대시보드</h2>
-          <p className="page-subtitle">{filterGroup !== 'all' ? filterGroup : '전체'} 현황</p>
+      {/* ── 헤더 (조 선택 통합) ── */}
+      <div className={`dash-header${groups.length > 0 ? ' has-groups' : ''}`}>
+        <div className="dash-header-top">
+          <div>
+            <h2 className="dash-title">대시보드</h2>
+            <p className="dash-subtitle">{filterGroup !== 'all' ? filterGroup : '전체'} 현황</p>
+          </div>
+          <ExportButton logs={logsForExport} cropName={filterGroup !== 'all' ? filterGroup : '전체'} />
         </div>
-        <ExportButton logs={logsForExport} cropName={filterGroup !== 'all' ? filterGroup : '전체'} />
-      </div>
-
-      {/* ── 조 필터 ── */}
-      {groups.length > 0 && (
-        <div className="dash-group-filter">
-          <span className="dash-group-label">조</span>
-          <div className="dash-group-chips">
-            <button className={`dash-group-chip ${filterGroup === 'all' ? 'active' : ''}`} onClick={() => setFilterGroup('all')}>전체</button>
+        {groups.length > 0 && (
+          <div className="dash-group-tabs">
+            <button className={`dash-group-tab ${filterGroup === 'all' ? 'active' : ''}`} onClick={() => setFilterGroup('all')}>전체</button>
             {groups.map((g) => (
-              <button key={g} className={`dash-group-chip ${filterGroup === g ? 'active' : ''}`} onClick={() => setFilterGroup(g)}>{g}</button>
+              <button key={g} className={`dash-group-tab ${filterGroup === g ? 'active' : ''}`} onClick={() => setFilterGroup(g)}>{g}</button>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── 뷰 탭 (세그먼트 컨트롤) ── */}
       <div className="dash-seg-wrap">
