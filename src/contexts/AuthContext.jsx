@@ -4,16 +4,20 @@ import { supabase } from '../lib/supabase';
 const AuthContext = createContext(null);
 
 async function loadProfile(userId) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-
-  if (!error && data) return data;
+  const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
+  try {
+    const { data, error } = await Promise.race([
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      timeout,
+    ]);
+    if (!error && data) return data;
+  } catch (_) {}
 
   try {
-    const { data: rpcData } = await supabase.rpc('get_my_profile');
+    const { data: rpcData } = await Promise.race([
+      supabase.rpc('get_my_profile'),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000)),
+    ]);
     if (rpcData) return rpcData;
   } catch (_) {}
 

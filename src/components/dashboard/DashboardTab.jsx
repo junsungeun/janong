@@ -22,10 +22,11 @@ export default function DashboardTab() {
   const [activeView, setActiveView] = useState('overview');
 
   useEffect(() => {
+    let mounted = true;
     const load = async () => {
       setLoading(true);
       try {
-        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000));
+        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000));
         const [c, l, p] = await Promise.race([
           Promise.all([
             db.getAllList(TABLES.CROP),
@@ -34,16 +35,14 @@ export default function DashboardTab() {
           ]),
           timeout,
         ]);
-        setCrops(c);
-        setLogs(l);
-        setProfiles(p);
+        if (mounted) { setCrops(c); setLogs(l); setProfiles(p); }
       } catch {
-        // 타임아웃 또는 에러 시 빈 상태 유지
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
     load();
+    return () => { mounted = false; };
   }, []);
 
   // 조 목록
