@@ -74,9 +74,9 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
         // 하우스 내부 (수동)
         houseTemp: temperature !== '' ? Number(temperature) : null,
         houseHumidity: humidity !== '' ? Number(humidity) : null,
-        // 실외 (자동)
-        outdoorTemp: weather?.temp ?? null,
-        outdoorHumidity: weather?.rh ?? null,
+        // 실외 (자동) — 수정 시 기존 값 유지, 신규 시 현재 날씨 사용
+        outdoorTemp: isEdit ? (editLog?.outdoorTemp ?? null) : (weather?.temp ?? null),
+        outdoorHumidity: isEdit ? (editLog?.outdoorHumidity ?? null) : (weather?.rh ?? null),
         heightCm: growth.heightCm || null,
         leafCount: growth.leafCount || null,
         stemMm: growth.stemMm || null,

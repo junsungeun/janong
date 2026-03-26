@@ -26,8 +26,9 @@ export default function WeeklyReport({ logs, crops, cropMap }) {
     });
 
     return Object.entries(byCrop).map(([cropId, data]) => {
-      const heights = data.logs.map((l) => l.heightCm).filter(Boolean);
-      const lastLog = data.logs[0];
+      const sortedLogs = [...data.logs].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      const heights = sortedLogs.map((l) => l.heightCm).filter(Boolean);
+      const lastLog = sortedLogs[0];
       const stage = GROWTH_STAGES.find((s) => s.value === lastLog?.stage);
       return {
         cropId,
@@ -84,7 +85,7 @@ export default function WeeklyReport({ logs, crops, cropMap }) {
                   <span className="weekly-report-stat-label">기록</span>
                 </div>
                 <div className="weekly-report-stat">
-                  <span className="weekly-report-stat-num">{r.heightGrowth !== '-' ? `+${r.heightGrowth}` : '-'}</span>
+                  <span className="weekly-report-stat-num">{r.heightGrowth !== '-' ? (Number(r.heightGrowth) >= 0 ? `+${r.heightGrowth}` : r.heightGrowth) : '-'}</span>
                   <span className="weekly-report-stat-label">성장(cm)</span>
                 </div>
               </div>

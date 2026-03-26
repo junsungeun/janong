@@ -24,15 +24,24 @@ export default function DashboardTab() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const [c, l, p] = await Promise.all([
-        db.getAllList(TABLES.CROP),
-        db.getAllList(TABLES.DAILY_LOG),
-        db.getAllList(TABLES.PROFILE),
-      ]);
-      setCrops(c);
-      setLogs(l);
-      setProfiles(p);
-      setLoading(false);
+      try {
+        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000));
+        const [c, l, p] = await Promise.race([
+          Promise.all([
+            db.getAllList(TABLES.CROP),
+            db.getAllList(TABLES.DAILY_LOG),
+            db.getAllList(TABLES.PROFILE),
+          ]),
+          timeout,
+        ]);
+        setCrops(c);
+        setLogs(l);
+        setProfiles(p);
+      } catch {
+        // 타임아웃 또는 에러 시 빈 상태 유지
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, []);
@@ -86,7 +95,9 @@ export default function DashboardTab() {
 
   // 최근 기록
   const recentLogs = useMemo(() => {
-    return filteredLogs.slice(0, 5);
+    return [...filteredLogs]
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+      .slice(0, 5);
   }, [filteredLogs]);
 
   const cropMap = useMemo(() => {
@@ -103,22 +114,31 @@ export default function DashboardTab() {
 
   return (
     <div className="dashboard-tab">
-      {/* Header */}
+
+      {/* ── 헤더 ── */}
       <div className="dash-header">
         <div>
           <h2 className="page-title">대시보드</h2>
-          <p className="page-subtitle">
-            {filterGroup !== 'all' ? `${filterGroup}` : '전체'} 현황
-          </p>
+          <p className="page-subtitle">{filterGroup !== 'all' ? filterGroup : '전체'} 현황</p>
         </div>
-        <ExportButton
-          logs={logsForExport}
-          cropName={filterGroup !== 'all' ? filterGroup : '전체'}
-        />
+        <ExportButton logs={logsForExport} cropName={filterGroup !== 'all' ? filterGroup : '전체'} />
       </div>
 
-      {/* View tabs */}
-      <div className="dash-view-tabs">
+      {/* ── 조 필터 ── */}
+      {groups.length > 0 && (
+        <div className="dash-group-filter">
+          <span className="dash-group-label">조</span>
+          <div className="dash-group-chips">
+            <button className={`dash-group-chip ${filterGroup === 'all' ? 'active' : ''}`} onClick={() => setFilterGroup('all')}>전체</button>
+            {groups.map((g) => (
+              <button key={g} className={`dash-group-chip ${filterGroup === g ? 'active' : ''}`} onClick={() => setFilterGroup(g)}>{g}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── 뷰 탭 (세그먼트 컨트롤) ── */}
+      <div className="dash-seg-wrap">
         {[
           { key: 'overview', label: '현황' },
           { key: 'timeline', label: '타임라인' },
@@ -127,12 +147,13 @@ export default function DashboardTab() {
           { key: 'photos', label: '사진' },
           { key: 'report', label: '리포트' },
         ].map((v) => (
-          <button key={v.key} className={`dash-view-tab ${activeView === v.key ? 'active' : ''}`} onClick={() => setActiveView(v.key)}>
+          <button key={v.key} className={`dash-seg-btn ${activeView === v.key ? 'active' : ''}`} onClick={() => setActiveView(v.key)}>
             {v.label}
           </button>
         ))}
       </div>
 
+      {/* ── 뷰 콘텐츠 ── */}
       {activeView === 'compare' ? (
         <CompareView crops={filteredCrops} logs={filteredLogs} cropMap={cropMap} />
       ) : activeView === 'period' ? (
@@ -150,22 +171,10 @@ export default function DashboardTab() {
         </>
       ) : (
       <>
-      {/* Filters */}
-      <div className="dash-filters">
-        {groups.length > 0 && (
-          <div className="dash-filter-row">
-            <span className="dash-filter-label">조</span>
-            <div className="dash-crop-chips">
-              <button className={`dash-crop-chip ${filterGroup === 'all' ? 'active' : ''}`} onClick={() => setFilterGroup('all')}>전체</button>
-              {groups.map((g) => (
-                <button key={g} className={`dash-crop-chip ${filterGroup === g ? 'active' : ''}`} onClick={() => setFilterGroup(g)}>{g}</button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* 분류 필터 */}
         {categories.length > 0 && (
-          <div className="dash-filter-row">
-            <span className="dash-filter-label">분류</span>
+          <div className="dash-cat-filter">
+            <span className="dash-cat-label">분류</span>
             <div className="dash-crop-chips">
               <button className={`dash-crop-chip ${filterCategory === 'all' ? 'active' : ''}`} onClick={() => setFilterCategory('all')}>전체</button>
               {categories.map((c) => (
@@ -174,84 +183,77 @@ export default function DashboardTab() {
             </div>
           </div>
         )}
-      </div>
 
-      {/* Summary Cards */}
-      <div className="dash-stats-grid">
-        <div className="dash-stat-card">
-          <div className="dash-stat-icon" style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}>
-            <Sprout size={20} />
+        {/* 통계 카드 */}
+        <div className="dash-stats-grid">
+          <div className="dash-stat-card">
+            <div className="dash-stat-icon"><Sprout size={22} /></div>
+            <div className="dash-stat-info">
+              <span className="dash-stat-num">{stats.totalCrops}</span>
+              <span className="dash-stat-label">작물</span>
+            </div>
           </div>
-          <div className="dash-stat-info">
-            <span className="dash-stat-num">{stats.totalCrops}</span>
-            <span className="dash-stat-label">작물</span>
+          <div className="dash-stat-card">
+            <div className="dash-stat-icon"><FileText size={22} /></div>
+            <div className="dash-stat-info">
+              <span className="dash-stat-num">{stats.totalLogs}</span>
+              <span className="dash-stat-label">총 기록</span>
+            </div>
           </div>
-        </div>
-        <div className="dash-stat-card">
-          <div className="dash-stat-icon" style={{ background: 'var(--color-blue-light)', color: 'var(--color-blue)' }}>
-            <FileText size={20} />
+          <div className="dash-stat-card">
+            <div className="dash-stat-icon"><BarChart2 size={22} /></div>
+            <div className="dash-stat-info">
+              <span className="dash-stat-num">{stats.weekLogs}</span>
+              <span className="dash-stat-label">이번 주</span>
+            </div>
           </div>
-          <div className="dash-stat-info">
-            <span className="dash-stat-num">{stats.totalLogs}</span>
-            <span className="dash-stat-label">총 기록</span>
-          </div>
-        </div>
-        <div className="dash-stat-card">
-          <div className="dash-stat-icon" style={{ background: 'var(--color-yellow-light)', color: '#986C00' }}>
-            <BarChart2 size={20} />
-          </div>
-          <div className="dash-stat-info">
-            <span className="dash-stat-num">{stats.weekLogs}</span>
-            <span className="dash-stat-label">이번 주</span>
-          </div>
-        </div>
-        <div className="dash-stat-card">
-          <div className="dash-stat-icon" style={{ background: '#F3E8FF', color: '#7C3AED' }}>
-            <Users size={20} />
-          </div>
-          <div className="dash-stat-info">
-            <span className="dash-stat-num">{stats.members}</span>
-            <span className="dash-stat-label">참여자</span>
+          <div className="dash-stat-card">
+            <div className="dash-stat-icon"><Users size={22} /></div>
+            <div className="dash-stat-info">
+              <span className="dash-stat-num">{stats.members}</span>
+              <span className="dash-stat-label">참여자</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Crop list summary */}
-      {filteredCrops.length > 0 && (
-        <div className="dash-section">
-          <h3 className="dash-section-header">작물 현황</h3>
-          <div className="dash-crop-list">
-            {filteredCrops.map((crop) => {
-              const count = logs.filter((l) => l.cropId === crop.id).length;
-              return (
-                <div key={crop.id} className="dash-crop-row">
-                  <div className="dash-crop-row-info">
-                    <span className="dash-crop-row-name">{crop.name}</span>
-                    {crop.category && <span className="dash-crop-row-cat">{crop.category}</span>}
+        {/* 작물 현황 */}
+        {filteredCrops.length > 0 && (
+          <div className="dash-section">
+            <h3 className="dash-section-title">작물 현황</h3>
+            <div className="dash-crop-cards">
+              {filteredCrops.map((crop) => {
+                const count = filteredLogs.filter((l) => l.cropId === crop.id).length;
+                return (
+                  <div key={crop.id} className="dash-crop-card">
+                    <div className="dash-crop-card-top">
+                      <span className="dash-crop-card-name">{crop.name}</span>
+                      {crop.category && <span className="dash-crop-card-cat">{crop.category}</span>}
+                    </div>
+                    <span className="dash-crop-card-count">{count}<em>건</em></span>
                   </div>
-                  <span className="dash-crop-row-count">{count}건</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Recent logs */}
-      {recentLogs.length > 0 && (
-        <div className="dash-section">
-          <h3 className="dash-section-header">최근 기록</h3>
-          <div className="dash-recent-list">
-            {recentLogs.map((log) => (
-              <div key={log.id} className="dash-recent-item">
-                <span className="dash-recent-date">{log.date}</span>
-                <span className="dash-recent-crop">{cropMap[log.cropId] || '-'}</span>
-                {log.memo && <span className="dash-recent-memo">{log.memo.slice(0, 30)}</span>}
-              </div>
-            ))}
+        {/* 최근 기록 */}
+        {recentLogs.length > 0 && (
+          <div className="dash-section">
+            <h3 className="dash-section-title">최근 기록</h3>
+            <div className="dash-recent-cards">
+              {recentLogs.map((log) => (
+                <div key={log.id} className="dash-recent-card">
+                  <div className="dash-recent-card-left">
+                    <span className="dash-recent-card-crop">{cropMap[log.cropId] || '-'}</span>
+                    {log.memo && <span className="dash-recent-card-memo">{log.memo.slice(0, 40)}</span>}
+                  </div>
+                  <span className="dash-recent-card-date">{log.date?.slice(5)}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </>
       )}
     </div>

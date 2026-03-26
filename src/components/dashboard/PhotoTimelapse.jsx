@@ -6,7 +6,7 @@ export default function PhotoTimelapse({ logs = [], getPhotoUrl }) {
   const intervalRef = useRef(null);
 
   const photos = logs
-    .filter((l) => l.photoPath)
+    .filter((l) => l.photos?.length > 0)
     .sort((a, b) => (a.date > b.date ? 1 : -1));
 
   const stopPlay = useCallback(() => {
@@ -93,7 +93,7 @@ export default function PhotoTimelapse({ logs = [], getPhotoUrl }) {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
           )}
-          <img src={getPhotoUrl(photos[viewIdx].photoPath)} alt={photos[viewIdx].date} className="timelapse-lightbox-img" />
+          <img src={getPhotoUrl(photos[viewIdx].photos?.[0])} alt={photos[viewIdx].date} className="timelapse-lightbox-img" />
           <p className="timelapse-lightbox-date">{photos[viewIdx].date}</p>
           <p className="timelapse-lightbox-counter">{viewIdx + 1} / {photos.length}</p>
           {viewIdx < photos.length - 1 && (
@@ -111,7 +111,7 @@ export default function PhotoTimelapse({ logs = [], getPhotoUrl }) {
             className={`timelapse-thumb ${viewIdx === i ? 'timelapse-thumb-active' : ''}`}
             onClick={() => setViewIdx(i)}
           >
-            <img src={getPhotoUrl(p.photoPath)} alt={p.date} className="timelapse-thumb-img" loading="lazy" />
+            <img src={getPhotoUrl(p.photos?.[0])} alt={p.date} className="timelapse-thumb-img" loading="lazy" />
             <span className="timelapse-thumb-date">{p.date?.slice(5)}</span>
           </div>
         ))}

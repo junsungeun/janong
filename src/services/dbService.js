@@ -84,7 +84,7 @@ export const db = {
 export const photoStorage = {
   upload: async (cropId, file) => {
     const ext = file.name.split('.').pop() || 'jpg';
-    const path = `${cropId}/${Date.now()}.${ext}`;
+    const path = `${cropId}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
     const { error } = await supabase.storage.from('crop-photos').upload(path, file, {
       contentType: file.type || 'image/jpeg',
       upsert: false,

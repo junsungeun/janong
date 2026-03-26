@@ -9,9 +9,9 @@ import CropQRCode from './CropQRCode';
 import RecordItem from '../record/RecordItem';
 
 export default function CropDetailPage({ crop, onClose, onViewLog, onDeleteLog }) {
+  const [activeTab, setActiveTab] = useState('tasks');
   const { items: logs } = useList(TABLES.DAILY_LOG, { cropId: crop?.id });
   if (!crop) return null;
-  const [activeTab, setActiveTab] = useState('tasks');
 
   const daysSincePlanting = crop.plantingDate
     ? Math.floor((Date.now() - new Date(crop.plantingDate)) / 86400000)

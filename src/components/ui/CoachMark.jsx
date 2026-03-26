@@ -97,7 +97,7 @@ export default function CoachMark({ onComplete }) {
   }
 
   return (
-    <div className="coach-overlay">
+    <div className="coach-overlay" onClick={(e) => e.stopPropagation()}>
       {/* box-shadow로 주변 어둡게 + highlight 테두리 */}
       <div
         className="coach-highlight"
@@ -114,8 +114,8 @@ export default function CoachMark({ onComplete }) {
         <h4 className="coach-title">{current.title}</h4>
         <p className="coach-desc">{current.desc}</p>
         <div className="coach-actions">
-          <button className="coach-skip" onClick={onComplete}>건너뛰기</button>
-          <button className="coach-next" onClick={() => isLast ? onComplete() : setStep(step + 1)}>
+          <button className="coach-skip" onClick={(e) => { e.stopPropagation(); e.preventDefault(); onComplete(); }}>건너뛰기</button>
+          <button className="coach-next" onClick={(e) => { e.stopPropagation(); e.preventDefault(); isLast ? onComplete() : setStep(step + 1); }}>
             {isLast ? '시작하기' : '다음'}
           </button>
         </div>

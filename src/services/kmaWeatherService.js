@@ -55,7 +55,9 @@ export const fetchCurrentWeather = async () => {
       ny: String(ny),
     });
 
-    const res = await fetch(`${BASE_URL}?${params}`, { signal: AbortSignal.timeout(10000) });
+    const controller = new AbortController();
+    const fetchTimer = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch(`${BASE_URL}?${params}`, { signal: controller.signal }).finally(() => clearTimeout(fetchTimer));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const json = await res.json();

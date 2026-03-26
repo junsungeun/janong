@@ -32,11 +32,12 @@ export default function Button({
 
   return (
     <button
+      type="button"
+      {...rest}
       className={classes}
       disabled={disabled}
       onClick={onClick}
       style={style}
-      {...rest}
     >
       {icon && <span className="btn-icon-slot">{icon}</span>}
       {children}

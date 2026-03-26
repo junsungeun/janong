@@ -21,7 +21,7 @@ export default function ReminderBanner({ logs, tasks, onNavigate }) {
 
     // 3일 이상 기록 없음
     if (logs && logs.length > 0) {
-      const lastDate = logs[0]?.date;
+      const lastDate = [...logs].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0]?.date;
       if (lastDate) {
         const daysSince = Math.floor((Date.now() - new Date(lastDate)) / 86400000);
         if (daysSince >= 3) {
