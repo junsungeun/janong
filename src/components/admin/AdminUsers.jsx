@@ -39,7 +39,10 @@ export default function AdminUsers() {
   const handleCreate = async () => {
     setSaving(true); setError('');
     try {
-      await adminService.createUser(form.email, form.password, form.name);
+      const result = await adminService.createUser(form.email, form.password, form.name);
+      if (form.groupName && result?.user?.id) {
+        await supabase.from('profiles').update({ group_name: form.groupName }).eq('id', result.user.id);
+      }
       setModal(null); load();
     } catch (e) { setError(e.message); } finally { setSaving(false); }
   };

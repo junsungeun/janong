@@ -27,7 +27,7 @@ export default function RecordTab({ initialCropFilter }) {
 
   const cropMap = useMemo(() => {
     const m = {};
-    crops.forEach((c) => { m[c.id] = c.name; });
+    crops.forEach((c) => { m[c.id] = c.variety ? `${c.name} · ${c.variety}` : c.name; });
     return m;
   }, [crops]);
 
@@ -112,7 +112,7 @@ export default function RecordTab({ initialCropFilter }) {
             className={`record-chip ${filterCrop === c.id ? 'active' : ''}`}
             onClick={() => setFilterCrop(c.id)}
           >
-            {c.name}
+            {c.variety ? `${c.name} · ${c.variety}` : c.name}
           </button>
         ))}
       </div>

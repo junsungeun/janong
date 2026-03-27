@@ -92,6 +92,22 @@ Deno.serve(async (req) => {
         });
       }
 
+      // FK 제약 때문에 관련 데이터 먼저 삭제
+      const cropIds = await adminClient
+        .from('crops')
+        .select('id')
+        .eq('user_id', userId);
+
+      if (cropIds.data?.length) {
+        const ids = cropIds.data.map((c: { id: string }) => c.id);
+        await adminClient.from('crop_tasks').delete().in('crop_id', ids);
+        await adminClient.from('crop_photos').delete().in('crop_id', ids);
+      }
+
+      await adminClient.from('daily_logs').delete().eq('user_id', userId);
+      await adminClient.from('crops').delete().eq('user_id', userId);
+      await adminClient.from('profiles').delete().eq('id', userId);
+
       const { error } = await adminClient.auth.admin.deleteUser(userId);
       if (error) throw error;
       return new Response(JSON.stringify({ success: true }), {

@@ -42,7 +42,7 @@ export default function PhotoCompare({ logs, crops, cropMap }) {
           {photoLogs.map((log) => (
             <div key={log.id} className="photo-compare-item">
               <img
-                src={photoStorage.getUrl(log.photos[0])}
+                src={photoStorage.getUrl(log.photos?.[0])}
                 alt=""
                 className="photo-compare-img"
                 loading="lazy"

@@ -37,6 +37,7 @@ export default function DashboardTab() {
         ]);
         if (mounted) { setCrops(c); setLogs(l); setProfiles(p); }
       } catch {
+        if (mounted) { setCrops([]); setLogs([]); setProfiles([]); }
       } finally {
         if (mounted) setLoading(false);
       }
