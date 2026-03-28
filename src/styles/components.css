@@ -1925,6 +1925,47 @@
   font-weight: 500;
 }
 
+/* 사진 추가 — 카메라/갤러리 분리 버튼 */
+.record-photo-add-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.record-photo-add-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px 12px;
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  background: rgba(var(--color-primary-rgb), 0.02);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.record-photo-add-btn:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.record-photo-add-grid-mini {
+  margin-top: 8px;
+}
+
+.record-photo-add-btn-mini {
+  padding: 10px 8px;
+  font-size: 11px;
+  gap: 4px;
+}
+
 /* AI 요약 카드 */
 .record-ai-summary {
   padding: var(--space-5);

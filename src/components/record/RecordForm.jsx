@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, ChevronLeft } from 'lucide-react';
+import { Camera, ChevronLeft, ImageIcon } from 'lucide-react';
 import { Field, Textarea } from '../ui/Input';
 import GrowthInput from './GrowthInput';
 import { fetchCurrentWeather } from '../../services/kmaWeatherService';
@@ -21,7 +21,8 @@ const resizeImage = (file, maxW = 1200) =>
   });
 
 export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
-  const fileRef = useRef(null);
+  const cameraRef = useRef(null);
+  const galleryRef = useRef(null);
   const isEdit = !!editLog;
 
   const [cropId, setCropId] = useState(editLog?.cropId || '');
@@ -47,12 +48,14 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
 
   const handleAddPhoto = async (e) => {
     const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     const np = await Promise.all(files.map(async (f) => {
       const r = await resizeImage(f);
       return { file: r, preview: URL.createObjectURL(r) };
     }));
     setPhotos((p) => [...p, ...np]);
-    if (fileRef.current) fileRef.current.value = '';
+    if (cameraRef.current) cameraRef.current.value = '';
+    if (galleryRef.current) galleryRef.current.value = '';
   };
 
   const removeExistingPhoto = (idx) => {
@@ -95,6 +98,8 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
   };
 
   const activeStageIdx = GROWTH_STAGES.findIndex((s) => s.value === stage);
+
+  const hasPhotos = photos.length > 0 || existingPhotos.length > 0;
 
   // Step 1: 작물 미선택 → 작물 선택 화면
   if (!cropId) {
@@ -180,14 +185,7 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
           </div>
         )}
 
-        {photos.length === 0 && existingPhotos.length === 0 ? (
-          <div className="record-photo-viewfinder" onClick={() => fileRef.current?.click()}>
-            <div className="record-photo-viewfinder-icon">
-              <Camera size={24} />
-            </div>
-            <span className="record-photo-viewfinder-text">사진 촬영 또는 선택</span>
-          </div>
-        ) : (
+        {photos.length > 0 && (
           <div className="record-photos-grid">
             {photos.map((ph, i) => (
               <div key={i} className="record-photo-item">
@@ -197,13 +195,71 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
                 </button>
               </div>
             ))}
-            <div className="record-photo-viewfinder record-photo-viewfinder-mini" onClick={() => fileRef.current?.click()}>
-              <Camera size={20} />
-              <span className="text-caption text-muted">추가</span>
-            </div>
           </div>
         )}
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" multiple onChange={handleAddPhoto} hidden />
+
+        {/* 사진 없을 때: 카메라/갤러리 버튼 2열 그리드 */}
+        {!hasPhotos && (
+          <div className="record-photo-add-grid">
+            <button
+              type="button"
+              className="record-photo-add-btn"
+              onClick={() => cameraRef.current?.click()}
+            >
+              <Camera size={20} />
+              <span>카메라 촬영</span>
+            </button>
+            <button
+              type="button"
+              className="record-photo-add-btn"
+              onClick={() => galleryRef.current?.click()}
+            >
+              <ImageIcon size={20} />
+              <span>갤러리 선택</span>
+            </button>
+          </div>
+        )}
+
+        {/* 사진 있을 때: 작은 추가 버튼 2개 */}
+        {hasPhotos && (
+          <div className="record-photo-add-grid record-photo-add-grid-mini">
+            <button
+              type="button"
+              className="record-photo-add-btn record-photo-add-btn-mini"
+              onClick={() => cameraRef.current?.click()}
+            >
+              <Camera size={16} />
+              <span>카메라</span>
+            </button>
+            <button
+              type="button"
+              className="record-photo-add-btn record-photo-add-btn-mini"
+              onClick={() => galleryRef.current?.click()}
+            >
+              <ImageIcon size={16} />
+              <span>갤러리</span>
+            </button>
+          </div>
+        )}
+
+        {/* 카메라 촬영 input (capture="environment", single) */}
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleAddPhoto}
+          hidden
+        />
+        {/* 갤러리 선택 input (multiple, no capture) */}
+        <input
+          ref={galleryRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleAddPhoto}
+          hidden
+        />
       </div>
 
       {/* Data section */}
