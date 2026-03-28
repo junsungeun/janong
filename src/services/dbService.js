@@ -28,7 +28,7 @@ const camelify = (obj) => {
 };
 
 // ── 현재 유저 ID ──
-const getUserId = async () => {
+export const getUserId = async () => {
   const timeout = new Promise((_, rej) =>
     setTimeout(() => rej(new Error('세션 조회 시간 초과')), 8000)
   );
@@ -88,8 +88,7 @@ export const db = {
 
 // ── 사진 스토리지 ──
 export const photoStorage = {
-  upload: async (cropId, file) => {
-    const userId = await getUserId();
+  upload: async (cropId, file, userId) => {
     const ext = file.name.split('.').pop() || 'jpg';
     const path = `${userId}/${cropId}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
     const { error } = await supabase.storage.from('crop-photos').upload(path, file, {

@@ -4,6 +4,7 @@ import { Field, Textarea } from '../ui/Input';
 import GrowthInput from './GrowthInput';
 import { fetchCurrentWeather } from '../../services/kmaWeatherService';
 import { db, TABLES, photoStorage } from '../../services/dbService';
+import { useAuth } from '../../contexts/AuthContext';
 import { GROWTH_STAGES } from '../../constants';
 
 const resizeImage = (file, maxW = 1200) =>
@@ -21,6 +22,7 @@ const resizeImage = (file, maxW = 1200) =>
   });
 
 export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
+  const { user } = useAuth();
   const cameraRef = useRef(null);
   const galleryRef = useRef(null);
   const isEdit = !!editLog;
@@ -66,7 +68,7 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
     if (!cropId) { setError('작물을 선택해주세요'); return; }
     setSaving(true); setError('');
     try {
-      const newPaths = await Promise.all(photos.map((p) => photoStorage.upload(cropId, p.file)));
+      const newPaths = await Promise.all(photos.map((p) => photoStorage.upload(cropId, p.file, user.id)));
       const allPhotoPaths = [...existingPhotos, ...newPaths];
       const ws = weather ? `${weather.temp ?? '-'}\u00b0C / 습도 ${weather.rh ?? '-'}% / 강수 ${weather.rain ?? 0}mm` : '';
 
