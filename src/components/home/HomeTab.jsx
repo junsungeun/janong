@@ -19,7 +19,8 @@ import { toast } from '../ui/Toast';
 export default function HomeTab({ onNavigate }) {
   const { user } = useAuth();
   const { items: crops, loading: cropsLoading, reload: reloadCrops } = useList(TABLES.CROP, { userId: user?.id });
-  const { items: logs, loading: logsLoading } = useList(TABLES.DAILY_LOG, { userId: user?.id });
+  const { items: logs, loading: logsLoading, reload: reloadLogs } = useList(TABLES.DAILY_LOG, { userId: user?.id });
+  const { items: tasks } = useList(TABLES.CROP_TASK, { userId: user?.id });
   const [showCropManager, setShowCropManager] = useState(false);
   const [editCrop, setEditCrop] = useState(null);
   const [deleteCrop, setDeleteCrop] = useState(null);
@@ -99,8 +100,9 @@ export default function HomeTab({ onNavigate }) {
     return (
       <CropDetailPage
         crop={detailCrop}
-        onClose={() => { setDetailCrop(null); reloadCrops(); }}
+        onClose={() => { setDetailCrop(null); reloadCrops(); reloadLogs(); }}
         onViewLog={(log) => onNavigate?.('record', { cropId: log.cropId })}
+        onDeleteLog={() => reloadLogs()}
       />
     );
   }
@@ -116,7 +118,7 @@ export default function HomeTab({ onNavigate }) {
         )}
       </div>
 
-      <ReminderBanner logs={logs} tasks={[]} onNavigate={onNavigate} />
+      <ReminderBanner logs={logs} tasks={tasks} onNavigate={onNavigate} />
 
       <WeatherCard />
 

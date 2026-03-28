@@ -1,6 +1,6 @@
 import React from 'react';
 import { useWeather } from '../../hooks/useWeather';
-import { getRainTypeText } from '../../services/kmaWeatherService';
+import { getRainTypeText, getSkyText } from '../../services/kmaWeatherService';
 import Card from '../ui/Card';
 import Spinner from '../ui/Spinner';
 
@@ -39,6 +39,7 @@ export default function WeatherCard() {
   }
 
   const rainText = getRainTypeText(weather.rainType);
+  const skyText = getSkyText(weather.sky);
   const emoji = getWeatherEmoji(weather.sky, weather.rainType);
 
   return (
@@ -60,6 +61,12 @@ export default function WeatherCard() {
             <span className="weather-detail-label">바람</span>
             <span className="weather-detail-value">{weather.windSpeed}m/s</span>
           </div>
+          {skyText && !rainText && (
+            <div className="weather-detail-item">
+              <span className="weather-detail-label">하늘</span>
+              <span className="weather-detail-value">{skyText}</span>
+            </div>
+          )}
           {rainText && (
             <div className="weather-detail-item">
               <span className="weather-detail-label">강수</span>

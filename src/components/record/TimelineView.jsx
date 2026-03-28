@@ -4,12 +4,20 @@ import { photoStorage } from '../../services/dbService';
 
 function formatDate(d) {
   if (!d) return '';
-  const date = new Date(d);
+  const parts = d.split('-');
+  if (parts.length >= 3) return `${Number(parts[1])}.${Number(parts[2])}`;
+  const date = new Date(d + 'T00:00:00');
   return `${date.getMonth() + 1}.${date.getDate()}`;
 }
 
 function weekday(d) {
-  return ['일', '월', '화', '수', '목', '금', '토'][new Date(d).getDay()];
+  if (!d) return '';
+  const parts = d.split('-');
+  if (parts.length >= 3) {
+    const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    return ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+  }
+  return ['일', '월', '화', '수', '목', '금', '토'][new Date(d + 'T00:00:00').getDay()];
 }
 
 export default function TimelineView({ logs, cropMap }) {

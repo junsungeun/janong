@@ -11,8 +11,7 @@ export default function RecordDetail({ log, cropName, onEdit, onDelete, onClose 
   const [activePhoto, setActivePhoto] = useState(0);
   const galleryRef = useRef(null);
 
-  if (!log) return null;
-  const photos = (log.photos || []).map((p) => photoStorage.getUrl(p));
+  const photos = (log?.photos || []).map((p) => photoStorage.getUrl(p));
 
   useEffect(() => {
     const el = galleryRef.current;
@@ -24,6 +23,8 @@ export default function RecordDetail({ log, cropName, onEdit, onDelete, onClose 
     el.addEventListener('scroll', handleScroll, { passive: true });
     return () => el.removeEventListener('scroll', handleScroll);
   }, [photos.length]);
+
+  if (!log) return null;
 
   return (
     <div className="record-detail page-slide-in">

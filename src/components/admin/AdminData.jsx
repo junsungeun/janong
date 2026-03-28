@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { db, TABLES } from '../../services/dbService';
 import { Download, Search, Trash2, Eye } from 'lucide-react';
 import { exportCsv } from '../../utils/exportCsv';
+import { toast } from '../ui/Toast';
 
 export default function AdminData() {
   const [logs, setLogs] = useState([]);
@@ -72,7 +73,7 @@ export default function AdminData() {
       await db.delete(TABLES.DAILY_LOG, deleteTarget.id);
       setDeleteTarget(null);
       load();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); toast.error(e.message || '삭제에 실패했습니다.'); }
     setDeleting(false);
   };
 

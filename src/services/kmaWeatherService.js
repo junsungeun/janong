@@ -2,8 +2,16 @@
 // GPS 기반으로 현재 위치의 실시간 날씨 가져오기
 
 import { gpsToGrid } from '../utils/gpsToGrid';
+import { CONFIG } from '../config';
 
-const API_KEY = '0d4c921d7f24ae50c71f97c7e7c2b6146de731efb4fc84c79ea3706994674b1a';
+const API_KEY = CONFIG.WEATHER_API_KEY;
+
+// sky 코드 텍스트 변환 (단기예보 기준 — 초단기실황에는 SKY 없어 PTY 기반 파생)
+// 1=맑음, 3=구름많음, 4=흐림
+export const getSkyText = (sky) => {
+  const map = { 1: '맑음', 3: '구름많음', 4: '흐림' };
+  return map[sky] || '';
+};
 const BASE_URL = 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst';
 
 // 현재 위치 가져오기
@@ -68,11 +76,16 @@ export const fetchCurrentWeather = async () => {
       data[item.category] = parseFloat(item.obsrValue);
     });
 
+    // 초단기실황에는 SKY 없음 — PTY 기반으로 sky 파생 (1=맑음, 4=흐림)
+    const pty = data.PTY ?? 0;
+    const skyDerived = pty === 0 ? 1 : 4;
+
     const result = {
       temp: data.T1H ?? null,       // 기온 (°C)
       rh: data.REH ?? null,         // 습도 (%)
       rain: data.RN1 ?? 0,          // 1시간 강수량 (mm)
-      rainType: data.PTY ?? 0,      // 강수형태 (0:없음, 1:비, 2:비/눈, 3:눈)
+      rainType: pty,                // 강수형태 (0:없음, 1:비, 2:비/눈, 3:눈)
+      sky: skyDerived,              // 하늘상태 파생 (1=맑음, 4=흐림)
       windSpeed: data.WSD ?? null,  // 풍속 (m/s)
       windDir: data.VEC ?? null,    // 풍향 (°)
       lat,

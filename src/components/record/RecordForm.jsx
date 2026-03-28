@@ -42,9 +42,10 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
   const [weather, setWeather] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [removedPhotoPaths, setRemovedPhotoPaths] = useState([]);
   const today = new Date().toISOString().slice(0, 10);
 
-  useEffect(() => { fetchCurrentWeather().then((w) => w && setWeather(w)); }, []);
+  useEffect(() => { fetchCurrentWeather().then((w) => w && setWeather(w)).catch(() => {}); }, []);
 
   const selectedCrop = crops.find((c) => c.id === cropId);
 
@@ -61,7 +62,11 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
   };
 
   const removeExistingPhoto = (idx) => {
-    setExistingPhotos((p) => p.filter((_, i) => i !== idx));
+    setExistingPhotos((p) => {
+      const path = p[idx];
+      if (path) setRemovedPhotoPaths((prev) => [...prev, path]);
+      return p.filter((_, i) => i !== idx);
+    });
   };
 
   const handleSave = async () => {
@@ -94,6 +99,10 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
         await db.update(TABLES.DAILY_LOG, editLog.id, logData);
       } else {
         await db.add(TABLES.DAILY_LOG, logData);
+      }
+      // 저장 후 제거된 기존 사진 Storage에서 일괄 삭제
+      if (removedPhotoPaths.length > 0) {
+        await Promise.all(removedPhotoPaths.map((path) => photoStorage.remove(path).catch(() => {})));
       }
       onSave?.();
     } catch (err) { setError(err.message || '저장 실패'); } finally { setSaving(false); }
@@ -192,7 +201,7 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
             {photos.map((ph, i) => (
               <div key={i} className="record-photo-item">
                 <img src={ph.preview} alt="" className="record-photo-img" />
-                <button className="record-photo-remove record-photo-remove-visible" onClick={() => setPhotos((p) => p.filter((_, j) => j !== i))}>
+                <button className="record-photo-remove record-photo-remove-visible" onClick={() => setPhotos((p) => { URL.revokeObjectURL(p[i].preview); return p.filter((_, j) => j !== i); })}>
                   <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" strokeWidth="2"><path d="M1 1l8 8M9 1l-8 8"/></svg>
                 </button>
               </div>

@@ -8,7 +8,9 @@ import { GROWTH_STAGES } from '../../constants';
 
 function formatShortDate(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
+  const parts = dateStr.split('-');
+  if (parts.length >= 3) return `${Number(parts[1])}.${Number(parts[2])}`;
+  const d = new Date(dateStr + 'T00:00:00');
   return `${d.getMonth() + 1}.${d.getDate()}`;
 }
 

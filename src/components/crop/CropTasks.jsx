@@ -35,6 +35,7 @@ export default function CropTasks({ cropId }) {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm('이 할 일을 삭제할까요?')) return;
     try {
       await db.delete(TABLES.CROP_TASK, id);
       reload();

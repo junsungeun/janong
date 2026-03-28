@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 
 const METRICS = [
-  { key: 'tempHigh', label: '온도', unit: '\u00b0C', color: 'var(--color-terra)' },
+  { key: 'houseTemp', label: '온도', unit: '\u00b0C', color: 'var(--color-terra)' },
   { key: 'humidity', label: '습도', unit: '%', color: 'var(--color-info)' },
   { key: 'heightCm', label: '키', unit: 'cm', color: 'var(--color-primary)' },
   { key: 'leafCount', label: '잎 수', unit: '장', color: 'var(--color-primary-dark)' },
