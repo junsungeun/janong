@@ -9,7 +9,6 @@ import DashboardTab from './components/dashboard/DashboardTab';
 import NoticesTab from './components/notices/NoticesTab';
 import SettingsTab from './components/settings/SettingsTab';
 import { ToastContainer } from './components/ui/Toast';
-import CoachMark from './components/ui/CoachMark';
 import './styles/globals.css';
 import './styles/components.css';
 
@@ -31,8 +30,6 @@ function SplashScreen({ onDone }) {
 function AppMain() {
   const [activeTab, setActiveTab] = useState('home');
   const [recordFilterCropId, setRecordFilterCropId] = useState(null);
-  const [showCoach, setShowCoach] = useState(() => !localStorage.getItem('seedlog_onboarded'));
-
   const handleNavigate = (tab, data) => {
     if (tab === 'record' && data?.cropId) {
       setRecordFilterCropId(data.cropId);
@@ -61,9 +58,6 @@ function AppMain() {
       </main>
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
       <ToastContainer />
-      {showCoach && (
-        <CoachMark onComplete={() => { setShowCoach(false); localStorage.setItem('seedlog_onboarded', '1'); }} />
-      )}
     </div>
   );
 }
