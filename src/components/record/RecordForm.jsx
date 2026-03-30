@@ -21,12 +21,14 @@ const resizeImage = (file, maxW = 1200) =>
     img.src = URL.createObjectURL(file);
   });
 
-const nowLocal = () => {
+const pad = (n) => String(n).padStart(2, '0');
+const todayStr = () => {
   const d = new Date();
-  d.setSeconds(0, 0);
-  // datetime-local은 로컬 시간 기준 YYYY-MM-DDTHH:MM 형식 필요
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+};
+const nowTimeStr = () => {
+  const d = new Date();
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
@@ -48,11 +50,8 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
   const [humidity, setHumidity] = useState(editLog?.houseHumidity ?? editLog?.humidity ?? '');
   const [memo, setMemo] = useState(editLog?.memo || '');
   const [weather, setWeather] = useState(null);
-  const [datetime, setDatetime] = useState(
-    editLog?.date
-      ? `${editLog.date}T${editLog.recordTime || '00:00'}`
-      : nowLocal()
-  );
+  const [recDate, setRecDate] = useState(editLog?.date || todayStr());
+  const [recTime, setRecTime] = useState(editLog?.recordTime || nowTimeStr());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [removedPhotoPaths, setRemovedPhotoPaths] = useState([]);
@@ -92,8 +91,8 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
       const logData = {
         cropId,
         stage: stage || null,
-        date: datetime.slice(0, 10),
-        recordTime: datetime.slice(11, 16),
+        date: recDate,
+        recordTime: recTime,
         // 하우스 내부 (수동)
         houseTemp: temperature !== '' ? Number(temperature) : null,
         houseHumidity: humidity !== '' ? Number(humidity) : null,
@@ -174,16 +173,30 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
         <button className="btn-ghost" onClick={onCancel}>취소</button>
       </div>
 
-      {/* Date picker */}
+      {/* Date + Time */}
       <div className="record-form-section">
-        <p className="record-form-section-label">날짜</p>
-        <input
-          className="input"
-          type="datetime-local"
-          value={datetime}
-          max={nowLocal()}
-          onChange={(e) => setDatetime(e.target.value)}
-        />
+        <p className="record-form-section-label">날짜 / 시간</p>
+        <div className="growth-input-row">
+          <div className="growth-input-field" style={{ flex: '3' }}>
+            <label className="growth-input-label">날짜</label>
+            <input
+              className="input"
+              type="date"
+              value={recDate}
+              max={todayStr()}
+              onChange={(e) => setRecDate(e.target.value)}
+            />
+          </div>
+          <div className="growth-input-field" style={{ flex: '2' }}>
+            <label className="growth-input-label">시간</label>
+            <input
+              className="input"
+              type="time"
+              value={recTime}
+              onChange={(e) => setRecTime(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Stage progress bar */}
