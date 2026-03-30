@@ -128,7 +128,7 @@ export default function DashboardTab() {
         <div className="dh-d1">
           <button className={`dh-d1-btn ${filterGroup === 'all' ? 'active' : ''}`} onClick={() => setFilterGroup('all')}>전체</button>
           {groups.map((g) => (
-            <button key={g} className={`dh-d1-btn ${filterGroup === g ? 'active' : ''}`} onClick={() => setFilterGroup(g)}>{g}조</button>
+            <button key={g} className={`dh-d1-btn ${filterGroup === g ? 'active' : ''}`} onClick={() => setFilterGroup(g)}>{g}</button>
           ))}
         </div>
       )}

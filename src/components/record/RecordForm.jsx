@@ -40,10 +40,10 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
   const [humidity, setHumidity] = useState(editLog?.houseHumidity ?? editLog?.humidity ?? '');
   const [memo, setMemo] = useState(editLog?.memo || '');
   const [weather, setWeather] = useState(null);
+  const [date, setDate] = useState(editLog?.date || new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [removedPhotoPaths, setRemovedPhotoPaths] = useState([]);
-  const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => { fetchCurrentWeather().then((w) => w && setWeather(w)).catch(() => {}); }, []);
 
@@ -80,7 +80,7 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
       const logData = {
         cropId,
         stage: stage || null,
-        date: editLog?.date || today,
+        date,
         // 하우스 내부 (수동)
         houseTemp: temperature !== '' ? Number(temperature) : null,
         houseHumidity: humidity !== '' ? Number(humidity) : null,
@@ -159,6 +159,18 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
           {selectedCrop?.variety && <span className="record-form-crop-variety">{selectedCrop.variety}</span>}
         </div>
         <button className="btn-ghost" onClick={onCancel}>취소</button>
+      </div>
+
+      {/* Date picker */}
+      <div className="record-form-section">
+        <p className="record-form-section-label">날짜</p>
+        <input
+          className="input"
+          type="date"
+          value={date}
+          max={new Date().toISOString().slice(0, 10)}
+          onChange={(e) => setDate(e.target.value)}
+        />
       </div>
 
       {/* Stage progress bar */}
