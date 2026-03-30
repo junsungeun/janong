@@ -21,6 +21,14 @@ const resizeImage = (file, maxW = 1200) =>
     img.src = URL.createObjectURL(file);
   });
 
+const nowLocal = () => {
+  const d = new Date();
+  d.setSeconds(0, 0);
+  // datetime-local은 로컬 시간 기준 YYYY-MM-DDTHH:MM 형식 필요
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
   const { user } = useAuth();
   const cameraRef = useRef(null);
@@ -40,7 +48,11 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
   const [humidity, setHumidity] = useState(editLog?.houseHumidity ?? editLog?.humidity ?? '');
   const [memo, setMemo] = useState(editLog?.memo || '');
   const [weather, setWeather] = useState(null);
-  const [date, setDate] = useState(editLog?.date || new Date().toISOString().slice(0, 10));
+  const [datetime, setDatetime] = useState(
+    editLog?.date
+      ? `${editLog.date}T${editLog.recordTime || '00:00'}`
+      : nowLocal()
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [removedPhotoPaths, setRemovedPhotoPaths] = useState([]);
@@ -80,7 +92,8 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
       const logData = {
         cropId,
         stage: stage || null,
-        date,
+        date: datetime.slice(0, 10),
+        recordTime: datetime.slice(11, 16),
         // 하우스 내부 (수동)
         houseTemp: temperature !== '' ? Number(temperature) : null,
         houseHumidity: humidity !== '' ? Number(humidity) : null,
@@ -166,10 +179,10 @@ export default function RecordForm({ crops = [], editLog, onSave, onCancel }) {
         <p className="record-form-section-label">날짜</p>
         <input
           className="input"
-          type="date"
-          value={date}
-          max={new Date().toISOString().slice(0, 10)}
-          onChange={(e) => setDate(e.target.value)}
+          type="datetime-local"
+          value={datetime}
+          max={nowLocal()}
+          onChange={(e) => setDatetime(e.target.value)}
         />
       </div>
 
