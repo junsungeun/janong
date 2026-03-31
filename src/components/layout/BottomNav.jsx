@@ -1,10 +1,10 @@
-import { Home, BookOpen, BarChart2, Megaphone } from 'lucide-react';
+import { Home, BookOpen, BarChart2, GraduationCap } from 'lucide-react';
 
 const tabs = [
   { key: 'home', label: '홈', Icon: Home },
   { key: 'record', label: '기록', Icon: BookOpen },
   { key: 'dashboard', label: '대시보드', Icon: BarChart2 },
-  { key: 'notices', label: '공고', Icon: Megaphone },
+  { key: 'quiz', label: '기출문제', Icon: GraduationCap },
 ];
 
 export default function BottomNav({ activeTab, onTabChange }) {

@@ -6,7 +6,7 @@ import LoginPage from './components/auth/LoginPage';
 import HomeTab from './components/home/HomeTab';
 import RecordTab from './components/record/RecordTab';
 import DashboardTab from './components/dashboard/DashboardTab';
-import NoticesTab from './components/notices/NoticesTab';
+import QuizTab from './components/quiz/QuizTab';
 import SettingsTab from './components/settings/SettingsTab';
 import { ToastContainer } from './components/ui/Toast';
 import './styles/globals.css';
@@ -44,7 +44,7 @@ function AppMain() {
       case 'home':       return <HomeTab onNavigate={handleNavigate} />;
       case 'record':     return <RecordTab initialCropFilter={recordFilterCropId} />;
       case 'dashboard':  return <DashboardTab />;
-      case 'notices':    return <NoticesTab />;
+      case 'quiz':       return <QuizTab />;
       case 'settings':   return <SettingsTab />;
       default:           return null;
     }
