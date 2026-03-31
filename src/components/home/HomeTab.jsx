@@ -78,6 +78,7 @@ export default function HomeTab({ onNavigate }) {
       await db.update(TABLES.CROP, editCrop.id, {
         name: editCrop.name,
         variety: editCrop.variety,
+        startType: editCrop.startType,
         plantingDate: editCrop.plantingDate,
         section: editCrop.section,
       });
@@ -246,7 +247,21 @@ export default function HomeTab({ onNavigate }) {
               <Field label="품종">
                 <Input name="variety" value={editCrop.variety || ''} onChange={(e) => setEditCrop({ ...editCrop, variety: e.target.value })} />
               </Field>
-              <Field label="파종일">
+              <Field label="시작 유형">
+                <div className="start-type-chips">
+                  {[{ value: '파종', label: '파종' }, { value: '모종 정식', label: '모종 정식' }].map((t) => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      className={`start-type-chip ${editCrop.startType === t.value ? 'active' : ''}`}
+                      onClick={() => setEditCrop({ ...editCrop, startType: editCrop.startType === t.value ? '' : t.value })}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <Field label="재배 시작일">
                 <Input name="plantingDate" type="date" value={editCrop.plantingDate || ''} onChange={(e) => setEditCrop({ ...editCrop, plantingDate: e.target.value })} />
               </Field>
               <Field label="구획 위치">

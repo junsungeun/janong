@@ -10,7 +10,8 @@ import Spinner from '../ui/Spinner';
 import { Field, Input } from '../ui/Input';
 
 const CATEGORIES = ['채소', '과일', '허브', '곡물', '화훼', '기타'];
-const EMPTY = { name: '', variety: '', plantingDate: '', section: '', category: '' };
+const START_TYPES = [{ value: '파종', label: '파종' }, { value: '모종 정식', label: '모종 정식' }];
+const EMPTY = { name: '', variety: '', startType: '', plantingDate: '', section: '', category: '' };
 
 export default function CropManager() {
   const { user } = useAuth();
@@ -27,7 +28,8 @@ export default function CropManager() {
   const openEdit = (c) => {
     setForm({
       name: c.name || '', variety: c.variety || '',
-      plantingDate: c.plantingDate || '', section: c.section || '', category: c.category || '',
+      startType: c.startType || '', plantingDate: c.plantingDate || '',
+      section: c.section || '', category: c.category || '',
     });
     setEditId(c.id);
     setShowForm(true);
@@ -107,8 +109,9 @@ export default function CropManager() {
                   </button>
                 </div>
               </div>
-              {(crop.plantingDate || crop.section) && (
+              {(crop.plantingDate || crop.section || crop.startType) && (
                 <div className="crop-manager-meta">
+                  {crop.startType && <span className="crop-manager-meta-item">{crop.startType}</span>}
                   {crop.plantingDate && <span className="crop-manager-meta-item">{crop.plantingDate}</span>}
                   {crop.section && <span className="crop-manager-meta-item">{crop.section}</span>}
                 </div>
@@ -129,7 +132,21 @@ export default function CropManager() {
               <Field label="품종">
                 <Input name="variety" value={form.variety} onChange={handleChange} placeholder="예: 대추방울토마토" />
               </Field>
-              <Field label="파종일">
+              <Field label="시작 유형">
+                <div className="start-type-chips">
+                  {START_TYPES.map((t) => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      className={`start-type-chip ${form.startType === t.value ? 'active' : ''}`}
+                      onClick={() => setForm({ ...form, startType: form.startType === t.value ? '' : t.value })}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <Field label="재배 시작일">
                 <Input name="plantingDate" type="date" value={form.plantingDate} onChange={handleChange} />
               </Field>
               <Field label="카테고리">

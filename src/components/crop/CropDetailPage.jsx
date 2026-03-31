@@ -34,7 +34,7 @@ export default function CropDetailPage({ crop, onClose, onViewLog, onDeleteLog }
           </div>
           {crop.variety && <p className="crop-detail-variety">{crop.variety}</p>}
           <div className="crop-detail-meta">
-            {crop.plantingDate && <span>파종 {crop.plantingDate}</span>}
+            {crop.plantingDate && <span>{crop.startType || '재배 시작'} {crop.plantingDate}</span>}
             {daysSincePlanting != null && <span>{daysSincePlanting}일째</span>}
             {lastStage && <span>{lastStage.icon} {lastStage.label}</span>}
           </div>

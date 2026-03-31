@@ -41,7 +41,7 @@ export default function AdminCrops() {
   });
 
   const openEdit = (c) => {
-    setForm({ name: c.name || '', variety: c.variety || '', category: c.category || '', plantingDate: c.plantingDate || '', section: c.section || '' });
+    setForm({ name: c.name || '', variety: c.variety || '', category: c.category || '', startType: c.startType || '', plantingDate: c.plantingDate || '', section: c.section || '' });
     setError('');
     setModal({ type: 'edit', crop: c });
   };
@@ -121,7 +121,7 @@ export default function AdminCrops() {
                       {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
-                  <div><label className="admin-input-label">파종일</label><input className="input" type="date" value={form.plantingDate} onChange={(e) => setForm({ ...form, plantingDate: e.target.value })} /></div>
+                  <div><label className="admin-input-label">재배 시작일</label><input className="input" type="date" value={form.plantingDate} onChange={(e) => setForm({ ...form, plantingDate: e.target.value })} /></div>
                   <div><label className="admin-input-label">구획</label><input className="input" value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })} /></div>
                 </div>
                 {error && <p className="admin-modal-error">{error}</p>}
