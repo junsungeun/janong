@@ -1,151 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { PRODUCTS, GROUPS } from '../../data/products';
+import { PRODUCTS } from '../../data/products';
 import ShopDetailView from './ShopDetailView';
 
 const won = (n) => n.toLocaleString('ko-KR') + '원';
 
-const totalStock = PRODUCTS.reduce((s, p) => s + (p.stock || 0), 0);
-const productCount = PRODUCTS.length;
-const groupCount = 4;
-
-// ── 인트로 화면 ──────────────────────────────────────────
-function IntroView({ onStart }) {
-  return (
-    <div className="intro-root">
-
-      {/* COVER */}
-      <div className="intro-hero">
-        <img src="/assets/hero-rachel.jpg" alt="seedlog" className="intro-hero-img" />
-        <div className="intro-hero-overlay" />
-        <div className="intro-hero-content">
-          <span className="intro-eyebrow">청년귀농장기교육 1기 허브과정</span>
-          <img src="/assets/seedlog-logo-white.svg" alt="seedlog" className="intro-logo" />
-          <p className="intro-hero-sub">판매 현장 · 2026</p>
-          <div className="intro-cover-stats">
-            {[
-              [totalStock, '총 판매 수량'],
-              [productCount, '작물 종류'],
-              [groupCount, '판매 조'],
-              [14, '교육생'],
-            ].map(([n, l]) => (
-              <div key={l} className="ics">
-                <div className="ics-n">{n}</div>
-                <div className="ics-l">{l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* 01 BRAND */}
-      <div className="sp-section sp-section--off">
-        <span className="sp-lbl">01 / Brand</span>
-        <span className="sp-rule" />
-        <div className="sp-brand-grid">
-          <div>
-            <h2 className="sp-h2">seedlog</h2>
-            <p className="sp-desc">
-              <strong style={{ color: '#1A1A1A', fontWeight: 600 }}>씨앗(seed)</strong>의 시작부터
-              자라는 모든 과정을{' '}
-              <strong style={{ color: '#1A1A1A', fontWeight: 600 }}>기록(log)</strong>하는 브랜드입니다.
-            </p>
-            <p className="sp-desc">
-              청년귀농장기교육 1기 허브과정 14명의 교육생이 직접 재배하고
-              데이터로 기록한 작물을 판매합니다.
-            </p>
-          </div>
-          <div className="sp-brand-img-wrap">
-            <img src="/assets/brand.png" alt="seedlog brand" className="sp-brand-img" />
-          </div>
-        </div>
-        <div className="sp-callout">
-          <p>
-            작물의 시작부터 자라나는 과정을 모두 기록하고,<br />
-            <strong>데이터로 농업에 접근한 첫 번째 허브 판매.</strong>
-          </p>
-        </div>
-      </div>
-
-      {/* 02 CROPS */}
-      <div className="sp-section sp-section--white">
-        <span className="sp-lbl">02 / Crops</span>
-        <span className="sp-rule" />
-        <h2 className="sp-h2">조별 판매 작물</h2>
-
-        <div className="sp-stat-row">
-          <div className="sp-stat-box">
-            <div className="sp-stat-n">{totalStock}</div>
-            <div className="sp-stat-l">총 수량</div>
-          </div>
-          <div className="sp-stat-box">
-            <div className="sp-stat-n">{productCount}</div>
-            <div className="sp-stat-l">작물 종류</div>
-          </div>
-          <div className="sp-stat-box">
-            <div className="sp-stat-n">{groupCount}</div>
-            <div className="sp-stat-l">판매 조</div>
-          </div>
-        </div>
-
-        <table className="sp-table">
-          <thead>
-            <tr>
-              <th style={{ width: 48 }}>조</th>
-              <th>작물명</th>
-              <th>규격</th>
-              <th className="c" style={{ width: 56 }}>가격</th>
-            </tr>
-          </thead>
-          <tbody>
-            {PRODUCTS.map((p) => (
-              <tr key={p.id}>
-                <td className="zo">{p.group}</td>
-                <td>{p.name}</td>
-                <td>{p.size}</td>
-                <td className="num">{won(p.price)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* 주문 방법 */}
-      <div className="sp-section sp-section--dark">
-        <span className="sp-lbl sp-lbl--light">How to Order</span>
-        <span className="sp-rule" />
-        <h2 className="sp-h2 sp-h2--light">주문 방법</h2>
-        <div className="sp-qr-steps">
-          {[
-            { n: '01', title: '작물 선택', desc: '원하는 작물을 눌러 상세 정보를 확인 후 장바구니에 담아주세요.' },
-            { n: '02', title: '계좌 입금', desc: '카카오뱅크 7942-30-78712\n입금자명을 주문자 이름과 동일하게 입력해주세요.' },
-            { n: '03', title: '입금 확인 후 안내', desc: '입금 확인 후 수령 방법을 안내드립니다.' },
-          ].map((s) => (
-            <div key={s.n} className="sp-qr-step">
-              <span className="sp-qr-num">{s.n}</span>
-              <div>
-                <div className="sp-qr-title">{s.title}</div>
-                <div className="sp-qr-desc" style={{ whiteSpace: 'pre-line' }}>{s.desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="intro-bottom-spacer" />
-
-      <div className="intro-bottom-bar">
-        <button className="intro-cta-btn" onClick={onStart}>
-          지금 주문하기
-          <span className="intro-cta-arrow">→</span>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── 주문 화면 ──────────────────────────────────────────
-function OrderView({ qty, onChangeQty, onViewDetail, onDone }) {
+// ── 인트로 + 주문 통합 화면 ───────────────────────────────
+function IntroView({ qty, onChangeQty, onDone }) {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', memo: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -179,81 +40,157 @@ function OrderView({ qty, onChangeQty, onViewDetail, onDone }) {
   };
 
   return (
-    <div className="order-root">
-      <header className="order-header">
-        <div className="order-header-brand">
-          <img src="/assets/seedlog-logo-white.svg" alt="seedlog" style={{ height: 20, width: 'auto' }} />
-          <span className="order-header-tag">주문서</span>
+    <div className="intro-root">
+
+      {/* COVER */}
+      <div className="intro-hero">
+        <img src="/assets/hero-rachel.jpg" alt="seedlog" className="intro-hero-img" />
+        <div className="intro-hero-overlay" />
+        <div className="intro-hero-content">
+          <span className="intro-eyebrow">청년귀농장기교육 1기 허브과정</span>
+          <img src="/assets/seedlog-logo-white.svg" alt="seedlog" className="intro-logo" />
+          <p className="intro-hero-sub">판매 현장 · 2026</p>
         </div>
-        {totalQty > 0 && (
-          <div className="order-header-cart">
-            <span>담은 항목</span>
-            <span className="order-header-cart-count">{totalQty}</span>
-          </div>
-        )}
-      </header>
-
-      <div className="order-body">
-        <div className="order-intro">
-          <h2 className="order-intro-title">작물 선택</h2>
-          <p className="order-intro-desc">작물을 눌러 상세 정보를 확인하고 장바구니에 담아주세요.</p>
-        </div>
-
-        {GROUPS.map(({ key, label }) => {
-          const items = PRODUCTS.filter((p) => p.group === key);
-          return (
-            <div key={key} className="order-group">
-              <div className="order-group-header">
-                <span className="order-group-badge">{key}</span>
-                {label !== key && <span className="order-group-name">{label}</span>}
-              </div>
-              <div className="order-product-grid">
-                {items.map((product) => {
-                  const count = qty[product.id] || 0;
-                  return (
-                    <div
-                      key={product.id}
-                      className={`order-product-card${count > 0 ? ' selected' : ''}`}
-                      onClick={() => onViewDetail(product)}
-                    >
-                      {/* 장바구니 뱃지 */}
-                      {count > 0 && (
-                        <div className="order-cart-badge">{count}개</div>
-                      )}
-
-                      {/* 이미지 영역 */}
-                      <div className="order-product-thumb" style={{ background: product.color + '18' }}>
-                        {product.image
-                          ? <img src={product.image} alt={product.name} />
-                          : <div className="order-product-thumb-dot" style={{ background: product.color }} />
-                        }
-                      </div>
-
-                      {/* 정보 */}
-                      <div className="order-product-info-block">
-                        <div className="order-product-name">{product.name}</div>
-                        <div className="order-product-meta">
-                          <span className="order-product-size">{product.size}</span>
-                          {product.note && <span className="order-product-note">{product.note}</span>}
-                        </div>
-                        <div className="order-product-price">{won(product.price)}</div>
-                      </div>
-
-                      {/* 상세 보기 링크 */}
-                      <div className="order-product-detail-link">
-                        상세 보기 →
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
       </div>
 
-      <div className="order-bottom-bar">
-        {selectedItems.length > 0 && (
+      {/* 01 BRAND */}
+      <div className="sp-section sp-section--off">
+        <span className="sp-lbl">01 / Brand</span>
+        <span className="sp-rule" />
+        <div className="sp-brand-grid">
+          <div>
+            <h2 className="sp-h2">seedlog</h2>
+            <p className="sp-desc">
+              <strong style={{ color: '#1A1A1A', fontWeight: 600 }}>씨앗(seed)</strong>의 시작부터
+              자라는 모든 과정을{' '}
+              <strong style={{ color: '#1A1A1A', fontWeight: 600 }}>기록(log)</strong>하는 브랜드입니다.
+            </p>
+            <p className="sp-desc">
+              청년귀농장기교육 1기 허브과정 14명의 교육생이 직접 재배하고
+              데이터로 기록한 작물을 판매합니다.
+            </p>
+          </div>
+          <div className="sp-brand-img-wrap">
+            <img src="/assets/brand.png" alt="seedlog brand" className="sp-brand-img" />
+          </div>
+        </div>
+        <div className="sp-callout">
+          <p>
+            작물의 시작부터 자라나는 과정을 모두 기록하고,<br />
+            <strong>데이터로 농업에 접근한 첫 번째 허브 판매.</strong>
+          </p>
+        </div>
+      </div>
+
+      {/* 02 주문 — 상품 2개 */}
+      <div className="sp-section sp-section--white">
+        <span className="sp-lbl">02 / Order</span>
+        <span className="sp-rule" />
+        <h2 className="sp-h2">바질 모종 선택</h2>
+        <p className="sp-desc" style={{ marginBottom: 24 }}>원하는 바질을 수량 선택 후 주문해주세요.</p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {PRODUCTS.map((product) => {
+            const count = qty[product.id] || 0;
+            return (
+              <div
+                key={product.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  padding: '16px',
+                  border: `1.5px solid ${count > 0 ? product.color : '#E5E5E3'}`,
+                  borderRadius: 10,
+                  background: count > 0 ? product.color + '0A' : '#fff',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {/* 이미지 */}
+                <div style={{
+                  width: 72, height: 72, borderRadius: 8, flexShrink: 0,
+                  background: product.color + '18',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                }}>
+                  {product.image
+                    ? <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <div style={{ width: 32, height: 32, borderRadius: '50%', background: product.color }} />
+                  }
+                </div>
+
+                {/* 이름 + 가격 */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: '#111', marginBottom: 2 }}>{product.name}</div>
+                  <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>{product.size} 포트 · 자연농업</div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: product.color }}>{won(product.price)}</div>
+                </div>
+
+                {/* 수량 조절 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  {count > 0 ? (
+                    <>
+                      <button
+                        onClick={() => onChangeQty(product.id, count - 1)}
+                        style={{
+                          width: 32, height: 32, borderRadius: '50%', border: '1.5px solid #ddd',
+                          background: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', color: '#555',
+                        }}
+                      >−</button>
+                      <span style={{ minWidth: 20, textAlign: 'center', fontWeight: 700, fontSize: 15 }}>{count}</span>
+                      <button
+                        onClick={() => onChangeQty(product.id, count + 1)}
+                        style={{
+                          width: 32, height: 32, borderRadius: '50%', border: 'none',
+                          background: product.color, fontSize: 18, cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', color: '#fff',
+                        }}
+                      >+</button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => onChangeQty(product.id, 1)}
+                      style={{
+                        padding: '8px 18px', borderRadius: 20, border: 'none',
+                        background: product.color, color: '#fff', fontWeight: 700,
+                        fontSize: 13, cursor: 'pointer',
+                      }}
+                    >+ 담기</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 주문 방법 */}
+      <div className="sp-section sp-section--dark">
+        <span className="sp-lbl sp-lbl--light">How to Order</span>
+        <span className="sp-rule" />
+        <h2 className="sp-h2 sp-h2--light">주문 방법</h2>
+        <div className="sp-qr-steps">
+          {[
+            { n: '01', title: '수량 선택', desc: '위에서 원하는 바질과 수량을 선택하세요.' },
+            { n: '02', title: '계좌 입금', desc: '카카오뱅크 7942-30-78712\n입금자명을 주문자 이름과 동일하게 입력해주세요.' },
+            { n: '03', title: '입금 확인 후 안내', desc: '입금 확인 후 수령 방법을 안내드립니다.' },
+          ].map((s) => (
+            <div key={s.n} className="sp-qr-step">
+              <span className="sp-qr-num">{s.n}</span>
+              <div>
+                <div className="sp-qr-title">{s.title}</div>
+                <div className="sp-qr-desc" style={{ whiteSpace: 'pre-line' }}>{s.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ height: totalQty > 0 ? 100 : 40 }} />
+
+      {/* 하단 고정 바 — 담은 항목 있을 때만 */}
+      {totalQty > 0 && (
+        <div className="order-bottom-bar">
           <div className="order-bottom-chips">
             {selectedItems.map((item) => (
               <div key={item.id} className="order-bottom-chip">
@@ -262,16 +199,17 @@ function OrderView({ qty, onChangeQty, onViewDetail, onDone }) {
               </div>
             ))}
           </div>
-        )}
-        <div className="order-bottom-inner">
-          <div className="order-bottom-summary">
-            <div className="order-bottom-count">{totalQty > 0 ? `${totalQty}개 선택` : '작물을 선택해주세요'}</div>
-            <div className="order-bottom-total">{totalQty > 0 ? won(totalPrice) : '—'}</div>
+          <div className="order-bottom-inner">
+            <div className="order-bottom-summary">
+              <div className="order-bottom-count">{totalQty}개 선택</div>
+              <div className="order-bottom-total">{won(totalPrice)}</div>
+            </div>
+            <button className="order-submit-btn" onClick={() => setShowModal(true)}>주문하기</button>
           </div>
-          <button className="order-submit-btn" disabled={totalQty === 0} onClick={() => setShowModal(true)}>주문하기</button>
         </div>
-      </div>
+      )}
 
+      {/* 주문 확인 모달 */}
       {showModal && (
         <div className="order-modal-overlay" onClick={() => setShowModal(false)}>
           <div className="order-modal" onClick={(e) => e.stopPropagation()}>
@@ -340,25 +278,41 @@ export default function OrderApp() {
   const [qty, setQty] = useState({});
   const [detailProduct, setDetailProduct] = useState(null);
 
-  // qty 업데이트 (장바구니 담기)
-  const handleAddToCart = (productId, count) => {
-    setQty((prev) => {
-      if (count <= 0) {
-        const { [productId]: _, ...rest } = prev;
-        return rest;
+  useEffect(() => {
+    const onPop = () => {
+      const h = window.location.hash;
+      if (h.startsWith('#detail/')) {
+        const id = h.replace('#detail/', '');
+        const p = PRODUCTS.find(pr => pr.id === id);
+        if (p) { setDetailProduct(p); setView('detail'); }
+      } else if (h === '#success') {
+        setView('success');
+      } else {
+        setView('intro');
       }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const handleChangeQty = (productId, count) => {
+    setQty((prev) => {
+      if (count <= 0) { const { [productId]: _, ...rest } = prev; return rest; }
       return { ...prev, [productId]: count };
     });
   };
 
-  // 상세 페이지 열기
   const handleViewDetail = (product) => {
     setDetailProduct(product);
+    window.history.pushState({}, '', '#detail/' + product.id);
     setView('detail');
   };
 
   if (view === 'success') {
-    return <SuccessView data={doneData} onReset={() => { setView('intro'); setQty({}); }} />;
+    return <SuccessView data={doneData} onReset={() => {
+      window.history.pushState({}, '', '#');
+      setView('intro'); setQty({});
+    }} />;
   }
 
   if (view === 'detail' && detailProduct) {
@@ -366,22 +320,17 @@ export default function OrderApp() {
       <ShopDetailView
         product={detailProduct}
         currentQty={qty[detailProduct.id] || 0}
-        onBack={() => setView('order')}
-        onAddToCart={handleAddToCart}
+        onBack={() => window.history.back()}
+        onAddToCart={handleChangeQty}
       />
     );
   }
 
-  if (view === 'order') {
-    return (
-      <OrderView
-        qty={qty}
-        onChangeQty={handleAddToCart}
-        onViewDetail={handleViewDetail}
-        onDone={(d) => { setDoneData(d); setView('success'); }}
-      />
-    );
-  }
-
-  return <IntroView onStart={() => setView('order')} />;
+  return (
+    <IntroView
+      qty={qty}
+      onChangeQty={handleChangeQty}
+      onDone={(d) => { setDoneData(d); setView('success'); }}
+    />
+  );
 }
